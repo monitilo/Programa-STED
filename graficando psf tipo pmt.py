@@ -4,12 +4,13 @@ import matplotlib.pyplot as plt
 import time
 # %%
 
-name= "imagenScan.npz"
-f=open(name,"r")
-data=np.load(name)
-f.close()
+#name= "imagenScan.npz"
+#f=open(name,"r")
+#data=np.load(name)
+#f.close()
 # %%
 
+data = np.ones((100,100))
 x = np.linspace(0, 1, len(data))
 y = x
 

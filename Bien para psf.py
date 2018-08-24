@@ -1263,6 +1263,14 @@ class ScanWidget(QtGui.QFrame):
 #        guardado.save(name)
         print("\n Hipoteticamente Guardo la imagen\n")
 
+    def CMmeasure(self):
+        maxvalue = np.max(self.image)
+        minvalue = np.min(self.image)
+        
+        for i in range(self.numberofPixels):
+            for j in range(self.numberofPixels):
+                self.image
+mmmm pensar mejor
 
 
 app = QtGui.QApplication([])
