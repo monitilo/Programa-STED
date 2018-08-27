@@ -9,6 +9,26 @@ import time
 #data=np.load(name)
 #f.close()
 # %%
+from PIL import Image
+from tkinter import filedialog
+import os
+#import tkinter as tk
+N = 1000
+data = np.random.rand(N,N)
+#root = tk.Tk()
+#root.withdraw()
+#filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
+filepath = filedialog.askdirectory()
+#filepath = os.path.abspath("")
+print(filepath, 4)
+timestr = time.strftime("%Y%m%d-%H%M%S")
+print(time, 5)
+name = str(filepath + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+print(name, 6)
+guardado = Image.fromarray(data)
+guardado.save(name)
+print("bbbba")
+# %%
 
 data = np.ones((100,100))
 x = np.linspace(0, 1, len(data))

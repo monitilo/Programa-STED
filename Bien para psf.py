@@ -1,4 +1,6 @@
 ﻿
+import os
+
 import numpy as np
 import time
 #import scipy.ndimage as ndi
@@ -10,7 +12,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 #from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
 
-#from PIL import Image
+from PIL import Image
 
 import re
 
@@ -119,6 +121,11 @@ class ScanWidget(QtGui.QFrame):
 #        self.edit_save = QtGui.QLineEdit('imagenScan.tiff')
 #        self.edit_save.resize(self.edit_save.sizeHint())
 
+        self.NameDirButton = QtGui.QPushButton('Open')
+        self.NameDirButton.clicked.connect(self.openFolder)
+        self.file_path = os.path.abspath("")
+        self.NameDirValue = QtGui.QLabel('')
+
     # Defino el tipo de Scan que quiero
 
         self.scanMode = QtGui.QComboBox()
@@ -145,6 +152,7 @@ class ScanWidget(QtGui.QFrame):
         self.shuttergreenbutton.clicked.connect(self.shuttergreen)
         self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
         self.shutterotrobutton.clicked.connect(self.shutterotro)
+
     # Scanning parameters
 
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0 z0] (µm)')
@@ -227,6 +235,8 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.scanMode, 12, 1)
         subgrid.addWidget(self.saveimageButton, 15, 1)  #
+        subgrid.addWidget(self.NameDirButton, 1, 2)
+
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -293,6 +303,7 @@ class ScanWidget(QtGui.QFrame):
 #        layout.addWidget(QtGui.QLabel("||"), 1, 7)
 #        layout.addWidget(QtGui.QLabel("||"), 2, 7)
 #        layout.addWidget(QtGui.QLabel("||"), 4, 7)
+        layout.addWidget(self.NameDirValue, 8, 0, 1, 8)
         self.yStepEdit.setValidator(self.onlypos)
         self.zStepEdit.setValidator(self.onlypos)
 
@@ -375,7 +386,7 @@ class ScanWidget(QtGui.QFrame):
 
     def paramChanged(self):
         """ Update the parameters when the user edit them """
-
+        self.NameDirValue.setText(self.file_path)
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
         self.pixelTime = float(self.pixelTimeEdit.text()) / 10**3  # seconds
@@ -1251,17 +1262,22 @@ class ScanWidget(QtGui.QFrame):
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
 
-#        name = str(self.edit_save.text())
-#        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-#        timestr = time.strftime("%Y%m%d-%H%M%S")
-#        name = str(filepath + "image-" + timestr + ".tiff")  # nombre con la fecha -hora
-#        guardado = Image.fromarray(self.image)
-#        guardado.save(name)
 
-#        name = str(filepath + "imageVUELTA-" + timestr + ".tiff")  # nombre con la fecha -hora
-#        guardado = Image.fromarray(self.imagevuelta)
-#        guardado.save(name)
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+        guardado = Image.fromarray(self.image)
+        guardado.save(name)
+
         print("\n Hipoteticamente Guardo la imagen\n")
+
+    def openFolder(self):
+
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.paramChanged()
 
     def CMmeasure(self):
         maxvalue = np.max(self.image)

@@ -1,7 +1,11 @@
 
 """ Programa inicial donde miraba como anda el liveScan
  sin usar la pc del STED. incluye positioner"""
- 
+
+#import subprocess
+#import sys
+import os
+
 import numpy as np
 import time
 #import scipy.ndimage as ndi
@@ -9,10 +13,10 @@ import time
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
-from pyqtgraph.dockarea import Dock, DockArea
+#from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
 #
-#from PIL import Image
+from PIL import Image
 
 import re
 
@@ -36,6 +40,7 @@ class ScanWidget(QtGui.QFrame):
             print("tocaste Escape")
             self.close()
             self.liveviewStop()
+
 
         if e.key() == QtCore.Qt.Key_Enter:
             print("tocaste Enter")
@@ -121,6 +126,9 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: gray; }"
                 "QPushButton:pressed { background-color: blue; }")
 
+        self.NameDirButton = QtGui.QPushButton('Open')
+        self.NameDirButton.clicked.connect(self.openFolder)
+        self.file_path = os.path.abspath("")
         # Defino el tipo de Scan que quiero
 
         self.scanMode = QtGui.QComboBox()
@@ -144,6 +152,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
+
 
     # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
 
@@ -210,6 +219,7 @@ class ScanWidget(QtGui.QFrame):
 #                np.around(float(initialPosition[1]), 2)))
 #        self.zLabel.setText("{}".format(
 #                np.around(float(initialPosition[2]), 2)))
+        self.NameDirValue = QtGui.QLabel('')
 
         self.paramChanged()
 
@@ -217,39 +227,47 @@ class ScanWidget(QtGui.QFrame):
 
         grid = QtGui.QGridLayout()
         self.setLayout(grid)
-        grid.addWidget(imageWidget, 0, 0)
-        grid.addWidget(self.paramWidget, 0, 1)
+        grid.addWidget(imageWidget, 2, 0)
+        grid.addWidget(self.paramWidget, 2, 1)
+
+
 
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
 #        subgrid.addWidget(self.initialPositionLabel, 0, 1)
 #        subgrid.addWidget(self.initialPositionEdit, 1, 1)
-        subgrid.addWidget(self.shutterredbutton, 0, 1)
-        subgrid.addWidget(self.shuttergreenbutton, 1, 1)
-        subgrid.addWidget(self.shutterotrobutton, 2, 1)
-        subgrid.addWidget(self.scanRangeLabel, 3, 1)
-        subgrid.addWidget(self.scanRangeEdit, 4, 1)
+        subgrid.addWidget(self.shutterredbutton, 1, 1)
+        subgrid.addWidget(self.shuttergreenbutton, 2, 1)
+        subgrid.addWidget(self.shutterotrobutton, 3, 1)
+        subgrid.addWidget(self.scanRangeLabel, 4, 1)
+        subgrid.addWidget(self.scanRangeEdit, 5, 1)
 #        subgrid.addWidget(self.scanRangeyLabel, 3, 2)
 #        subgrid.addWidget(self.scanRangeyEdit, 4, 2)
-        subgrid.addWidget(pixelTimeLabel, 5, 1)
-        subgrid.addWidget(self.pixelTimeEdit, 6, 1)
-        subgrid.addWidget(numberofPixelsLabel, 7, 1)
-        subgrid.addWidget(self.numberofPixelsEdit, 8, 1)
-        subgrid.addWidget(self.pixelSizeLabel, 9, 1)
-        subgrid.addWidget(self.pixelSizeValue, 10, 1)
-        subgrid.addWidget(self.scanMode, 12, 1)
+        subgrid.addWidget(pixelTimeLabel, 6, 1)
+        subgrid.addWidget(self.pixelTimeEdit, 7, 1)
+        subgrid.addWidget(numberofPixelsLabel, 8, 1)
+        subgrid.addWidget(self.numberofPixelsEdit, 9, 1)
+        subgrid.addWidget(self.pixelSizeLabel, 10, 1)
+        subgrid.addWidget(self.pixelSizeValue, 11, 1)
+        subgrid.addWidget(self.scanMode, 13, 1)
 
-        subgrid.addWidget(self.liveviewButton, 13, 1)
-        subgrid.addWidget(self.Alancheck, 14, 1)
-        subgrid.addWidget(self.timeTotalLabel, 15, 1)
-#        subgrid.addWidget(self.timeTotalValue, 14, 1)
-        subgrid.addWidget(self.saveimageButton, 16, 1)
-        subgrid.addWidget(self.stepcheck, 11, 1)
+        subgrid.addWidget(self.liveviewButton, 14, 1)
+        subgrid.addWidget(self.Alancheck, 15, 1)
+        subgrid.addWidget(self.timeTotalLabel, 16, 1)
+#        subgrid.addWidget(self.timeTotalValue, 15, 1)
+        subgrid.addWidget(self.saveimageButton, 17, 1)
+
+        subgrid.addWidget(self.NameDirButton, 17, 2)
+
+        subgrid.addWidget(self.stepcheck, 12, 1)
 #        subgrid.addWidget(self.squareRadio, 12, 2)
-        subgrid.addWidget(self.XZcheck, 14, 2)
-        subgrid.addWidget(self.YZcheck, 15, 2)
+        subgrid.addWidget(self.XZcheck, 15, 2)
+        subgrid.addWidget(self.YZcheck, 16, 2)
 #        subgrid.addWidget(label_save, 16, 0, 1, 2)
 #        subgrid.addWidget(self.edit_save, 17, 0, 1, 2)
+
+
+
 
 # - POSITIONERRRRR-------------------------------
 
@@ -283,6 +301,8 @@ class ScanWidget(QtGui.QFrame):
 #        layout.addWidget(QtGui.QLabel("||"), 1, 7)
 #        layout.addWidget(QtGui.QLabel("||"), 2, 7)
 #        layout.addWidget(QtGui.QLabel("||"), 4, 7)
+        layout.addWidget(self.NameDirValue, 8, 0, 1, 8)
+
         self.yStepEdit.setValidator(self.onlypos)
         self.zStepEdit.setValidator(self.onlypos)
 
@@ -305,6 +325,8 @@ class ScanWidget(QtGui.QFrame):
         self.xgotoLabel.setValidator(self.onlypos)
         self.ygotoLabel.setValidator(self.onlypos)
         self.zgotoLabel.setValidator(self.onlypos)
+
+
 
         # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
@@ -414,7 +436,7 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
     def paramChanged(self):
-
+        self.NameDirValue.setText(self.file_path)
         self.scanRange = float(self.scanRangeEdit.text())
 #        self.scanRangey = self.scanRangex  # float(self.scanRangeyEdit.text())
 
@@ -566,7 +588,6 @@ y guarde la imagen"""
 #                self.i = 0
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
-
                 self.movetoStart()
 
     def barridos(self):
@@ -614,18 +635,14 @@ y guarde la imagen"""
 
     def guardarimagen(self):
         print("\n Hipoteticamente Guardo la imagen\n")
-        root = tk.Tk()
-        root.withdraw()
-        
-        file_path = filedialog.askdirectory()
-        print(file_path)
+
 #        ####name = str(self.edit_save.text()) # solo si quiero elegir el nombre ( pero no quiero)
 
 #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-#        timestr = time.strftime("%Y%m%d-%H%M%S")
-#        name = str(filepath + "image-" + timestr + ".tiff")  # nombre con la fecha -hora
-#        guardado = Image.fromarray(self.image)
-#        guardado.save(name)
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+        guardado = Image.fromarray(self.image)
+        guardado.save(name)
 
 #        self.folderEdit = QtGui.QLineEdit(self.initialDir)
 #        openFolderButton = QtGui.QPushButton('Open')
@@ -893,6 +910,30 @@ y guarde la imagen"""
             self.liveviewStart()
 
 
+    def openFolder(self):
+
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.paramChanged()
+#        try:
+#            if sys.platform == 'darwin':
+#                subprocess.check_call(['open', '', self.folderEdit.text()])
+#            elif sys.platform == 'linux':
+#                subprocess.check_call(
+#                    ['gnome-open', '', self.folderEdit.text()])
+#            elif sys.platform == 'win32':
+#                os.startfile(self.folderEdit.text())
+#
+#        except FileNotFoundError:
+#            if sys.platform == 'darwin':
+#                subprocess.check_call(['open', '', self.dataDir])
+#            elif sys.platform == 'linux':
+#                subprocess.check_call(['gnome-open', '', self.dataDir])
+#            elif sys.platform == 'win32':
+#                os.startfile(self.dataDir)
 
 if __name__ == '__main__':
 
