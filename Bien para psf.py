@@ -1,5 +1,7 @@
 ﻿
 import os
+import tkinter as tk
+from tkinter import filedialog
 
 import numpy as np
 import time
@@ -1278,6 +1280,7 @@ class ScanWidget(QtGui.QFrame):
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
         self.paramChanged()
+
 
     def CMmeasure(self):
         maxvalue = np.max(self.image)
