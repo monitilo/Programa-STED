@@ -194,6 +194,8 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
 
+
+
         self.onlyInt = QtGui.QIntValidator(0,10**6)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
         self.onlypos = QtGui.QDoubleValidator(0, 10**6,10)
@@ -223,6 +225,13 @@ class ScanWidget(QtGui.QFrame):
 #        self.zLabel.setText("{}".format(
 #                np.around(float(initialPosition[2]), 2)))
         self.NameDirValue = QtGui.QLabel('')
+
+        self.CMxLabel = QtGui.QLabel('CM X')
+        self.CMxValue = QtGui.QLabel('NaN')
+        self.CMyLabel = QtGui.QLabel('CM Y')
+        self.CMyValue = QtGui.QLabel('NaN')
+        self.a = QtGui.QLineEdit('0.0')
+        self.b = QtGui.QLineEdit('0.0')
 
         self.paramChanged()
 
@@ -271,9 +280,12 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid.addWidget(label_save, 16, 0, 1, 2)
 #        subgrid.addWidget(self.edit_save, 17, 0, 1, 2)
 
-
-
-
+        self.aLabel = QtGui.QLabel('a')
+        self.bLabel = QtGui.QLabel('b')
+        subgrid.addWidget(self.aLabel, 1, 2)
+        subgrid.addWidget(self.a, 2, 2)
+        subgrid.addWidget(self.bLabel, 3, 2)
+        subgrid.addWidget(self.b, 4, 2)
 # - POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -321,12 +333,21 @@ class ScanWidget(QtGui.QFrame):
         self.xgotoLabel = QtGui.QLineEdit("0")
         self.ygotoLabel = QtGui.QLineEdit("0")
         self.zgotoLabel = QtGui.QLineEdit("0")
-        self.gotoButton = QtGui.QPushButton("♪ G0 ♫")
+        self.gotoButton = QtGui.QPushButton("♥ G0 To ♦")
         self.gotoButton.pressed.connect(self.goto)
         layout2.addWidget(self.gotoButton, 1, 9, 2, 2)
         layout2.addWidget(self.xgotoLabel, 1, 8)
         layout2.addWidget(self.ygotoLabel, 2, 8)
         layout2.addWidget(self.zgotoLabel, 3, 8)
+
+        layout2.addWidget(self.CMxLabel, 4, 8)
+        layout2.addWidget(self.CMxValue, 5, 8)
+        layout2.addWidget(self.CMyLabel, 4, 9)
+        layout2.addWidget(self.CMyValue, 5, 9)
+        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
+        self.goCMButton.pressed.connect(self.goCM)
+        layout2.addWidget(self.goCMButton, 2, 9, 2, 2)
+
         self.xgotoLabel.setValidator(self.onlypos)
         self.ygotoLabel.setValidator(self.onlypos)
         self.zgotoLabel.setValidator(self.onlypos)
@@ -442,6 +463,7 @@ class ScanWidget(QtGui.QFrame):
 
     def paramChanged(self):
         self.NameDirValue.setText(self.file_path)
+
         self.scanRange = float(self.scanRangeEdit.text())
 #        self.scanRangey = self.scanRangex  # float(self.scanRangeyEdit.text())
 
@@ -592,6 +614,7 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
 #                self.i = 0
+                self.CMmeasure()
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
                 self.movetoStart()
@@ -601,8 +624,8 @@ y guarde la imagen"""
 
     def linea(self):
         N=self.numberofPixels
-        a = 0
-        b = 0
+        a = float(self.a.text())
+        b = float(self.b.text())
         X = np.linspace(-2, 2, N)
         Y = np.linspace(-2, 2, N)
         X, Y = np.meshgrid(X, Y)
@@ -613,7 +636,7 @@ y guarde la imagen"""
             self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
             for i in range(self.numberofPixels):
                 borrar = 2
-            time.sleep(self.pixelTime*self.numberofPixels)
+#            time.sleep(self.pixelTime*self.numberofPixels)
     #        print("linea")
 
         else:# para hacerlo de a lineas y que no sea de 2 en 2:
@@ -621,7 +644,7 @@ y guarde la imagen"""
             self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:]))  # np.random.normal(size=(1, 2*self.numberofPixels))[0]
             for i in range(self.numberofPixels * 2):
                 borrar = 2
-            time.sleep(self.pixelTime*self.numberofPixels*2)
+#            time.sleep(self.pixelTime*self.numberofPixels*2)
     #        print("linea")
 
     def movetoStart(self):
@@ -642,7 +665,7 @@ y guarde la imagen"""
 #                 [volviendox[i] / convFactors['x'],
 #                  volviendoy[i] / convFactors['y'],
 #                  volviendoz[i] / convFactors['z']], auto_start=True)
-            time.sleep(t / N)
+#            time.sleep(t / N)
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
 
@@ -691,7 +714,8 @@ y guarde la imagen"""
         toc = ptime.time()
         for i in range(self.nSamples):
 #            self.aotask.write(fullSignal, auto_start=True)
-            time.sleep(t / N)
+#            time.sleep(t / N)
+            borrar = 1+1
 
         print("se mueve en", np.round(ptime.time() - toc, 3), "segs")
 
@@ -734,6 +758,18 @@ y guarde la imagen"""
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
 # --goto
+    def goCM(self):
+
+            self.zgotoLabel.setStyleSheet(" background-color: ")
+            print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
+                  float(self.zLabel.text()))
+
+            self.moveto(float(self.CMxValue.text()),
+                        float(self.CMyValue.text()),
+                        float(self.zLabel.text()))
+
+            print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),
+                  float(self.zLabel.text()))
 
     def goto(self):
 
@@ -786,7 +822,7 @@ y guarde la imagen"""
 #            self.aotask.write([rampx[i] / convFactors['x'],
 #                               rampy[i] / convFactors['y'],
 #                               rampz[i] / convFactors['z']], auto_start=True)
-            time.sleep(t / N)
+#            time.sleep(t / N)
 
         print("se mueve todo en", np.round(ptime.time()-tuc, 3),"segs")
 
@@ -842,8 +878,8 @@ y guarde la imagen"""
     
     def linearampa(self):
         N=self.numberofPixels
-        a = 0
-        b = 0
+        a = float(self.a.text())
+        b = float(self.b.text())
         #X = np.arange(-2, 2, 0.25)
         #Y = np.arange(-2, 2, 0.25)
         X = np.linspace(-2, 2, N)
@@ -857,7 +893,7 @@ y guarde la imagen"""
             self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
             for i in range(self.numberofPixels):
                 borrar = 2
-            time.sleep(self.pixelTime*self.numberofPixels)
+#            time.sleep(self.pixelTime*self.numberofPixels)
     #        print("linearampa")
     
         else:#para hacerlo de a lineas y que no sea de 2 en 2:
@@ -865,7 +901,7 @@ y guarde la imagen"""
             self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:])) #np.random.normal(size=(1, 2*self.numberofPixels))[0]
             for i in range(2*self.numberofPixels):
                 borrar = 2
-            time.sleep(self.pixelTime*2*self.numberofPixels)
+#            time.sleep(self.pixelTime*2*self.numberofPixels)
 
 
 #    def squareOrNot(self):
@@ -959,19 +995,26 @@ y guarde la imagen"""
 #                os.startfile(self.dataDir)
 
     def CMmeasure(self):
+
+
         Z = self.image
         N = len(Z)
         xcm = 0
         ycm = 0
         for i in range(N):
             for j in range(N):
-                xcm = xcm + (Z[i,j]*np.sqrt(i**2))
-                ycm = ycm + (Z[i,j]*np.sqrt(j**2))
-        xcm = xcm/np.sum(Z)
-        ycm = ycm/np.sum(Z)
+                xcm = xcm + (Z[i,j]*i**2)
+                ycm = ycm + (Z[i,j]*j**2)
+        M = np.sum(Z)
+        xcm = xcm/M
+        ycm = ycm/M
         print(xcm, ycm)
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
+        Normal = self.scanRange / self.numberofPixels
+        self.CMxValue.setText(str(xcm*Normal))
+        self.CMyValue.setText(str(ycm*Normal))
+
 #        resol = 2
 #        for i in range(resol):
 #            for j in range(resol):

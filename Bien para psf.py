@@ -319,13 +319,26 @@ class ScanWidget(QtGui.QFrame):
         self.xgotoLabel = QtGui.QLineEdit("0")
         self.ygotoLabel = QtGui.QLineEdit("0")
         self.zgotoLabel = QtGui.QLineEdit("0")
-        self.gotoButton = QtGui.QPushButton("Go")
+        self.gotoButton = QtGui.QPushButton("♫ G0 To ♪")
         self.gotoButton.pressed.connect(self.goto)
         layout2.addWidget(self.gotoButton, 1, 9, 2, 2)
         layout2.addWidget(self.xgotoLabel, 1, 8)
         layout2.addWidget(self.ygotoLabel, 2, 8)
         layout2.addWidget(self.zgotoLabel, 3, 8)
         self.zgotoLabel.setValidator(self.onlypos)
+
+        self.CMxLabel = QtGui.QLabel('CM X')
+        self.CMxValue = QtGui.QLabel('NaN')
+        self.CMyLabel = QtGui.QLabel('CM Y')
+        self.CMyValue = QtGui.QLabel('NaN')
+        layout2.addWidget(self.CMxLabel, 4, 8)
+        layout2.addWidget(self.CMxValue, 5, 8)
+        layout2.addWidget(self.CMyLabel, 4, 9)
+        layout2.addWidget(self.CMyValue, 5, 9)
+        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
+        self.goCMButton.pressed.connect(self.goCM)
+        layout2.addWidget(self.goCMButton, 2, 9, 2, 2)
+
 
         # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
@@ -1087,8 +1100,20 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
 
-# ---goto. Para ir a una posicion especifica
 
+    def goCM(self):
+            self.zgotoLabel.setStyleSheet(" background-color: ")
+            print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
+                  float(self.zLabel.text()))
+
+            self.moveto(float(self.CMxValue.text()),
+                        float(self.CMyValue.text()),
+                        float(self.zLabel.text()))
+
+            print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),
+                  float(self.zLabel.text()))
+
+# ---goto. Para ir a una posicion especifica
     def goto(self):
 
         print("arranco en", float(self.xLabel.text()),
@@ -1283,13 +1308,24 @@ class ScanWidget(QtGui.QFrame):
 
 
     def CMmeasure(self):
-        maxvalue = np.max(self.image)
-        minvalue = np.min(self.image)
-        
-        for i in range(self.numberofPixels):
-            for j in range(self.numberofPixels):
-                self.image
-mmmm pensar mejor
+
+        Z = self.image
+        N = len(Z)  # numberfoPixels
+        xcm = 0
+        ycm = 0
+        for i in range(N):
+            for j in range(N):
+                xcm = xcm + (Z[i,j]*i)
+                ycm = ycm + (Z[i,j]*j)
+        M = np.sum(Z)
+        xcm = xcm/M
+        ycm = ycm/M
+
+#        xc = int(np.round(xcm,2))
+#        yc = int(np.round(ycm,2))
+        Normal = self.scanRange / self.numberofPixels
+        self.CMxValue.setText(str(xcm*Normal))
+        self.CMyValue.setText(str(ycm*Normal))
 
 
 app = QtGui.QApplication([])
