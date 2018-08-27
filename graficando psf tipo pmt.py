@@ -9,25 +9,63 @@ import time
 #data=np.load(name)
 #f.close()
 # %%
-from PIL import Image
-from tkinter import filedialog
-import os
-#import tkinter as tk
-N = 1000
-data = np.random.rand(N,N)
-#root = tk.Tk()
-#root.withdraw()
-#filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-filepath = filedialog.askdirectory()
-#filepath = os.path.abspath("")
-print(filepath, 4)
-timestr = time.strftime("%Y%m%d-%H%M%S")
-print(time, 5)
-name = str(filepath + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
-print(name, 6)
-guardado = Image.fromarray(data)
-guardado.save(name)
-print("bbbba")
+#from PIL import Image
+#from tkinter import filedialog
+#import os
+##import tkinter as tk
+#N = 1000
+#data = np.random.rand(N,N)
+##root = tk.Tk()
+##root.withdraw()
+##filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
+#filepath = filedialog.askdirectory()
+##filepath = os.path.abspath("")
+#print(filepath, 4)
+#timestr = time.strftime("%Y%m%d-%H%M%S")
+#print(time, 5)
+#name = str(filepath + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+#print(name, 6)
+#guardado = Image.fromarray(data)
+#guardado.save(name)
+#print("bbbba")
+# %%
+from scipy import ndimage
+N=100
+a = 0
+b = 0
+#X = np.arange(-2, 2, 0.25)
+#Y = np.arange(-2, 2, 0.25)
+X = np.linspace(-2, 2, N)
+Y = np.linspace(-2, 2, N)
+X, Y = np.meshgrid(X, Y)
+R = np.sqrt((X-a)**2 + (Y-b)**2)
+Z = np.cos(R)
+
+fig, ax = plt.subplots()
+p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet, vmin=0)
+cb = fig.colorbar(p)
+ax.set_xlabel('x [um]')
+ax.set_ylabel('y [um]')
+#ndimage.measurements.center_of_mass(Z)
+xcm = 0
+ycm = 0
+for i in range(N):
+    for j in range(N):
+
+        xcm = xcm + (Z[i,j]*np.sqrt(i**2))
+        ycm = ycm + (Z[i,j]*np.sqrt(j**2))
+xcm = xcm/np.sum(Z)
+ycm = ycm/np.sum(Z)
+print(xcm, ycm)
+xc = int(np.round(xcm,2))
+yc = int(np.round(ycm,2))
+resol = 2
+for i in range(resol):
+    for j in range(resol):
+        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+
+
+
 # %%
 
 data = np.ones((100,100))

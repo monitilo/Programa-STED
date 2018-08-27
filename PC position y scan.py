@@ -143,13 +143,16 @@ class ScanWidget(QtGui.QFrame):
 #        self.squareRadio.setChecked(True)
 
     # XZ PSF scan
+        self.XYcheck = QtGui.QRadioButton('XZ psf scan')
+        self.XYcheck.setChecked(True)
+
         self.XZcheck = QtGui.QRadioButton('XZ psf scan')
         self.XZcheck.setChecked(False)
 
         self.YZcheck = QtGui.QRadioButton('YZ psf scan')
         self.YZcheck.setChecked(False)
-    # para que guarde todo (trazas de Alan)
 
+    # para que guarde todo (trazas de Alan)
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
 
@@ -255,14 +258,16 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.Alancheck, 15, 1)
         subgrid.addWidget(self.timeTotalLabel, 16, 1)
 #        subgrid.addWidget(self.timeTotalValue, 15, 1)
-        subgrid.addWidget(self.saveimageButton, 17, 1)
+        subgrid.addWidget(self.saveimageButton, 18, 1)
 
-        subgrid.addWidget(self.NameDirButton, 17, 2)
+        subgrid.addWidget(self.NameDirButton, 18, 2)
 
         subgrid.addWidget(self.stepcheck, 12, 1)
 #        subgrid.addWidget(self.squareRadio, 12, 2)
-        subgrid.addWidget(self.XZcheck, 15, 2)
-        subgrid.addWidget(self.YZcheck, 16, 2)
+        
+        subgrid.addWidget(self.XYcheck, 15, 2)
+        subgrid.addWidget(self.XZcheck, 16, 2)
+        subgrid.addWidget(self.YZcheck, 17, 2)
 #        subgrid.addWidget(label_save, 16, 0, 1, 2)
 #        subgrid.addWidget(self.edit_save, 17, 0, 1, 2)
 
@@ -564,8 +569,8 @@ y guarde la imagen"""
             self.image[:, self.numberofPixels-1-self.i] = self.lineData
             self.image[:, self.numberofPixels-2-self.i] = lineData2
 
-        self.image[25, self.i] = 333
-        self.image[9, -self.i] = 333
+#        self.image[25, self.i] = 333
+#        self.image[9, -self.i] = 333
 
         self.img.setImage(self.image, autoLevels=False)
 
@@ -576,6 +581,7 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
                 self.guardarimagen()
+                self.CMmeasure()
 
                 self.saveimageButton.setText('Fin')  # ni se ve
                 self.liveviewStop()
@@ -594,10 +600,17 @@ y guarde la imagen"""
         print("barridos")
 
     def linea(self):
-   
+        N=self.numberofPixels
+        a = 0
+        b = 0
+        X = np.linspace(-2, 2, N)
+        Y = np.linspace(-2, 2, N)
+        X, Y = np.meshgrid(X, Y)
+        R = np.sqrt((X-a)**2 + (Y-b)**2)
+        Z = np.cos(R)
+        self.Z = Z
         if self.step == 1:
-            self.cuentas = np.random.normal(size=(1, self.numberofPixels))[0]
-            self.cuentas = np.random.normal(size=(1, self.numberofPixels))[0]
+            self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
             for i in range(self.numberofPixels):
                 borrar = 2
             time.sleep(self.pixelTime*self.numberofPixels)
@@ -605,7 +618,7 @@ y guarde la imagen"""
 
         else:# para hacerlo de a lineas y que no sea de 2 en 2:
             self.cuentas = np.zeros((2 * self.numberofPixels))
-            self.cuentas = np.random.normal(size=(1, 2*self.numberofPixels))[0]
+            self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:]))  # np.random.normal(size=(1, 2*self.numberofPixels))[0]
             for i in range(self.numberofPixels * 2):
                 borrar = 2
             time.sleep(self.pixelTime*self.numberofPixels*2)
@@ -828,10 +841,20 @@ y guarde la imagen"""
         print("rampsa")
     
     def linearampa(self):
-    
+        N=self.numberofPixels
+        a = 0
+        b = 0
+        #X = np.arange(-2, 2, 0.25)
+        #Y = np.arange(-2, 2, 0.25)
+        X = np.linspace(-2, 2, N)
+        Y = np.linspace(-2, 2, N)
+        X, Y = np.meshgrid(X, Y)
+        R = np.sqrt((X-a)**2 + (Y-b)**2)
+        Z = np.cos(R)
+        self.Z = Z
         if self.step==1:
             self.cuentas = np.zeros((self.numberofPixels))
-            self.cuentas = np.random.normal(size=(1, self.numberofPixels))[0]
+            self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
             for i in range(self.numberofPixels):
                 borrar = 2
             time.sleep(self.pixelTime*self.numberofPixels)
@@ -839,7 +862,7 @@ y guarde la imagen"""
     
         else:#para hacerlo de a lineas y que no sea de 2 en 2:
 
-            self.cuentas = np.random.normal(size=(1, 2*self.numberofPixels))[0]
+            self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:])) #np.random.normal(size=(1, 2*self.numberofPixels))[0]
             for i in range(2*self.numberofPixels):
                 borrar = 2
             time.sleep(self.pixelTime*2*self.numberofPixels)
@@ -934,6 +957,25 @@ y guarde la imagen"""
 #                subprocess.check_call(['gnome-open', '', self.dataDir])
 #            elif sys.platform == 'win32':
 #                os.startfile(self.dataDir)
+
+    def CMmeasure(self):
+        Z = self.image
+        N = len(Z)
+        xcm = 0
+        ycm = 0
+        for i in range(N):
+            for j in range(N):
+                xcm = xcm + (Z[i,j]*np.sqrt(i**2))
+                ycm = ycm + (Z[i,j]*np.sqrt(j**2))
+        xcm = xcm/np.sum(Z)
+        ycm = ycm/np.sum(Z)
+        print(xcm, ycm)
+#        xc = int(np.round(xcm,2))
+#        yc = int(np.round(ycm,2))
+#        resol = 2
+#        for i in range(resol):
+#            for j in range(resol):
+#                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
 
 if __name__ == '__main__':
 
