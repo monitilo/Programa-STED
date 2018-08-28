@@ -127,6 +127,7 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirButton.clicked.connect(self.openFolder)
         self.file_path = os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
+        self.NameDirValue.setText(self.file_path)
 
     # Defino el tipo de Scan que quiero
 
@@ -401,7 +402,7 @@ class ScanWidget(QtGui.QFrame):
 
     def paramChanged(self):
         """ Update the parameters when the user edit them """
-        self.NameDirValue.setText(self.file_path)
+
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
         self.pixelTime = float(self.pixelTimeEdit.text()) / 10**3  # seconds
@@ -1304,28 +1305,50 @@ class ScanWidget(QtGui.QFrame):
         
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
-        self.paramChanged()
+        self.NameDirValue.setText(self.file_path)
 
 
     def CMmeasure(self):
-
+        from scipy import ndimage
         Z = self.image
         N = len(Z)  # numberfoPixels
-        xcm = 0
-        ycm = 0
-        for i in range(N):
-            for j in range(N):
-                xcm = xcm + (Z[i,j]*i)
-                ycm = ycm + (Z[i,j]*j)
-        M = np.sum(Z)
-        xcm = xcm/M
-        ycm = ycm/M
-
+#        xcm = 0
+#        ycm = 0
+#        for i in range(N):
+#            for j in range(N):
+#                xcm = xcm + (Z[i,j]*i)
+#                ycm = ycm + (Z[i,j]*j)
+#        M = np.sum(Z)
+#        xcm = xcm/M
+#        ycm = ycm/M
+        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
         Normal = self.scanRange / self.numberofPixels
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
+#        resol = 2
+#        for i in range(resol):
+#            for j in range(resol):
+#                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+        lomas = np.max(Z)
+        Npasos = 4
+        paso = lomas/Npasos
+        tec=time.time()
+        SZ = Z.ravel()
+        mapa = np.zeros((N,N))
+        Smapa = mapa.ravel()
+        for i in range(len(SZ)):
+            if SZ[i] > paso:
+                Smapa[i] = 1
+            if SZ[i] > paso*2:
+                Smapa[i] = 2
+            if SZ[i] > paso*3:
+                Smapa[i] = 3
+        mapa = np.split(Smapa,N)
+        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
+
+
 
 
 app = QtGui.QApplication([])

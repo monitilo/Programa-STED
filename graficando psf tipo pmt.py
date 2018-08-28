@@ -1,7 +1,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+#import time
+import pyqtgraph.ptime as time
 # %%
 
 #name= "imagenScan.npz"
@@ -31,40 +32,96 @@ import time
 # %%
 from scipy import ndimage
 N=100
-a = 0
-b = 0
+a = 0.7
+b = 0.7
+n=2
 #X = np.arange(-2, 2, 0.25)
 #Y = np.arange(-2, 2, 0.25)
-X = np.linspace(-2, 2, N)
-Y = np.linspace(-2, 2, N)
+X = np.linspace(-2, 2, int(N/n))
+Y = np.linspace(-2, 2, int(N/n))
 X, Y = np.meshgrid(X, Y)
 R = np.sqrt((X-a)**2 + (Y-b)**2)
-Z = np.cos(R)
-
+R2 = np.sqrt((X)**2 + (Y)**2)
+Z1 = np.cos(R)*5
+Z2= np.cos(R2)*4
+X = np.linspace(-2, 2, N)
+Y = np.linspace(-2, 2, N)
+Z = np.concatenate((Z1,Z2))
+Z = np.concatenate((Z,Z),1)
 fig, ax = plt.subplots()
 p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet, vmin=0)
 cb = fig.colorbar(p)
 ax.set_xlabel('x [um]')
 ax.set_ylabel('y [um]')
 #ndimage.measurements.center_of_mass(Z)
-xcm = 0
-ycm = 0
-for i in range(N):
-    for j in range(N):
+tuc=time.time()
+xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+print(time.time()-tuc, " magic\n")
 
-        xcm = xcm + (Z[i,j]*np.sqrt(i**2))
-        ycm = ycm + (Z[i,j]*np.sqrt(j**2))
-xcm = xcm/np.sum(Z)
-ycm = ycm/np.sum(Z)
-print(xcm, ycm)
+#toc=time.time()
+#xcm = 0
+#ycm = 0
+#for i in range(N):
+#    for j in range(N):
+#
+#        xcm = xcm + (Z[i,j]*np.sqrt(i**2))
+#        ycm = ycm + (Z[i,j]*np.sqrt(j**2))
+#xcm = xcm/np.sum(Z)
+#ycm = ycm/np.sum(Z)
+#print(time.time()-toc, " for\n")
+
+print("Xcm=", xcm,"\nYcm=", ycm)
 xc = int(np.round(xcm,2))
 yc = int(np.round(ycm,2))
-resol = 2
-for i in range(resol):
-    for j in range(resol):
-        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
 
+#resol = 2
+#for i in range(resol):
+#    for j in range(resol):
+#        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
 
+lomas = np.max(Z)
+Npasos = 4
+paso = lomas/Npasos
+mapa = np.zeros((N,N))
+
+#tic=time.time()
+#for p in range(1,Npasos):
+#    for i in range(N):
+#        for j in range(N):
+#            if Z[i,j] > paso*p:
+#                mapa[i,j] = p
+#print(time.time()-tic, " con 3 for\n")
+#
+#tac=time.time()
+#SZ = Z.ravel()
+#Smapa = mapa.ravel()
+#for p in range(1,Npasos):
+#    for i in range(len(SZ)):
+#        if SZ[i] > paso*p:
+#            Smapa[i] = p
+#mapa = np.split(Smapa,N)
+#print(time.time()-tac,"2 for\n")
+
+tec=time.time()
+SZ = Z.ravel()
+Smapa = mapa.ravel()
+for i in range(len(SZ)):
+    if SZ[i] > paso:
+        Smapa[i] = 1
+    if SZ[i] > paso*2:
+        Smapa[i] = 2
+    if SZ[i] > paso*3:
+        Smapa[i] = 3
+mapa = np.split(Smapa,N)
+print((time.time()-tec),"tarda 1 for\n")
+
+fig2, ax2 = plt.subplots()
+q = ax2.pcolor(X, Y, mapa, cmap=plt.cm.jet, vmin=0)
+cb = fig2.colorbar(q)
+ax.set_xlabel('x [um]')
+ax.set_ylabel('y [um]')
+
+modular = np.array(mapa).ravel()  # va a un aotask para los moduladores
 
 # %%
 

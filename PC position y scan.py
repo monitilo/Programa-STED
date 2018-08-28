@@ -129,6 +129,8 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirButton = QtGui.QPushButton('Open')
         self.NameDirButton.clicked.connect(self.openFolder)
         self.file_path = os.path.abspath("")
+
+
         # Defino el tipo de Scan que quiero
 
         self.scanMode = QtGui.QComboBox()
@@ -225,6 +227,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.zLabel.setText("{}".format(
 #                np.around(float(initialPosition[2]), 2)))
         self.NameDirValue = QtGui.QLabel('')
+        self.NameDirValue.setText(self.file_path)
 
         self.CMxLabel = QtGui.QLabel('CM X')
         self.CMxValue = QtGui.QLabel('NaN')
@@ -232,6 +235,8 @@ class ScanWidget(QtGui.QFrame):
         self.CMyValue = QtGui.QLabel('NaN')
         self.a = QtGui.QLineEdit('0.0')
         self.b = QtGui.QLineEdit('0.0')
+        self.a.textChanged.connect(self.paramChanged)
+        self.b.textChanged.connect(self.paramChanged)
 
         self.paramChanged()
 
@@ -462,7 +467,6 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
     def paramChanged(self):
-        self.NameDirValue.setText(self.file_path)
 
         self.scanRange = float(self.scanRangeEdit.text())
 #        self.scanRangey = self.scanRangex  # float(self.scanRangeyEdit.text())
@@ -620,18 +624,20 @@ y guarde la imagen"""
                 self.movetoStart()
 
     def barridos(self):
-        print("barridos")
-
-    def linea(self):
         N=self.numberofPixels
         a = float(self.a.text())
         b = float(self.b.text())
-        X = np.linspace(-2, 2, N)
-        Y = np.linspace(-2, 2, N)
+        r = self.scanRange/2
+        X = np.linspace(-r, r, N)
+        Y = np.linspace(-r, r, N)
         X, Y = np.meshgrid(X, Y)
         R = np.sqrt((X-a)**2 + (Y-b)**2)
         Z = np.cos(R)
         self.Z = Z
+        print("barridos")
+
+    def linea(self):
+        Z=self.Z
         if self.step == 1:
             self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
             for i in range(self.numberofPixels):
@@ -668,9 +674,9 @@ y guarde la imagen"""
 #            time.sleep(t / N)
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
-
+        self.Z = self.Z + np.random.choice([1,-1])*0.1
     def guardarimagen(self):
-        print("\n Hipoteticamente Guardo la imagen\n")
+        print("\n Guardo la imagen\n")
 
 #        ####name = str(self.edit_save.text()) # solo si quiero elegir el nombre ( pero no quiero)
 
@@ -874,20 +880,21 @@ y guarde la imagen"""
 # Es una idea de lo que tendria que hacer la funcion
 
     def rampas(self):
-        print("rampsa")
-    
-    def linearampa(self):
         N=self.numberofPixels
         a = float(self.a.text())
         b = float(self.b.text())
-        #X = np.arange(-2, 2, 0.25)
-        #Y = np.arange(-2, 2, 0.25)
-        X = np.linspace(-2, 2, N)
-        Y = np.linspace(-2, 2, N)
+        r = self.scanRange/2
+        X = np.linspace(-r, r, N)
+        Y = np.linspace(-r, r, N)
         X, Y = np.meshgrid(X, Y)
         R = np.sqrt((X-a)**2 + (Y-b)**2)
         Z = np.cos(R)
         self.Z = Z
+        print("rampsa")
+
+    def linearampa(self):
+
+        Z=self.Z
         if self.step==1:
             self.cuentas = np.zeros((self.numberofPixels))
             self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
@@ -976,7 +983,7 @@ y guarde la imagen"""
         
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
-        self.paramChanged()
+        self.NameDirValue.setText(self.file_path)
 #        try:
 #            if sys.platform == 'darwin':
 #                subprocess.check_call(['open', '', self.folderEdit.text()])
@@ -996,19 +1003,20 @@ y guarde la imagen"""
 
     def CMmeasure(self):
 
-
+        from scipy import ndimage
         Z = self.image
         N = len(Z)
-        xcm = 0
-        ycm = 0
-        for i in range(N):
-            for j in range(N):
-                xcm = xcm + (Z[i,j]*i**2)
-                ycm = ycm + (Z[i,j]*j**2)
-        M = np.sum(Z)
-        xcm = xcm/M
-        ycm = ycm/M
-        print(xcm, ycm)
+#        xcm = 0
+#        ycm = 0
+#        for i in range(N):
+#            for j in range(N):
+#                xcm = xcm + (Z[i,j]*i**2)
+#                ycm = ycm + (Z[i,j]*j**2)
+#        M = np.sum(Z)
+#        xcm = xcm/M
+#        ycm = ycm/M
+        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+        print("Xcm=", xcm,"\nYcm=", ycm)
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
         Normal = self.scanRange / self.numberofPixels
@@ -1019,6 +1027,26 @@ y guarde la imagen"""
 #        for i in range(resol):
 #            for j in range(resol):
 #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+        lomas = np.max(Z)
+        Npasos = 4
+        paso = lomas/Npasos
+        tec=time.time()
+        SZ = Z.ravel()
+        mapa = np.zeros((N,N))
+        Smapa = mapa.ravel()
+        for i in range(len(SZ)):
+            if SZ[i] > paso:
+                Smapa[i] = 1
+            if SZ[i] > paso*2:
+                Smapa[i] = 2
+            if SZ[i] > paso*3:
+                Smapa[i] = 3
+        mapa = np.split(Smapa,N)
+        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
+
+
+
+
 
 if __name__ == '__main__':
 
