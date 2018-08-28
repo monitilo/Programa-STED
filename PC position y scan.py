@@ -584,7 +584,7 @@ y guarde la imagen"""
 
         if self.step == 1:
             self.lineData = self.cuentas # self.inputImage[:, self.dy] 
-            self.image[:, self.numberofPixels-1-self.i] = self.lineData
+            self.image[:, 1-self.i] = self.lineData
         else:
             cuentas2 = np.split(self.cuentas, 2)
             self.lineData = cuentas2[0] # self.inputImage[:, self.dy] 
@@ -674,7 +674,7 @@ y guarde la imagen"""
 #            time.sleep(t / N)
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
-        self.Z = self.Z + np.random.choice([1,-1])*0.1
+#        self.Z = self.Z + np.random.choice([1,-1])*0.1
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
 
@@ -1006,16 +1006,18 @@ y guarde la imagen"""
         from scipy import ndimage
         Z = self.image
         N = len(Z)
-#        xcm = 0
-#        ycm = 0
-#        for i in range(N):
-#            for j in range(N):
-#                xcm = xcm + (Z[i,j]*i**2)
-#                ycm = ycm + (Z[i,j]*j**2)
-#        M = np.sum(Z)
-#        xcm = xcm/M
-#        ycm = ycm/M
-        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+        xcm = 0
+        ycm = 0
+        for i in range(N):
+            for j in range(N):
+                if Z[i,j]<0:
+                    Z[i,j]=0
+                xcm = xcm + (Z[i,j]*i)
+                ycm = ycm + (Z[i,j]*j)
+        M = np.sum(Z)
+        xcm = xcm/M
+        ycm = ycm/M
+#        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))

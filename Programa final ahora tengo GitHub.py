@@ -649,6 +649,7 @@ class ScanWidget(QtGui.QFrame):
     # Starting the trigger. It have a controllable 'delay'
         self.dotask.write(self.trigger, auto_start=True)
 
+
     def updateView(self):
 
     # The counter reads this numbers of points when the trigger starts

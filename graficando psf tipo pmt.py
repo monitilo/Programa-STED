@@ -30,11 +30,15 @@ import pyqtgraph.ptime as time
 #guardado.save(name)
 #print("bbbba")
 # %%
+import numpy as np
+import matplotlib.pyplot as plt
+#import time
+import pyqtgraph.ptime as time
 from scipy import ndimage
 N=100
-a = 0.7
-b = 0.7
-n=2
+a = 1.1
+b = 1.1
+n=1
 #X = np.arange(-2, 2, 0.25)
 #Y = np.arange(-2, 2, 0.25)
 X = np.linspace(-2, 2, int(N/n))
@@ -42,42 +46,47 @@ Y = np.linspace(-2, 2, int(N/n))
 X, Y = np.meshgrid(X, Y)
 R = np.sqrt((X-a)**2 + (Y-b)**2)
 R2 = np.sqrt((X)**2 + (Y)**2)
-Z1 = np.cos(R)*5
-Z2= np.cos(R2)*4
-X = np.linspace(-2, 2, N)
-Y = np.linspace(-2, 2, N)
-Z = np.concatenate((Z1,Z2))
-Z = np.concatenate((Z,Z),1)
+Z = np.cos(R)*5
+#Z1 = np.cos(R)*5
+#Z2= np.cos(R2)*4
+#X = np.linspace(-2, 2, N)
+#Y = np.linspace(-2, 2, N)
+#Z = np.concatenate((Z1,Z2))
+#Z = np.concatenate((Z,Z),1)
 fig, ax = plt.subplots()
 p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet, vmin=0)
 cb = fig.colorbar(p)
 ax.set_xlabel('x [um]')
 ax.set_ylabel('y [um]')
-#ndimage.measurements.center_of_mass(Z)
+
 tuc=time.time()
 xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
 print(time.time()-tuc, " magic\n")
-
-#toc=time.time()
-#xcm = 0
-#ycm = 0
-#for i in range(N):
-#    for j in range(N):
-#
-#        xcm = xcm + (Z[i,j]*np.sqrt(i**2))
-#        ycm = ycm + (Z[i,j]*np.sqrt(j**2))
-#xcm = xcm/np.sum(Z)
-#ycm = ycm/np.sum(Z)
-#print(time.time()-toc, " for\n")
-
 print("Xcm=", xcm,"\nYcm=", ycm)
+toc=time.time()
 xc = int(np.round(xcm,2))
 yc = int(np.round(ycm,2))
+xcm = 0
+ycm = 0
+for i in range(N):
+    for j in range(N):
+        if Z[i,j]<0:
+            Z[i,j]=0
+        xcm = xcm + (Z[i,j]*i)
+        ycm = ycm + (Z[i,j]*j)
+xcm = xcm/np.sum(Z)
+ycm = ycm/np.sum(Z)
+print(time.time()-toc, " for\n")
 
-#resol = 2
-#for i in range(resol):
-#    for j in range(resol):
-#        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+print("Xcm=", xcm,"\nYcm=", ycm)
+xc2 = int(np.round(xcm,2))
+yc2 = int(np.round(ycm,2))
+
+resol = 2
+for i in range(resol):
+    for j in range(resol):
+        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+        ax.text(X[xc2+i,yc2+j],Y[xc2+i,yc2+j],"☼",color='w')
 
 lomas = np.max(Z)
 Npasos = 4
