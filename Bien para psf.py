@@ -33,8 +33,8 @@ resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no e
 
 class ScanWidget(QtGui.QFrame):
 
-    def steptype(self):
-        if self.working == False:
+    def graphplot(self):
+        if self.dy == 0:
             self.paramChanged()
 
         verxi = np.concatenate((self.xini[:-1],
@@ -135,16 +135,16 @@ class ScanWidget(QtGui.QFrame):
         self.scanModes = ['ramp scan', 'step scan', 'full frec ramp']
         self.scanMode.addItems(self.scanModes)
 
-        self.stepcheck = QtGui.QCheckBox('Scan Plot')
-        self.stepcheck.clicked.connect(self.steptype)
+        self.graphcheck = QtGui.QCheckBox('Scan Plot')
+        self.graphcheck.clicked.connect(self.graphplot)
         self.step = False
 
     # useful Booleans
         self.channelramp = False #canales
 #        self.inStart = False
-        self.working = False
-        self.shuttering = False
+#        self.working = False
         self.channelsteps = False
+        self.shuttering = False
         self.shuttersignal = [False, False, False]
 
     # Shutters buttons
@@ -224,7 +224,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.vueltaLabel, 8, 2)
         subgrid.addWidget(self.vueltaEdit, 9, 2)
         subgrid.addWidget(self.liveviewButton, 10, 1)
-        subgrid.addWidget(self.stepcheck, 11, 2)
+        subgrid.addWidget(self.graphcheck, 11, 2)
         subgrid.addWidget(self.timeTotalLabel, 13, 1)
         subgrid.addWidget(self.timeTotalValue, 14, 1)
 #        subgrid.addWidget(self.XZButton, 10, 2)
@@ -237,7 +237,7 @@ class ScanWidget(QtGui.QFrame):
 
 
         subgrid.addWidget(self.scanMode, 12, 1)
-        subgrid.addWidget(self.saveimageButton, 15, 1)  #
+        subgrid.addWidget(self.saveimageButton, 15, 1)
         subgrid.addWidget(self.NameDirButton, 1, 2)
 
 
@@ -400,6 +400,7 @@ class ScanWidget(QtGui.QFrame):
         self.steptimer = QtCore.QTimer()
         self.steptimer.timeout.connect(self.stepScan)
 
+#--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
 
@@ -487,7 +488,7 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewStop()
 
 # This is the function triggered by pressing the liveview button
-
+#--- liveview
     def liveview(self):
         """ Image live view when not recording
         """
@@ -499,7 +500,7 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewStop()
 
     def liveviewStart(self):
-        self.working = True
+#        self.working = True
         self.openShutter("red")
         if self.scanMode.currentText() == "step scan":
             self.channelsOpenStep()
@@ -562,6 +563,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.cuentas[i] = aux + np.random.rand(1)[0]
             self.image[i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
 
+# ---stemScan ---
     def stepScan(self):
     # the step clock calls this function
         self.stepLine()
@@ -636,7 +638,7 @@ class ScanWidget(QtGui.QFrame):
 
     def startingRamps(self):
 
-        self.working = True
+#        self.working = True
     # Send the signals to the NiDaq, but only start when the trigger is on
         self.aotask.write(np.array([self.totalrampx / convFactors['x'],
                                     self.totalrampy / convFactors['y'],
@@ -687,7 +689,7 @@ class ScanWidget(QtGui.QFrame):
                 self.citask.stop()
                 self.liveviewStart()
 
-
+# --- Ramps / startingRamps ----
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
@@ -748,7 +750,6 @@ class ScanWidget(QtGui.QFrame):
             self.totalrampz = self.totalrampy - startY + startZ  # -(sizeX/2)
             self.totalrampy = self.totalrampx - startX + startY
             self.totalrampx = np.ones(len(self.totalrampx)) * startX  # / convFactors['x']
-
 
 
     def apdpostprocessing(self):
@@ -854,6 +855,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.pixelsoffini = int(np.ceil(xipuntos / (self.pixelTime*self.sampleRate)))
         print(self.pixelsoffR+self.pixelsoffL, "pixelsoff total")
 
+# --- ChannelsOpen (rampas)
     def channelsOpen(self):
         """ Open and Config of all the channels for use"""
         if self.channelsteps:
@@ -941,6 +943,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.citask.triggers.pause_trigger.dig_lvl_when = nidaqmx.constants.Level.LOW
         # En realidad mando un vector con muchos True's, asi que no lo estoy usando
 
+#---- done
     def done(self):
         """ stop and close all the channels"""
         if self.channelramp or self.channelsteps:
@@ -954,7 +957,7 @@ class ScanWidget(QtGui.QFrame):
                 self.dotask.stop()
                 self.dotask.close()
             except:
-                print("b")
+                print("d")
             try:
                 self.citask.stop()
                 self.citask.close()
@@ -967,7 +970,7 @@ class ScanWidget(QtGui.QFrame):
             print("llego hasta el done pero no tenia nada que cerrar")
             # Esto no tendria que pasar
 
-# --- Moving section --------------------------------
+# --- channelsOpenStep  (step) --------------------------------
 
     def channelsOpenStep(self):
         """ Open and Config of all the channels for use step by step"""
@@ -1004,13 +1007,6 @@ class ScanWidget(QtGui.QFrame):
                     max_val=maxVolt[self.activeChannels[n]])
 
 # ---Move----------------------------------------
-    """
-    def move(self):
-        if self.scanMode.currentText() == "step scan":
-            self.moveStep()
-        if self.scanMode.currentText() == "ramp scan":
-            self.moveRamp()
-    """
 
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
@@ -1129,13 +1125,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.paramChanged()
 
-    """
-    def moveto(self, x, y, z):
-        if self.scanMode.currentText() == "step scan":
-            self.movetoStep(x, y, z)
-        if self.scanMode.currentText() == "ramp scan":
-            self.movetoRamp(x, y, z)
-    """
+# ---moveto ---
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
         self.channelsOpenStep()  # se mueve de a puntos, no rampas.
@@ -1196,8 +1186,6 @@ class ScanWidget(QtGui.QFrame):
         self.shuttertask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
 
-# TO DO: Es una idea de lo que tendria que hacer la funcion
-
     def closeShutter(self, p):
         self.channelsOpen()
 #        self.closedo()
@@ -1219,6 +1207,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             print("ya estaban abiertos los canales shutters")
 
+# --- MovetoStart ---
     def MovetoStart(self):
         """ When called, it gets to the start point"""
         if self.dy==0:
@@ -1286,7 +1275,7 @@ class ScanWidget(QtGui.QFrame):
 
 
 
-
+#--- SaveFrame ---
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
 
@@ -1307,7 +1296,7 @@ class ScanWidget(QtGui.QFrame):
         print(self.file_path,2)
         self.NameDirValue.setText(self.file_path)
 
-
+#--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
         from scipy import ndimage
         Z = self.image
