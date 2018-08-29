@@ -132,7 +132,7 @@ class ScanWidget(QtGui.QFrame):
     # Defino el tipo de Scan que quiero
 
         self.scanMode = QtGui.QComboBox()
-        self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "fast"]
+        self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
         self.scanMode.addItems(self.scanModes)
 
         self.graphcheck = QtGui.QCheckBox('Scan Plot')
@@ -439,7 +439,7 @@ class ScanWidget(QtGui.QFrame):
         # en el caso step no hay frecuencias
             print("Step time, very slow")
 
-        elif self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "fast":
+        elif self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
             self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
             self.sampleRate = 1 / self.pixelTime  # self.apdrate
             print("los Nsamples = Npix y 1/tpix la frecuencia\n",
@@ -517,7 +517,7 @@ class ScanWidget(QtGui.QFrame):
         self.MovetoStart()
         self.startingRamps()
         self.tic = ptime.time()
-#        if self.scanMode.currentText() == "fast":
+#        if self.scanMode.currentText() == "slalom":
 #          self.fasttimer.start(self.reallinetime*10**3)
 #        else:
         self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
@@ -539,7 +539,7 @@ class ScanWidget(QtGui.QFrame):
 
 
     def stepLine(self):
-        tic = ptime.time()
+#        tic = ptime.time()
         APD = np.zeros((self.Napd+1))
 
         for i in range(self.numberofPixels):
@@ -565,7 +565,7 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.stop()
 #            self.cuentas[i] = aux + np.random.rand(1)[0]
             self.image[-1-i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
-
+            self.CMmeasure()
 # ---stemScan ---
     def stepScan(self):
     # the step clock calls this function
@@ -579,19 +579,17 @@ class ScanWidget(QtGui.QFrame):
             self.dy = self.dy + 1
         else:
             if self.save:
-                self.guardarimagen()
-
-                self.saveimageButton.setText('Fin')  # ni se ve
+                self.saveFrame()
                 self.MovetoStart()
                 self.liveviewStop()
             else:
                 if self.Alancheck.isChecked():
-                    self.guardarimagen()  # para guardar siempre (Alan idea)
+                    self.saveFrame()  # para guardar siempre (Alan idea)
                 print(ptime.time()-self.tic, "Tiempo imagen completa.")
                 self.viewtimer.stop()
                 self.MovetoStart()
                 self.liveviewStart()
-
+            self.CMmeasure()
     def Steps(self):
         self.pixelsofftotal = 0
         self.cuentas = np.zeros((self.numberofPixels))
@@ -662,7 +660,7 @@ class ScanWidget(QtGui.QFrame):
         
         # have to analize the signal from the counter
         self.apdpostprocessing()
-        if self.scanMode.currentText() == "fast":
+        if self.scanMode.currentText() == "slalom":
             self.image[:, -1-self.dy] = np.flip(self.counts[:],0)
             self.image[:, -2-self.dy] = (self.backcounts[:])  # ver si va el flip
             paso = 2
@@ -691,17 +689,19 @@ class ScanWidget(QtGui.QFrame):
                 self.liveviewStop()
             else:
               if self.Alancheck.isChecked():
-                  self.guardarimagen()  # para guardar siempre (Alan idea)
+                  self.saveFrame()  # para guardar siempre (Alan idea)
               print(ptime.time()-self.tic, "Tiempo imagen completa.")
               self.viewtimer.stop()
               self.dotask.stop()
               self.aotask.stop()
               self.citask.stop()
               self.liveviewStart()
-
+            self.CMmeasure()
 
 #    def fastupdateView(self):
-#      a=1
+#        
+
+
 
 # --- Ramps / startingRamps ----
     def Ramps(self):
@@ -732,11 +732,11 @@ class ScanWidget(QtGui.QFrame):
 
         self.totalrampx = np.tile(self.onerampx, self.numberofPixels)
 
-#    Barrido z (se queda en la posicion inicial)
+#    Barrido z (Stay in the initial position)
         startZ = float(self.initialPosition[2])
         self.totalrampz = np.ones(len(self.totalrampx)) * startZ
 
-#    Barrido y
+#    Barrido y (Constant in lines, grow every step y)
         startY = float(self.initialPosition[1])
 
         stepy = self.scanRange / self.numberofPixels
@@ -745,17 +745,20 @@ class ScanWidget(QtGui.QFrame):
         muchasrampasy = np.tile(rampay, (self.numberofPixels, 1))
         self.onerampy = np.zeros((self.numberofPixels, len(rampay)))
         
-        if self.scanMode.currentText() == "fast":  # Gotta go fast
-            p = len(self.xini[:-1]) + len(wantedrampx)
-            for i in range(self.numberofPixels):
-                j = 2*i
-                self.onerampy[i, :p] = muchasrampasy[i, :p] + (j)  *stepy
-                self.onerampy[i, p:] = muchasrampasy[i, p:] + (j+1)*stepy
+        if self.scanMode.currentText() == "slalom":  # Gotta go fast
+            fast=2
         else:
-            p = len(self.xini[:-1]) + len(wantedrampx) + int(len(self.xchange[1:])) + int(len(self.xback[1:-1]))
-            for i in range(self.numberofPixels):
-                self.onerampy[i, :p] = muchasrampasy[i, :p] + (i)  *stepy
-                self.onerampy[i, p:] = muchasrampasy[i, p:] + (i+1)*stepy
+            fast=1
+        p = len(self.xini[:-1]) + len(wantedrampx)
+        for i in range(self.numberofPixels):
+            j = fast*i
+            self.onerampy[i, :p] = muchasrampasy[i, :p] + (j)  *stepy
+            self.onerampy[i, p:] = muchasrampasy[i, p:] + (j+1)*stepy
+#        else:
+#            p = len(self.xini[:-1]) + len(wantedrampx) + int(len(self.xchange[1:])) + int(len(self.xback[1:-1]))
+#            for i in range(self.numberofPixels):
+#                self.onerampy[i, :p] = muchasrampasy[i, :p] + (i)  *stepy
+#                self.onerampy[i, p:] = muchasrampasy[i, p:] + (i+1)*stepy
 
         self.totalrampy = (self.onerampy.ravel())
 
@@ -827,7 +830,7 @@ class ScanWidget(QtGui.QFrame):
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
 
-        if self.scanMode.currentText() == "fast":
+        if self.scanMode.currentText() == "slalom":  # (or Slalom mode)
           Vback=1
           self.vueltaEdit.setText("fijo en 1")
           self.vueltaEdit.setStyleSheet(" background-color: red; ")
@@ -1327,10 +1330,10 @@ class ScanWidget(QtGui.QFrame):
         """ Config the path and name of the file to save, and save it"""
 
 
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
-        guardado = Image.fromarray(self.image)
-        guardado.save(name)
+#        timestr = time.strftime("%Y%m%d-%H%M%S")
+#        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+#        guardado = Image.fromarray(self.image)
+#        guardado.save(name)
 
         print("\n Hipoteticamente Guardo la imagen\n")
 
@@ -1345,6 +1348,7 @@ class ScanWidget(QtGui.QFrame):
 
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
+        tic = ptime.time()
         from scipy import ndimage
         Z = np.flip(np.flip(self.image,0),1)
         N = len(Z)  # numberfoPixels
@@ -1370,7 +1374,7 @@ class ScanWidget(QtGui.QFrame):
         lomas = np.max(Z)
         Npasos = 4
         paso = lomas/Npasos
-        tec=time.time()
+#        tec=time.time()
         SZ = Z.ravel()
         mapa = np.zeros((N,N))
         Smapa = mapa.ravel()
@@ -1382,9 +1386,9 @@ class ScanWidget(QtGui.QFrame):
             if SZ[i] > paso*3:
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
-        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
+#        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
         self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-
+        print(np.round((ptime.time()-tic)*10**3,3), "(ms) CM\n")
 
 
 app = QtGui.QApplication([])
