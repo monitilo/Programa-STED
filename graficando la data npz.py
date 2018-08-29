@@ -5,7 +5,13 @@ import time
 import multiprocessing as mp
 import pyqtgraph.ptime as ptime
 
-# %%
+# %% Las rampas que miden cuando va y vuelve rapido
+""" con m = 1 tengo ida y vuelta simetricas"""
+a = 50  # aceleracion um/ms2
+m = 1  # Velocidad de vuelta respecto a la de ida
+av = a # a vuelta
+
+
 aaa=time.time()
 bbb=ptime.time()
 # la calibracion es 1 µm = 40 mV; ==> 0.3 mv = 0.0075 um = 7.5 nm
@@ -16,11 +22,6 @@ tpix = 0.1  # tiempo de pixel en ms
 T = tpix * Npix  # tiempo total de la linea
 V = (R/T)  # velocidad de la rampa
 #V = 100  # um/ms
-
-a = 5
-  # aceleracion um/ms2
-m = 20  # Velocidad de vuelta respecto a la de ida
-av = a # a vuelta
 
 #Npuntos= int(R / reDAQ)
 #rate = Npuntos / T
@@ -170,9 +171,35 @@ for i in range(Ny):
 todo = np.tile(barridox,Ny)
 barridoy = barridoychico.ravel()
 ##
-#plt.figure(2)
-#plt.plot(todo,'.-')
-#plt.plot(barridoy, 'y')
+plt.figure(2)
+plt.plot(todo,'.-')
+plt.plot(barridoy, 'y')
+
+plt.show()
+# %% Con m=1, y este ajuste, tengo rampas escalonadas
+Ny=3
+
+
+startY = 0
+stepy = R/Ny
+rampay = np.ones(len(barridox))*startY
+
+muchasrampasy=np.tile(rampay,(Ny,1))
+barridoychico=np.zeros((Ny,len(rampay)))
+
+p = len(xti)-1 + len(rampax)-1 + int(len(xtcas))
+for i in range(Ny):
+    j = 2*i
+    barridoychico[i,:p]= muchasrampasy[i,:p] + (j)*stepy
+    barridoychico[i,p:]= muchasrampasy[i,p:] + (j+1)*stepy
+
+
+todo = np.tile(barridox,Ny)
+barridoy = barridoychico.ravel()
+##
+plt.figure(2)
+plt.plot(todo,'.-')
+plt.plot(barridoy, 'y')
 
 plt.show()
 

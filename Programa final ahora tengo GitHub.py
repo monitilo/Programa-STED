@@ -463,7 +463,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.blankImage = np.zeros(size)
         self.image = self.blankImage
-
+        self.backimage = self.image  # para la vuelta (poner back Velocity=1)
         self.dy = 0
 
       # numberofpixels is the relevant part of the total ramp.
@@ -640,9 +640,10 @@ class ScanWidget(QtGui.QFrame):
 
 #        self.working = True
     # Send the signals to the NiDaq, but only start when the trigger is on
-        self.aotask.write(np.array([self.totalrampx / convFactors['x'],
-                                    self.totalrampy / convFactors['y'],
-                                    self.totalrampz / convFactors['z']]), auto_start=True)
+        self.aotask.write(np.array(
+            [self.totalrampx / convFactors['x'],
+             self.totalrampy / convFactors['y'],
+             self.totalrampz / convFactors['z']]), auto_start=True)
 
 #        self.inStart = False
         print("ya arranca")
@@ -660,6 +661,7 @@ class ScanWidget(QtGui.QFrame):
         self.apdpostprocessing()
 
         self.image[:, -1-self.dy] = np.flip(self.counts[:],0)
+        self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0)
 
       # The plotting method is slow (2-3 ms each), so I´m plotting in packages
         if self.pixelTime <= (0.1*10**3):
@@ -668,7 +670,10 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels, 2)
 
         if self.dy in multi5:
-            self.img.setImage(self.image, autoLevels=True)
+          if self.graphcheck.isChecked():
+              self.img.setImage(self.backimage, autoLevels=True)
+          else:
+              self.img.setImage(self.image, autoLevels=True)
 
         if self.dy < self.numberofPixels-1:
             self.dy = self.dy + 1
@@ -694,6 +699,7 @@ class ScanWidget(QtGui.QFrame):
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
+        self.backcounts = np.zeros((self.pixelsoffB))
 
         self.acceleration()
 
@@ -771,6 +777,15 @@ class ScanWidget(QtGui.QFrame):
             ef = ((self.pixelsoffL+i+1) * Napd)-1
             self.counts[i] = self.APD[ef,j] - self.APD[ei,j]
 
+        # Lo que sigue esta en creacion, para la imagen de vuelta
+
+        for i in range(len(self.backcounts)):  # len(back...)= pixelsoffB
+#            evi = ((self.pixelsoffR + i + 1) * Napd)
+#            evf = ((self.pixelsoffR + i) * Napd)
+            evi = (-(self.pixelsoffR + self.pixelsoffB) + (i)  ) * Napd
+            evf = (-(self.pixelsoffR + self.pixelsoffB) + (i+1)) * Napd
+            self.backcounts[i] = self.APD[evf,j] - self.APD[evi,j]
+
 # puede fallar en la primer y/o ultima fila
 
 
@@ -846,15 +861,23 @@ class ScanWidget(QtGui.QFrame):
 
     # Don't want all the accelerated zones
         NoffL = len(xini[:-1])
-        NoffR = len(xchange[1:]) + len(self.xback[1:-1]) + len(xstops)
+        NoffM = len(xchange[1:]) 
+        NoffB = len(self.xback[1:-1])
+        NoffR = len(xstops)
         toffL = NoffL/self.sampleRate
         toffR = NoffR/self.sampleRate
+        toffM = NoffM/self.sampleRate
+        toffB =NoffB/self.sampleRate
 #        toff = toffL + toffR
         self.pixelsoffL = int(np.round(toffL*self.apdrate)/self.Napd)
+        self.pixelsoffM = int(np.round(toffM*self.apdrate)/self.Napd)
+        self.pixelsoffB = int(np.round(toffB*self.apdrate)/self.Napd)
         self.pixelsoffR = int(np.round(toffR*self.apdrate)/self.Napd)
-        self.pixelsofftotal = int(np.round((toffL+toffR)*self.apdrate)/self.Napd)
+        tofftotal = toffL+toffM+toffB+toffR
+        self.pixelsofftotal = int(np.round((tofftotal)*self.apdrate)/self.Napd)
 #        self.pixelsoffini = int(np.ceil(xipuntos / (self.pixelTime*self.sampleRate)))
-        print(self.pixelsoffR+self.pixelsoffL, "pixelsoff total")
+        print(self.pixelsoffL, self.pixelsoffM,
+              self.pixelsoffB, self.pixelsoffR, "pixelsoff´s")
 
 # --- ChannelsOpen (rampas)
     def channelsOpen(self):
@@ -1232,7 +1255,6 @@ class ScanWidget(QtGui.QFrame):
                 sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
                 samps_per_chan=self.moveSamples)
 
-
     #        tic = ptime.time()
             startX = float(self.initialPosition[0])
             startY = float(self.initialPosition[1])
@@ -1252,13 +1274,15 @@ class ScanWidget(QtGui.QFrame):
             volviendoy = np.linspace(maximoy, startY, self.moveSamples)
             volviendoz = np.linspace(maximoz, startZ, self.moveSamples)
 
-            volviendotodo = np.zeros((len(self.AOchans), len(volviendoy)))
-            volviendotodo[0, :] = volviendox / convFactors['x']
-            volviendotodo[1, :] = volviendoy / convFactors['y']
-            volviendotodo[2, :] = volviendoz / convFactors['z']
-    
-            self.aotask.write(
-                 volviendotodo, auto_start=True)
+#            volviendotodo = np.zeros((len(self.AOchans), self.moveSamples))
+#            volviendotodo[0, :] = volviendox / convFactors['x']
+#            volviendotodo[1, :] = volviendoy / convFactors['y']
+#            volviendotodo[2, :] = volviendoz / convFactors['z']
+
+            self.aotask.write(np.array(
+                [volviendox / convFactors['x'],
+                 volviendoy / convFactors['y'],
+                 volviendoz / convFactors['z']]), auto_start=True)
             self.aotask.wait_until_done()
     #        print(np.round(ptime.time() - tic, 5)*10**3, "MovetoStart (ms)")
 
