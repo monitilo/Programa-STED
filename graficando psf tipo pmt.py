@@ -47,6 +47,10 @@ X, Y = np.meshgrid(X, Y)
 R = np.sqrt((X-a)**2 + (Y-b)**2)
 R2 = np.sqrt((X)**2 + (Y)**2)
 Z = np.cos(R)*5
+for i in range(N):
+    for j in range(N):
+        if Z[i,j]<0:
+            Z[i,j]=0
 #Z1 = np.cos(R)*5
 #Z2= np.cos(R2)*4
 #X = np.linspace(-2, 2, N)
@@ -85,7 +89,7 @@ yc2 = int(np.round(ycm,2))
 resol = 2
 for i in range(resol):
     for j in range(resol):
-        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+        ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☺",color='w')
         ax.text(X[xc2+i,yc2+j],Y[xc2+i,yc2+j],"☼",color='w')
 
 lomas = np.max(Z)
@@ -121,7 +125,7 @@ for i in range(len(SZ)):
         Smapa[i] = 2
     if SZ[i] > paso*3:
         Smapa[i] = 3
-mapa = np.split(Smapa,N)
+mapa = np.array(np.split(Smapa,N))
 print((time.time()-tec),"tarda 1 for\n")
 
 fig2, ax2 = plt.subplots()

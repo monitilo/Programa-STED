@@ -184,13 +184,13 @@ class ScanWidget(QtGui.QFrame):
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
 #        self.initialPositionEdit = QtGui.QLineEdit('1 2 3')  # no lo uso mas
         self.scanRangeLabel = QtGui.QLabel('Scan range x (µm)')
-        self.scanRangeEdit = QtGui.QLineEdit('10')
+        self.scanRangeEdit = QtGui.QLineEdit('4')
 #        self.scanRangeyLabel = QtGui.QLabel('Scan range y (µm)')
 #        self.scanRangeyEdit = QtGui.QLineEdit('10')
         pixelTimeLabel = QtGui.QLabel('Pixel time (ms)')
         self.pixelTimeEdit = QtGui.QLineEdit('0.5')
         numberofPixelsLabel = QtGui.QLabel('Number of pixels')
-        self.numberofPixelsEdit = QtGui.QLineEdit('64')
+        self.numberofPixelsEdit = QtGui.QLineEdit('100')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
         self.pixelSizeValue = QtGui.QLabel('')
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
@@ -233,8 +233,8 @@ class ScanWidget(QtGui.QFrame):
         self.CMxValue = QtGui.QLabel('NaN')
         self.CMyLabel = QtGui.QLabel('CM Y')
         self.CMyValue = QtGui.QLabel('NaN')
-        self.a = QtGui.QLineEdit('0.0')
-        self.b = QtGui.QLineEdit('0.0')
+        self.a = QtGui.QLineEdit('-1.5')
+        self.b = QtGui.QLineEdit('-1.5')
         self.a.textChanged.connect(self.paramChanged)
         self.b.textChanged.connect(self.paramChanged)
 
@@ -584,7 +584,7 @@ y guarde la imagen"""
 
         if self.step == 1:
             self.lineData = self.cuentas # self.inputImage[:, self.dy] 
-            self.image[:, 1-self.i] = self.lineData
+            self.image[:, -1-self.i] = np.flip(self.lineData,0)
         else:
             cuentas2 = np.split(self.cuentas, 2)
             self.lineData = cuentas2[0] # self.inputImage[:, self.dy] 
@@ -592,8 +592,8 @@ y guarde la imagen"""
 
     #        self.lineData = self.inputImage[:, self.i]  # + 2.5*self.i
     #        lineData2 = self.inputImage[:, self.i + 1]
-            self.image[:, self.numberofPixels-1-self.i] = self.lineData
-            self.image[:, self.numberofPixels-2-self.i] = lineData2
+            self.image[:, self.numberofPixels-1-self.i] = np.flip(self.lineData,0)
+            self.image[:, self.numberofPixels-2-self.i] = np.flip(lineData2,0)
 
 #        self.image[25, self.i] = 333
 #        self.image[9, -self.i] = 333
@@ -633,6 +633,10 @@ y guarde la imagen"""
         X, Y = np.meshgrid(X, Y)
         R = np.sqrt((X-a)**2 + (Y-b)**2)
         Z = np.cos(R)
+        for i in range(N):
+            for j in range(N):
+                if Z[i,j]<0:
+                    Z[i,j]=0
         self.Z = Z
         print("barridos")
 
@@ -674,7 +678,7 @@ y guarde la imagen"""
 #            time.sleep(t / N)
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
-#        self.Z = self.Z + np.random.choice([1,-1])*0.1
+        self.Z = self.Z + np.random.choice([1,-1])*0.01
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
 
@@ -889,6 +893,10 @@ y guarde la imagen"""
         X, Y = np.meshgrid(X, Y)
         R = np.sqrt((X-a)**2 + (Y-b)**2)
         Z = np.cos(R)
+        for i in range(N):
+            for j in range(N):
+                if Z[i,j]<0:
+                    Z[i,j]=0
         self.Z = Z
         print("rampsa")
 
@@ -1004,20 +1012,20 @@ y guarde la imagen"""
     def CMmeasure(self):
 
         from scipy import ndimage
-        Z = self.image
+        Z = np.flip(np.flip(self.image,0),1)
         N = len(Z)
-        xcm = 0
-        ycm = 0
-        for i in range(N):
-            for j in range(N):
-                if Z[i,j]<0:
-                    Z[i,j]=0
-                xcm = xcm + (Z[i,j]*i)
-                ycm = ycm + (Z[i,j]*j)
-        M = np.sum(Z)
-        xcm = xcm/M
-        ycm = ycm/M
-#        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+#        xcm = 0
+#        ycm = 0
+#        for i in range(N):
+#            for j in range(N):
+##                if Z[i,j]<0:
+##                    Z[i,j]=0
+#                xcm = xcm + (Z[i,j]*i)
+#                ycm = ycm + (Z[i,j]*j)
+#        M = np.sum(Z)
+#        xcm = xcm/M
+#        ycm = ycm/M
+        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
@@ -1038,14 +1046,14 @@ y guarde la imagen"""
         Smapa = mapa.ravel()
         for i in range(len(SZ)):
             if SZ[i] > paso:
-                Smapa[i] = 1
+                Smapa[i] = 0.33
             if SZ[i] > paso*2:
-                Smapa[i] = 2
+                Smapa[i] = 0.66
             if SZ[i] > paso*3:
-                Smapa[i] = 3
-        mapa = np.split(Smapa,N)
+                Smapa[i] = 0.99
+        mapa = np.array(np.split(Smapa,N))
         print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-
+        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
 
 
 

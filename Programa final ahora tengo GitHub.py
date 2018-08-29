@@ -561,7 +561,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask.stop()
             self.aotask.stop()
 #            self.cuentas[i] = aux + np.random.rand(1)[0]
-            self.image[i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
+            self.image[-1-i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
 
 # ---stemScan ---
     def stepScan(self):
@@ -659,7 +659,7 @@ class ScanWidget(QtGui.QFrame):
     # have to analize the signal from the counter
         self.apdpostprocessing()
 
-        self.image[:, -1-self.dy] = self.counts[:]
+        self.image[:, -1-self.dy] = np.flip(self.counts[:],0)
 
       # The plotting method is slow (2-3 ms each), so I´m plotting in packages
         if self.pixelTime <= (0.1*10**3):
@@ -1300,7 +1300,7 @@ class ScanWidget(QtGui.QFrame):
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
         from scipy import ndimage
-        Z = self.image
+        Z = np.flip(np.flip(self.image,0),1)
         N = len(Z)  # numberfoPixels
 #        xcm = 0
 #        ycm = 0
@@ -1337,7 +1337,7 @@ class ScanWidget(QtGui.QFrame):
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
         print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-
+        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
 
 
 
