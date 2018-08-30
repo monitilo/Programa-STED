@@ -662,15 +662,15 @@ class ScanWidget(QtGui.QFrame):
         # have to analize the signal from the counter
         self.apdpostprocessing()
         if self.scanMode.currentText() == "slalom":
-            self.image[:, -1-self.dy] = np.flip(self.counts[:],0)
-            self.image[:, -2-self.dy] = (self.backcounts[:])  # ver si va el flip
+            self.image[:, -1-self.dy] = np.flip(self.counts[:],0) + np.random.rand(len(self.counts))
+            self.image[:, -2-self.dy] = (self.backcounts[:]) + 5* np.random.rand(len(self.backcounts))  # ver si va el flip
             paso = 2
         else:
-            self.image[:, -1-self.dy] = np.flip(self.counts[:],0)
-            self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0)
+            self.image[:, -1-self.dy] = np.flip(self.counts[:],0) + np.random.rand(len(self.counts))
+            self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0) + 5* np.random.rand(len(self.backcounts))
 
           # The plotting method is slow (2-3 ms each), so I´m plotting in packages
-        if self.pixelTime <= (0.1*10**3):
+        if (self.pixelTime*10**3) <= 0.5:
             multi5 = np.arange(0, self.numberofPixels, 10)  # looks like realtime
         else:
             multi5 = np.arange(0, self.numberofPixels, 2)
@@ -822,6 +822,9 @@ class ScanWidget(QtGui.QFrame):
 
         startX = float(self.initialPosition[0])
 
+#        R=5
+#        T=50*0.01
+#        velocity=R/T
         ti = velocity / aceleration
         xipuntos = int(np.ceil(ti * rate))
 
@@ -830,11 +833,12 @@ class ScanWidget(QtGui.QFrame):
         for i in range(xipuntos):
             xini[i] = 0.5*aceleration*((tiempoi[i])**2) + startX
 
+#        xr = xini[-1] + R
+
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
 
         if self.scanMode.currentText() == "slalom":  # (or Slalom mode)
-
           self.vueltaEdit.setText("1")
           self.vueltaEdit.setStyleSheet(" background-color: red; ")
         else:
@@ -854,10 +858,10 @@ class ScanWidget(QtGui.QFrame):
         av = aceleration
         tlow = Vback*velocity/av
         xlow = 0.5*av*(tlow**2) + startX
-        Nvuelta = abs(int(np.ceil(((xlow-xchange[-1])/(Vback*velocity)) * (rate))))
+        Nvuelta = abs(int(np.round(((xchange[-1]-xlow)/(Vback*velocity)) * (rate))))
 
     # To avoid wrong going back in x
-        if xchange[-1] < xlow + startX:
+        if xchange[-1] < xlow:
             if xchange[-1] < startX:
                 q = np.where(xchange<=startX)[0][0]
                 xchange = xchange[:q]
@@ -865,7 +869,7 @@ class ScanWidget(QtGui.QFrame):
                 self.xback = np.linspace(0,0,4)  #e lo creo para que no tire error nomas
 
             else:
-                q = np.where(xchange <= xlow + startX)[0][0]
+                q = np.where(xchange <= xlow)[0][0]
                 xchange = xchange[:q]
                 self.xback = np.linspace(xlow, 0, Nvuelta) + startX
                 print("xchange < xlow")
@@ -1109,7 +1113,7 @@ class ScanWidget(QtGui.QFrame):
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
 
         self.paramChanged()
-        if self.working:
+        if self.dy != 0:
             if self.scanMode.currentText() == "step scan":
                 self.channelsOpenStep()
             else:
@@ -1400,7 +1404,8 @@ class ScanWidget(QtGui.QFrame):
         print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n",
               np.round((toc-tic)*10**3,3), "(ms) mapas + CM\n")
 
-        self.viewtimer.start(((toc-tic)+self.reallinetime)*10**3)  # imput in ms
+#        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
+        self.viewtimer.start((self.reallinetime)*10**3)
         print(((toc-tic)+self.reallinetime)*10**3)
 
 
