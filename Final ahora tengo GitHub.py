@@ -15,6 +15,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph.ptime as ptime
 
 from PIL import Image
+from scipy import ndimage
 
 import re
 
@@ -39,31 +40,31 @@ class ScanWidget(QtGui.QFrame):
 
         verxi = np.concatenate((self.xini[:-1],
                                np.zeros(len(self.wantedrampx)),
-                               np.zeros(len(self.xchange[1:])),
-                               np.zeros(len(self.xback[1:-1])),
-                               np.zeros(len(self.xstops))))
+                               np.zeros(len(self.xchange[1:-1])),
+                               np.zeros(len(self.xback[:])),
+                               np.zeros(len(self.xstops[1:]))))
 
         verxchange = np.concatenate((np.zeros(len(self.xini[:-1])),
                                np.zeros(len(self.wantedrampx)),
-                               ((self.xchange[1:])),
-                               np.zeros(len(self.xback[1:-1])),
-                               np.zeros(len(self.xstops))))
+                               ((self.xchange[1:-1])),
+                               np.zeros(len(self.xback[:])),
+                               np.zeros(len(self.xstops[1:]))))
 
         verxback = np.concatenate((np.zeros(len(self.xini[:-1])),
                                np.zeros(len(self.wantedrampx)),
-                               np.zeros(len(self.xchange[1:])),
-                               ((self.xback[1:-1])), 
-                               np.zeros(len(self.xstops))))
+                               np.zeros(len(self.xchange[1:-1])),
+                               ((self.xback[:])), 
+                               np.zeros(len(self.xstops[1:]))))
 
         verxstops = np.concatenate((np.zeros(len(self.xini[:-1])),
                                np.zeros(len(self.wantedrampx)),
-                               np.zeros(len(self.xchange[1:])),
-                               np.zeros(len(self.xback[1:-1])),
-                               self.xstops))
+                               np.zeros(len(self.xchange[1:-1])),
+                               np.zeros(len(self.xback[:])),
+                               self.xstops[1:]))
 
 
         plt.plot(verxi,'*-m')
-        plt.plot(self.onerampx * convFactors['x'],'b.-')
+        plt.plot(self.onerampx,'b.-')
         plt.plot(verxchange,'.-g')
         plt.plot(verxback,'.-c')
         plt.plot(verxstops,'*-y')
@@ -464,7 +465,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.blankImage = np.zeros(size)
         self.image = self.blankImage
-        self.backimage = self.image  # para la vuelta (poner back Velocity=1)
+
         self.dy = 0
 
       # numberofpixels is the relevant part of the total ramp.
@@ -707,9 +708,11 @@ class ScanWidget(QtGui.QFrame):
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
-        self.backcounts = np.zeros((self.pixelsoffB))
+
 
         self.acceleration()
+        self.backcounts = np.zeros((self.pixelsoffB))
+        self.backimage = np.zeros((self.pixelsoffB, self.numberofPixels))  # para la vuelta (poner back Velocity=1)
 
 #    Barrido x
         startX = float(self.initialPosition[0])
@@ -719,16 +722,16 @@ class ScanWidget(QtGui.QFrame):
 
         self.onerampx = np.concatenate((self.xini[:-1],
                                              wantedrampx,
-                                             self.xchange[1:],
-                                             self.xback[1:-1],
-                                             self.xstops))
+                                             self.xchange[1:-1],
+                                             self.xback[:],
+                                             self.xstops[1:]))
         self.wantedrampx = wantedrampx
 
         print(len(self.xini[:-1]), "xipuntos\n",
               len(wantedrampx), "Npuntos\n",
-              len(self.xchange[1:]), "xchangepuntos\n",
-              len(self.xback[1:-1]), "xbackpuntos\n",
-              len(self.xstops), "xstopspuntos\n")
+              len(self.xchange[1:-1]), "xchangepuntos\n",
+              len(self.xback[:]), "xbackpuntos\n",
+              len(self.xstops[1:]), "xstopspuntos\n")
 
         self.totalrampx = np.tile(self.onerampx, self.numberofPixels)
 
@@ -831,12 +834,13 @@ class ScanWidget(QtGui.QFrame):
 #        tr = T + ti
 
         if self.scanMode.currentText() == "slalom":  # (or Slalom mode)
-          Vback=1
-          self.vueltaEdit.setText("fijo en 1")
+
+          self.vueltaEdit.setText("1")
           self.vueltaEdit.setStyleSheet(" background-color: red; ")
         else:
           self.vueltaEdit.setStyleSheet("{ background-color: }")
-          Vback = float(self.vueltaEdit.text())
+
+        Vback = float(self.vueltaEdit.text())
 
     # impongo una velocidad de vuelta Vback veces mayor a la de ida
         tcasi = ((1+Vback) * velocity) / aceleration  # -a*t + V = -Vback*V
@@ -847,9 +851,9 @@ class ScanWidget(QtGui.QFrame):
             xchange[i] = (-0.5*aceleration*((tiempofin[i])**2) + velocity * (tiempofin[i]) ) + xr
 
     # After the wanted ramp, it get a negative acceleration:
-        av = aceleration  # *Vback  ex m
+        av = aceleration
         tlow = Vback*velocity/av
-        xlow = 0.5*av*(tlow**2)
+        xlow = 0.5*av*(tlow**2) + startX
         Nvuelta = abs(int(np.ceil(((xlow-xchange[-1])/(Vback*velocity)) * (rate))))
 
     # To avoid wrong going back in x
@@ -858,7 +862,7 @@ class ScanWidget(QtGui.QFrame):
                 q = np.where(xchange<=startX)[0][0]
                 xchange = xchange[:q]
                 print("xchange < 0")
-                self.xback = np.linspace(0,0,4)
+                self.xback = np.linspace(0,0,4)  #e lo creo para que no tire error nomas
 
             else:
                 q = np.where(xchange <= xlow + startX)[0][0]
@@ -868,7 +872,7 @@ class ScanWidget(QtGui.QFrame):
             xstops = np.linspace(0,0,2)
         else:
 
-            self.xback = np.linspace(xchange[-1], xlow+startX, Nvuelta)
+            self.xback = np.linspace(xchange[-1], xlow, Nvuelta)
 
             xlowpuntos = int(np.ceil(tlow * rate))
             tiempolow=np.linspace(0,tlow,xlowpuntos)
@@ -886,13 +890,13 @@ class ScanWidget(QtGui.QFrame):
 
     # Don't want all the accelerated zones
         NoffL = len(xini[:-1])
-        NoffM = len(xchange[1:]) 
-        NoffB = len(self.xback[1:-1])
-        NoffR = len(xstops)
+        NoffM = len(xchange[1:-1]) 
+        NoffB = len(self.xback[:])
+        NoffR = len(xstops[1:])
         toffL = NoffL/self.sampleRate
         toffR = NoffR/self.sampleRate
         toffM = NoffM/self.sampleRate
-        toffB =NoffB/self.sampleRate
+        toffB = NoffB/self.sampleRate
 #        toff = toffL + toffR
         self.pixelsoffL = int(np.round(toffL*self.apdrate)/self.Napd)
         self.pixelsoffM = int(np.round(toffM*self.apdrate)/self.Napd)
@@ -1348,8 +1352,9 @@ class ScanWidget(QtGui.QFrame):
 
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
+        self.viewtimer.stop()
         tic = ptime.time()
-        from scipy import ndimage
+
         Z = np.flip(np.flip(self.image,0),1)
         N = len(Z)  # numberfoPixels
 #        xcm = 0
@@ -1367,28 +1372,37 @@ class ScanWidget(QtGui.QFrame):
         Normal = self.scanRange / self.numberofPixels
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
+        tac = ptime.time()
 #        resol = 2
 #        for i in range(resol):
 #            for j in range(resol):
 #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
-        lomas = np.max(Z)
-        Npasos = 4
-        paso = lomas/Npasos
-#        tec=time.time()
-        SZ = Z.ravel()
-        mapa = np.zeros((N,N))
-        Smapa = mapa.ravel()
-        for i in range(len(SZ)):
-            if SZ[i] > paso:
-                Smapa[i] = 1
-            if SZ[i] > paso*2:
-                Smapa[i] = 2
-            if SZ[i] > paso*3:
-                Smapa[i] = 3
-        mapa = np.split(Smapa,N)
-#        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-        print(np.round((ptime.time()-tic)*10**3,3), "(ms) CM\n")
+
+#        lomas = np.max(Z)
+#        Npasos = 4
+#        paso = lomas/Npasos
+##        tec=time.time()
+#        SZ = Z.ravel()
+#        mapa = np.zeros((N,N))
+#        Smapa = mapa.ravel()
+#        for i in range(len(SZ)):
+#            if SZ[i] > paso:
+#                Smapa[i] = 1
+#            if SZ[i] > paso*2:
+#                Smapa[i] = 2
+#            if SZ[i] > paso*3:
+#                Smapa[i] = 3
+#        mapa = np.split(Smapa,N)
+##        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
+#        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+
+        toc = ptime.time()
+        print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n",
+              np.round((toc-tic)*10**3,3), "(ms) mapas + CM\n")
+
+        self.viewtimer.start(((toc-tic)+self.reallinetime)*10**3)  # imput in ms
+        print(((toc-tic)+self.reallinetime)*10**3)
+
 
 
 app = QtGui.QApplication([])
