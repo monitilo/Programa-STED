@@ -106,7 +106,7 @@ class App(QtGui.QMainWindow):
 
         #### Set Data  #####################
 
-        self.x = np.linspace(0,50., num=500)
+        self.x = np.linspace(0,50., num=1000)
         self.X,self.Y = np.meshgrid(self.x,self.x)
 
         self.counter = 0
@@ -124,7 +124,7 @@ class App(QtGui.QMainWindow):
         self.img.setImage(self.data)
         toc = time.time()
 #        self.h2.setData(self.ydata)
-        print((toc-tic)*10**3, (tac-tic)*10**3)
+        print((toc-tic)*10**3,"\n", (tac-tic)*10**3,"\n lendata=",len(self.data))
         now = time.time()
         dt = (now-self.lastupdate)
         if dt <= 0:
@@ -134,7 +134,7 @@ class App(QtGui.QMainWindow):
         self.fps = self.fps * 0.9 + fps2 * 0.1
         tx = 'Mean Frame Rate:  {fps:.3f} FPS'.format(fps=self.fps )
         self.label.setText(tx)
-        if self.counter <= 1000:
+        if self.counter <= 500:
             QtCore.QTimer.singleShot(0.01, self._update)
             self.counter += 1
         else:
@@ -147,31 +147,31 @@ if __name__ == '__main__':
     thisapp.show()
     sys.exit(app.exec_())
 # %%
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
-fig = plt.figure()
-tic
-
-def f(x, y):
-    return np.sin(x) + np.cos(y)
-
-x = np.linspace(0, 2 * np.pi, 120)
-y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
-
-im = plt.imshow(f(x, y), animated=True)
-
-
-def updatefig(*args):
-    global x, y
-    x += np.pi / 15.
-    y += np.pi / 20.
-    im.set_array(f(x, y))
-    return im,
-
-ani = animation.FuncAnimation(fig, updatefig, interval=1, blit=True)
-plt.show()
+#import numpy as np
+#import matplotlib.pyplot as plt
+#import matplotlib.animation as animation
+#
+#fig = plt.figure()
+#tic
+#
+#def f(x, y):
+#    return np.sin(x) + np.cos(y)
+#
+#x = np.linspace(0, 2 * np.pi, 120)
+#y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
+#
+#im = plt.imshow(f(x, y), animated=True)
+#
+#
+#def updatefig(*args):
+#    global x, y
+#    x += np.pi / 15.
+#    y += np.pi / 20.
+#    im.set_array(f(x, y))
+#    return im,
+#
+#ani = animation.FuncAnimation(fig, updatefig, interval=1, blit=True)
+#plt.show()
 # %%
 """
 import cairo
