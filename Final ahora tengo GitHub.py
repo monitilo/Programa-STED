@@ -89,13 +89,18 @@ class ScanWidget(QtGui.QFrame):
 
         self.activeChannels = ["x", "y", "z"]
         self.AOchans = [0, 1, 2]
+        self.COchans = 1  # where is the APD, lo cambie por botones
 
+    # APD's detectors
+        self.APDred=QtGui.QRadioButton("APD red")
+        self.APDred.setChecked(True)
+        self.APDgreen=QtGui.QRadioButton("APD green")
+        self.APDgreen.setChecked(False)
     # LiveView Button
 
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
         self.liveviewButton.clicked.connect(self.liveview)
-
     # XZ PSF scan
         self.XYcheck = QtGui.QRadioButton('XY normal scan')
         self.XYcheck.setChecked(True)
@@ -195,6 +200,9 @@ class ScanWidget(QtGui.QFrame):
         self.XYcheck.clicked.connect(self.paramChanged)
         self.XZcheck.clicked.connect(self.paramChanged)
         self.YZcheck.clicked.connect(self.paramChanged)
+        self.APDred.clicked.connect(self.paramChanged)
+        self.APDgreen.clicked.connect(self.paramChanged)
+
         self.scanMode.activated.connect(self.paramChanged)
 
         self.paramWidget = QtGui.QWidget()
@@ -206,6 +214,15 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
+
+        group1 = QtGui.QButtonGroup(self.paramWidget)
+        group1.addButton(self.XYcheck)
+        group1.addButton(self.XZcheck)
+        group1.addButton(self.YZcheck)
+
+        group2 = QtGui.QButtonGroup(self.paramWidget)
+        group2.addButton(self.APDred)
+        group2.addButton(self.APDgreen)
 
 
 #        subgrid.addWidget(self.initialPositionLabel, 0, 1)
@@ -235,7 +252,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.YZcheck, 16, 2)
 
         subgrid.addWidget(self.shutterredbutton, 1, 1)
-
+        subgrid.addWidget(self.APDred, 0, 1)
+        subgrid.addWidget(self.APDgreen, 0, 2)
 
         subgrid.addWidget(self.scanMode, 12, 1)
         subgrid.addWidget(self.saveimageButton, 15, 1)
@@ -407,6 +425,10 @@ class ScanWidget(QtGui.QFrame):
 #--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
+        if self.APDred.isChecked():
+            self.COchan = 0
+        elif self.APDgreen.isChecked():
+            self.COchan = 1
 
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
@@ -937,7 +959,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask = nidaqmx.Task('citask')
 
         # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr0',
+            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.Cochans,
                                 name_to_assign_to_channel=u'conter',
                                 initial_count=0)
 
@@ -1052,7 +1074,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask = nidaqmx.Task('citask')
 
         # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr0',
+            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.Cochans,
                                 name_to_assign_to_channel=u'conter',
                                 initial_count=0)
 

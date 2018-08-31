@@ -278,7 +278,14 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.stepcheck, 12, 1)
 #        subgrid.addWidget(self.squareRadio, 12, 2)
-        
+
+        group1 = QtGui.QButtonGroup(self.paramWidget)
+        group1.addButton(self.XYcheck)
+        group1.addButton(self.XZcheck)
+        group1.addButton(self.YZcheck)
+#        subgrid.addWidget(self.XYcheck)
+#        subgrid.addWidget(self.XZcheck)
+#        subgrid.addWidget(self.YZcheck)
         subgrid.addWidget(self.XYcheck, 15, 2)
         subgrid.addWidget(self.XZcheck, 16, 2)
         subgrid.addWidget(self.YZcheck, 17, 2)
@@ -291,6 +298,15 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.a, 2, 2)
         subgrid.addWidget(self.bLabel, 3, 2)
         subgrid.addWidget(self.b, 4, 2)
+        
+        group2 = QtGui.QButtonGroup(self.paramWidget)
+        self.APDred=QtGui.QRadioButton("APD red")
+        self.APDgreen=QtGui.QRadioButton("APD green")
+        group2.addButton(self.APDred)
+        group2.addButton(self.APDgreen)
+        subgrid.addWidget(self.APDred, 0, 1)
+        subgrid.addWidget(self.APDgreen, 0, 2)
+
 # - POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -983,7 +999,6 @@ y guarde la imagen"""
             self.liveviewButton.setChecked(True)
             self.liveviewStart()
 
-
     def openFolder(self):
 
         root = tk.Tk()
@@ -1054,9 +1069,6 @@ y guarde la imagen"""
         mapa = np.array(np.split(Smapa,N))
         print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
         self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-
-
-
 
 if __name__ == '__main__':
 
