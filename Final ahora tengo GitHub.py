@@ -481,6 +481,7 @@ class ScanWidget(QtGui.QFrame):
             self.save = True
             self.channelsOpen()
             self.saveimageButton.setText('Abort')
+            self.openShutter("red")
             self.liveviewStart()
 
         else:
@@ -496,6 +497,7 @@ class ScanWidget(QtGui.QFrame):
         """
         if self.liveviewButton.isChecked():
             self.save = False
+            self.openShutter("red")
             self.liveviewStart()
 
         else:
@@ -503,7 +505,7 @@ class ScanWidget(QtGui.QFrame):
 
     def liveviewStart(self):
 #        self.working = True
-        self.openShutter("red")
+
         if self.scanMode.currentText() == "step scan":
             self.channelsOpenStep()
 #            self.inStart = False
@@ -566,7 +568,7 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.stop()
 #            self.cuentas[i] = aux + np.random.rand(1)[0]
             self.image[-1-i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
-            self.CMmeasure()
+
 # ---stemScan ---
     def stepScan(self):
     # the step clock calls this function
@@ -581,8 +583,9 @@ class ScanWidget(QtGui.QFrame):
         else:
             if self.save:
                 self.saveFrame()
-                self.MovetoStart()
+                self.CMmeasure()
                 self.liveviewStop()
+                self.mapa()
             else:
                 if self.Alancheck.isChecked():
                     self.saveFrame()  # para guardar siempre (Alan idea)
@@ -590,7 +593,8 @@ class ScanWidget(QtGui.QFrame):
                 self.viewtimer.stop()
                 self.MovetoStart()
                 self.liveviewStart()
-            self.CMmeasure()
+                self.CMmeasure()
+
     def Steps(self):
         self.pixelsofftotal = 0
         self.cuentas = np.zeros((self.numberofPixels))
@@ -662,12 +666,12 @@ class ScanWidget(QtGui.QFrame):
         # have to analize the signal from the counter
         self.apdpostprocessing()
         if self.scanMode.currentText() == "slalom":
-            self.image[:, -1-self.dy] = np.flip(self.counts[:],0) + np.random.rand(len(self.counts))
-            self.image[:, -2-self.dy] = (self.backcounts[:]) + 5* np.random.rand(len(self.backcounts))  # ver si va el flip
+            self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
+            self.image[:, -2-self.dy] = (self.backcounts[:])# + 5* np.random.rand(len(self.backcounts))  # ver si va el flip
             paso = 2
         else:
-            self.image[:, -1-self.dy] = np.flip(self.counts[:],0) + np.random.rand(len(self.counts))
-            self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0) + 5* np.random.rand(len(self.backcounts))
+            self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
+            self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0)# + 5* np.random.rand(len(self.backcounts))
 
     # The plotting method is slow (2-3 ms each), so I´m plotting in packages
         if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
@@ -689,6 +693,7 @@ class ScanWidget(QtGui.QFrame):
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
+                self.CMmeasure()
                 self.liveviewStop()
                 self.mapa()
             else:
@@ -700,7 +705,7 @@ class ScanWidget(QtGui.QFrame):
               self.aotask.stop()
               self.citask.stop()
               self.liveviewStart()
-            self.CMmeasure()
+              self.CMmeasure()
 
 #    def fastupdateView(self):
 #        
@@ -1247,7 +1252,7 @@ class ScanWidget(QtGui.QFrame):
         print(self.shuttersignal)
 
     def closeShutter(self, p):
-        self.channelsOpen()
+        self.shuttersnidaq()
 #        self.closedo()
         print("cierra shutter", p)
         shutters = ["red", "green", "otro"]
@@ -1341,10 +1346,10 @@ class ScanWidget(QtGui.QFrame):
         """ Config the path and name of the file to save, and save it"""
 
 
-#        timestr = time.strftime("%Y%m%d-%H%M%S")
-#        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
-#        guardado = Image.fromarray(self.image)
-#        guardado.save(name)
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+        guardado = Image.fromarray(self.image)
+        guardado.save(name)
 
         print("\n Hipoteticamente Guardo la imagen\n")
 
@@ -1359,11 +1364,15 @@ class ScanWidget(QtGui.QFrame):
 
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
-        self.viewtimer.stop()
+        if self.scanMode.currentText() == "step scan":
+            self.steptimer.stop()
+        else:
+            self.viewtimer.stop()
+
         tic = ptime.time()
 
         Z = np.flip(np.flip(self.image,0),1)
-        N = len(Z)  # numberfoPixels
+#        N = len(Z)  # numberfoPixels
 #        xcm = 0
 #        ycm = 0
 #        for i in range(N):
@@ -1389,17 +1398,21 @@ class ScanWidget(QtGui.QFrame):
         toc = ptime.time()
         print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
 
+        if self.scanMode.currentText() == "step scan":
+            self.steptimer.start(5)
+        else:
+            self.viewtimer.start((self.reallinetime)*10**3)
+
 #        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
-        self.viewtimer.start((self.reallinetime)*10**3)
         print(((toc-tic)+self.reallinetime)*10**3)
 
     def mapa(self):
-        Z = self.Z
+        Z =  np.flip(np.flip(self.image,0),1)
         N = len(Z)
         lomas = np.max(Z)
         Npasos = 4
         paso = lomas/Npasos
-        tec=time.time()
+        tec=ptime.time()
         SZ = Z.ravel()
         mapa = np.zeros((N,N))
         Smapa = mapa.ravel()
@@ -1411,7 +1424,7 @@ class ScanWidget(QtGui.QFrame):
             if SZ[i] > paso*3:
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
-        print(np.round((time.time()-tec,4)*10**3),"ms tarda mapa\n")
+        print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
         self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
 
 
