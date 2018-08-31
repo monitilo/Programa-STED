@@ -669,9 +669,11 @@ class ScanWidget(QtGui.QFrame):
             self.image[:, -1-self.dy] = np.flip(self.counts[:],0) + np.random.rand(len(self.counts))
             self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0) + 5* np.random.rand(len(self.backcounts))
 
-          # The plotting method is slow (2-3 ms each), so I´m plotting in packages
-        if (self.pixelTime*10**3) <= 0.5:
-            multi5 = np.arange(0, self.numberofPixels, 10)  # looks like realtime
+    # The plotting method is slow (2-3 ms each), so I´m plotting in packages
+        if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
+            multi5 = np.arange(0, self.numberofPixels, 20)  # looks like realtime
+        elif self.numberofPixels >= 200:
+            multi5 = np.arange(0, self.numberofPixels, 10)
         else:
             multi5 = np.arange(0, self.numberofPixels, 2)
 
@@ -688,6 +690,7 @@ class ScanWidget(QtGui.QFrame):
                 self.saveFrame()
                 self.saveimageButton.setText('End')
                 self.liveviewStop()
+                self.mapa()
             else:
               if self.Alancheck.isChecked():
                   self.saveFrame()  # para guardar siempre (Alan idea)
@@ -1377,37 +1380,39 @@ class ScanWidget(QtGui.QFrame):
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
         tac = ptime.time()
-#        resol = 2
+
+#        resol = 2  # NO SE DIBUJAR ARRIBA DE LA IMAGEN
 #        for i in range(resol):
 #            for j in range(resol):
 #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
 
-#        lomas = np.max(Z)
-#        Npasos = 4
-#        paso = lomas/Npasos
-##        tec=time.time()
-#        SZ = Z.ravel()
-#        mapa = np.zeros((N,N))
-#        Smapa = mapa.ravel()
-#        for i in range(len(SZ)):
-#            if SZ[i] > paso:
-#                Smapa[i] = 1
-#            if SZ[i] > paso*2:
-#                Smapa[i] = 2
-#            if SZ[i] > paso*3:
-#                Smapa[i] = 3
-#        mapa = np.split(Smapa,N)
-##        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-#        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-
         toc = ptime.time()
-        print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n",
-              np.round((toc-tic)*10**3,3), "(ms) mapas + CM\n")
+        print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
 
 #        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
         self.viewtimer.start((self.reallinetime)*10**3)
         print(((toc-tic)+self.reallinetime)*10**3)
 
+    def mapa(self):
+        Z = self.Z
+        N = len(Z)
+        lomas = np.max(Z)
+        Npasos = 4
+        paso = lomas/Npasos
+        tec=time.time()
+        SZ = Z.ravel()
+        mapa = np.zeros((N,N))
+        Smapa = mapa.ravel()
+        for i in range(len(SZ)):
+            if SZ[i] > paso:
+                Smapa[i] = 1
+            if SZ[i] > paso*2:
+                Smapa[i] = 2
+            if SZ[i] > paso*3:
+                Smapa[i] = 3
+        mapa = np.split(Smapa,N)
+        print(np.round((time.time()-tec,4)*10**3),"ms tarda mapa\n")
+        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
 
 
 app = QtGui.QApplication([])
