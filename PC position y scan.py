@@ -96,8 +96,16 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(openAction)
         fileMenu.addAction(exitAction)
         fileMenu2 = menuBar.addMenu('&APD')
-        fileMenu.addAction(greenAPD)
-        fileMenu.addAction(redAPD)
+        greenAPDaction = QtWidgets.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
+        greenAPDaction.setStatusTip('Uses the APD for canal green')
+        greenAPDaction.triggered.connect(self.greenAPD)
+        greenAPDaction.setShortcut('Ctrl+G')
+        fileMenu2.addAction(greenAPDaction)
+        redAPDaction = QtWidgets.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
+        redAPDaction.setStatusTip('Uses the APD for canal red')
+        redAPDaction.setShortcut('Ctrl+R')
+        redAPDaction.triggered.connect(self.redAPD)
+        fileMenu2.addAction(redAPDaction)
 
         self.form_widget = ScanWidget(self) 
         self.setCentralWidget(self.form_widget) 
@@ -714,7 +722,7 @@ y guarde la imagen"""
 
     def barridos(self):
         N=self.numberofPixels
-        a = self.main.a  # float(self.a.text())
+        a = float(self.a.text())  # self.main.a  # 
         b = float(self.b.text())
         r = self.scanRange/2
         X = np.linspace(-r, r, N)
