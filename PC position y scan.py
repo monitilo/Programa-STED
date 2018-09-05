@@ -12,7 +12,8 @@ import time
 #import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph.Qt import QtCore, QtGui  #, QtWidgets
+
 #from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
 #
@@ -24,6 +25,9 @@ import tkinter as tk
 from tkinter import filedialog
 
 
+
+
+
 convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
 # la de z es 1 um = 0.59 V
 apdrate = 10**5
@@ -31,7 +35,73 @@ apdrate = 10**5
 def makeRamp(start, end, samples):
     return np.linspace(start, end, num=samples)
 
+#"""
+import sys
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIcon
 
+class MainWindow(QtWidgets.QMainWindow):
+    def newCall(self):
+        self.a = 0
+        print('New')
+
+    def openCall(self):
+        self.a = 1.5
+        print('Open')
+
+    def exitCall(self):
+        self.a = -1.5
+        print('Exit app')
+
+    def greenAPD(self):
+
+        print('Green APD')
+
+    def redAPD(self):
+
+        print('red APD')
+
+
+    def __init__(self):
+        QMainWindow.__init__(self)
+        self.a = 0
+# ----- MENU
+        self.setMinimumSize(QtCore.QSize(300, 100))    
+        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB") 
+
+        # Create new action
+        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)        
+        newAction.setShortcut('Ctrl+N')
+        newAction.setStatusTip('New document')
+        newAction.triggered.connect(self.newCall)
+
+        # Create new action
+        openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open', self)        
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Open document')
+        openAction.triggered.connect(self.openCall)
+
+        # Create exit action
+        exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.exitCall)
+
+        # Create menu bar and add action
+        menuBar = self.menuBar()
+        fileMenu = menuBar.addMenu('&File')
+        fileMenu.addAction(newAction)
+        fileMenu.addAction(openAction)
+        fileMenu.addAction(exitAction)
+        fileMenu2 = menuBar.addMenu('&APD')
+        fileMenu.addAction(greenAPD)
+        fileMenu.addAction(redAPD)
+
+        self.form_widget = ScanWidget(self) 
+        self.setCentralWidget(self.form_widget) 
+#"""
 class ScanWidget(QtGui.QFrame):
 
     def keyPressEvent(self, e):
@@ -47,10 +117,11 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewButton.setChecked()
             self.liveview()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self,main, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
+        self.main=main
 # ---  Positioner metido adentro
 
         # Parameters for smooth moving (to no shake hard the piezo)
@@ -116,6 +187,8 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
         self.liveviewButton.clicked.connect(self.liveview)
+
+        self.liveviewButton.setToolTip('This is a tooltip message.')
 
         # save image Button
 
@@ -641,7 +714,7 @@ y guarde la imagen"""
 
     def barridos(self):
         N=self.numberofPixels
-        a = float(self.a.text())
+        a = self.main.a  # float(self.a.text())
         b = float(self.b.text())
         r = self.scanRange/2
         X = np.linspace(-r, r, N)
@@ -1073,13 +1146,9 @@ y guarde la imagen"""
 if __name__ == '__main__':
 
     app = QtGui.QApplication([])
-    win = ScanWidget()
+#    win = ScanWidget()
+    win = MainWindow()
     win.show()
 
     app.exec_()
-
-#        if 'a' in locals() or 'a' in globals():
-#            print("borro a")
-#            del a
-#        else:
-#            print("no esta a para borrar")
+#    sys.exit( app.exec_() )
