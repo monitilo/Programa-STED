@@ -9,7 +9,7 @@ import time
 import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
 #from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
@@ -30,6 +30,93 @@ convFactors = {'x': 25, 'y': 25, 'z': 1.683}
 minVolt = {'x': -10, 'y': -10, 'z': 0}
 maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no errarle
+
+
+class MainWindow(QtWidgets.QMainWindow):
+    def newCall(self):
+        self.a = 0
+        print('New')
+
+    def openCall(self):
+        self.a = 1.5
+        print('Open')
+
+    def exitCall(self):
+        self.a = -1.5
+        print('Exit app')
+
+    def greenAPD(self):
+        print('Green APD')
+
+    def redAPD(self):
+        print('red APD')
+
+    def localDir(self):
+        print('poner la carpeta donde trabajar')
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.NameDirValue.setText(self.file_path)
+
+    def __init__(self):
+        QtWidgets.QMainWindow.__init__(self)
+        self.a = 0
+        self.file_path = os.path.abspath("")
+# ----- MENU
+        self.setMinimumSize(QtCore.QSize(300, 100))
+        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
+
+        # Create new action
+        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
+        newAction.setShortcut('Ctrl+N')
+        newAction.setStatusTip('New document')
+        newAction.triggered.connect(self.newCall)
+
+        # Create new action
+        openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Open document')
+        openAction.triggered.connect(self.openCall)
+
+        # Create exit action
+        exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.exitCall)
+
+        # Create de APD options Action
+        greenAPDaction = QtWidgets.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
+        greenAPDaction.setStatusTip('Uses the APD for canal green')
+        greenAPDaction.triggered.connect(self.greenAPD)
+        greenAPDaction.setShortcut('Ctrl+G')
+        redAPDaction = QtWidgets.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
+        redAPDaction.setStatusTip('Uses the APD for canal red')
+        redAPDaction.setShortcut('Ctrl+R')
+        redAPDaction.triggered.connect(self.redAPD)
+
+        # Create de file location action
+        localDiraction = QtWidgets.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
+        localDiraction.setStatusTip('Select the work folder')
+        localDiraction.setShortcut('Ctrl+D')
+        localDiraction.triggered.connect(self.localDir)
+
+        # Create menu bar and add action
+        menuBar = self.menuBar()
+        fileMenu = menuBar.addMenu('&File')
+        fileMenu.addAction(newAction)
+        fileMenu.addAction(openAction)
+        fileMenu.addAction(exitAction)
+        fileMenu2 = menuBar.addMenu('&APD')
+        fileMenu2.addAction(greenAPDaction)
+        fileMenu2.addAction(redAPDaction)
+        fileMenu3 = menuBar.addMenu('&Local Folder')
+        fileMenu3.addAction(localDiraction)
+        fileMenu4 = menuBar.addMenu('&<--Ninguno de estos hace nada!')
+
+        self.form_widget = ScanWidget(self, device)
+        self.setCentralWidget(self.form_widget)
 
 
 class ScanWidget(QtGui.QFrame):
@@ -62,7 +149,6 @@ class ScanWidget(QtGui.QFrame):
                                np.zeros(len(self.xback[:])),
                                self.xstops[1:]))
 
-
         plt.plot(verxi,'*-m')
         plt.plot(self.onerampx,'b.-')
         plt.plot(verxchange,'.-g')
@@ -73,10 +159,11 @@ class ScanWidget(QtGui.QFrame):
         plt.show()
 
 
-    def __init__(self, device, *args, **kwargs):  # agregue device
+    def __init__(self, main, device, *args, **kwargs):  # agregue device
 
         super().__init__(*args, **kwargs)
 
+        self.main=main
         self.nidaq = device  # esto tiene que ir
 
         imageWidget = pg.GraphicsLayoutWidget()
@@ -1451,7 +1538,8 @@ class ScanWidget(QtGui.QFrame):
 
 
 app = QtGui.QApplication([])
-win = ScanWidget(device)
+#win = ScanWidget(device)
+win = MainWindow()
 win.show()
 
 app.exec_()

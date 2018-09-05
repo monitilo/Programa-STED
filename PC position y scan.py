@@ -12,7 +12,7 @@ import time
 #import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui  #, QtWidgets
+from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
 #from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
@@ -25,9 +25,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 
-
-
-
+device = 9
 convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
 # la de z es 1 um = 0.59 V
 apdrate = 10**5
@@ -36,11 +34,11 @@ def makeRamp(start, end, samples):
     return np.linspace(start, end, num=samples)
 
 #"""
-import sys
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QIcon
+#import sys
+#from PyQt5 import QtCore, QtWidgets
+#from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
+#from PyQt5.QtCore import QSize
+#from PyQt5.QtGui import QIcon
 
 class MainWindow(QtWidgets.QMainWindow):
     def newCall(self):
@@ -56,38 +54,61 @@ class MainWindow(QtWidgets.QMainWindow):
         print('Exit app')
 
     def greenAPD(self):
-
         print('Green APD')
 
     def redAPD(self):
-
         print('red APD')
 
+    def localDir(self):
+        print('poner la carpeta donde trabajar')
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.NameDirValue.setText(self.file_path)
 
     def __init__(self):
-        QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         self.a = 0
+        self.file_path = os.path.abspath("")
 # ----- MENU
-        self.setMinimumSize(QtCore.QSize(300, 100))    
-        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB") 
+        self.setMinimumSize(QtCore.QSize(300, 100))
+        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
 
         # Create new action
-        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)        
+        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
         newAction.setShortcut('Ctrl+N')
         newAction.setStatusTip('New document')
         newAction.triggered.connect(self.newCall)
 
         # Create new action
-        openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open', self)        
+        openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open', self)
         openAction.setShortcut('Ctrl+O')
         openAction.setStatusTip('Open document')
         openAction.triggered.connect(self.openCall)
 
         # Create exit action
-        exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)        
+        exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(self.exitCall)
+
+        # Create de APD options Action
+        greenAPDaction = QtWidgets.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
+        greenAPDaction.setStatusTip('Uses the APD for canal green')
+        greenAPDaction.triggered.connect(self.greenAPD)
+        greenAPDaction.setShortcut('Ctrl+G')
+        redAPDaction = QtWidgets.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
+        redAPDaction.setStatusTip('Uses the APD for canal red')
+        redAPDaction.setShortcut('Ctrl+R')
+        redAPDaction.triggered.connect(self.redAPD)
+
+        # Create de file location action
+        localDiraction = QtWidgets.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
+        localDiraction.setStatusTip('Select the work folder')
+        localDiraction.setShortcut('Ctrl+D')
+        localDiraction.triggered.connect(self.localDir)
 
         # Create menu bar and add action
         menuBar = self.menuBar()
@@ -96,20 +117,15 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(openAction)
         fileMenu.addAction(exitAction)
         fileMenu2 = menuBar.addMenu('&APD')
-        greenAPDaction = QtWidgets.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
-        greenAPDaction.setStatusTip('Uses the APD for canal green')
-        greenAPDaction.triggered.connect(self.greenAPD)
-        greenAPDaction.setShortcut('Ctrl+G')
         fileMenu2.addAction(greenAPDaction)
-        redAPDaction = QtWidgets.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
-        redAPDaction.setStatusTip('Uses the APD for canal red')
-        redAPDaction.setShortcut('Ctrl+R')
-        redAPDaction.triggered.connect(self.redAPD)
         fileMenu2.addAction(redAPDaction)
+        fileMenu3 = menuBar.addMenu('&Local Folder')
+        fileMenu3.addAction(localDiraction)
+        fileMenu4 = menuBar.addMenu('&<--Ninguno de estos hace nada!')
 
-        self.form_widget = ScanWidget(self) 
-        self.setCentralWidget(self.form_widget) 
-#"""
+        self.form_widget = ScanWidget(self, device)
+        self.setCentralWidget(self.form_widget)
+
 class ScanWidget(QtGui.QFrame):
 
     def keyPressEvent(self, e):
@@ -125,11 +141,12 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewButton.setChecked()
             self.liveview()
 
-    def __init__(self,main, *args, **kwargs):
+    def __init__(self, main, device, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
         self.main=main
+        self.algo = device
 # ---  Positioner metido adentro
 
         # Parameters for smooth moving (to no shake hard the piezo)
@@ -349,9 +366,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.pixelSizeValue, 11, 1)
         subgrid.addWidget(self.scanMode, 13, 1)
 
-        subgrid.addWidget(self.liveviewButton, 14, 1)
-        subgrid.addWidget(self.Alancheck, 15, 1)
-        subgrid.addWidget(self.timeTotalLabel, 16, 1)
+        subgrid.addWidget(self.liveviewButton, 14, 1, 2, 1)
+        subgrid.addWidget(self.Alancheck, 16, 1)
+        subgrid.addWidget(self.timeTotalLabel, 17, 1)
 #        subgrid.addWidget(self.timeTotalValue, 15, 1)
         subgrid.addWidget(self.saveimageButton, 18, 1)
 
