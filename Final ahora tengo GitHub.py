@@ -39,11 +39,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def openCall(self):
         self.a = 1.5
+        os.startfile(self.file_path)
         print('Open')
 
     def exitCall(self):
         self.a = -1.5
-        print('Exit app')
+        print('Exit app (no hace nada)')
 
     def greenAPD(self):
         print('Green APD')
@@ -58,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
-        self.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setText(self.file_path)
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
@@ -66,13 +67,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_path = os.path.abspath("")
 # ----- MENU
         self.setMinimumSize(QtCore.QSize(300, 100))
-        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
+        self.setWindowTitle("The new-no-Tempesta very piola program")
 
-        # Create new action
-        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
-        newAction.setShortcut('Ctrl+N')
-        newAction.setStatusTip('New document')
-        newAction.triggered.connect(self.newCall)
+#        # Create new action
+#        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
+#        newAction.setShortcut('Ctrl+N')
+#        newAction.setStatusTip('New document')
+#        newAction.triggered.connect(self.newCall)
 
         # Create new action
         openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open', self)
@@ -105,15 +106,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create menu bar and add action
         menuBar = self.menuBar()
         fileMenu = menuBar.addMenu('&File')
-        fileMenu.addAction(newAction)
+        fileMenu.addAction(localDirAction)
         fileMenu.addAction(openAction)
         fileMenu.addAction(exitAction)
         fileMenu2 = menuBar.addMenu('&APD')
         fileMenu2.addAction(greenAPDaction)
         fileMenu2.addAction(redAPDaction)
-        fileMenu3 = menuBar.addMenu('&Local Folder')
-        fileMenu3.addAction(localDiraction)
-        fileMenu4 = menuBar.addMenu('&<--Ninguno de estos hace nada!')
+#        fileMenu3 = menuBar.addMenu('&Local Folder')
+#        fileMenu3.addAction(localDiraction)
+        fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
 
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
@@ -216,11 +217,11 @@ class ScanWidget(QtGui.QFrame):
 #        self.edit_save = QtGui.QLineEdit('imagenScan.tiff')
 #        self.edit_save.resize(self.edit_save.sizeHint())
 
-        self.NameDirButton = QtGui.QPushButton('Open')
-        self.NameDirButton.clicked.connect(self.openFolder)
-        self.file_path = os.path.abspath("")
+#        self.NameDirButton = QtGui.QPushButton('Open')
+#        self.NameDirButton.clicked.connect(self.openFolder)
+        filepath = main.file_path  # os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
-        self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setText(filepath)
 
     # Defino el tipo de Scan que quiero
 
@@ -344,7 +345,7 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.scanMode, 12, 1)
         subgrid.addWidget(self.saveimageButton, 15, 1)
-        subgrid.addWidget(self.NameDirButton, 1, 2)
+#        subgrid.addWidget(self.NameDirButton, 1, 2)
 
 
 # ---  Positioner part ---------------------------------
@@ -1454,22 +1455,22 @@ class ScanWidget(QtGui.QFrame):
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
 
-
+        filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+        name = str(self.filepath + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
         guardado = Image.fromarray(self.image)
         guardado.save(name)
 
         print("\n Hipoteticamente Guardo la imagen\n")
 
-    def openFolder(self):
-
-        root = tk.Tk()
-        root.withdraw()
-        
-        self.file_path = filedialog.askdirectory()
-        print(self.file_path,2)
-        self.NameDirValue.setText(self.file_path)
+#    def openFolder(self):
+#                           Obsoleto!!!!!!!!!!!!!!!!!!!!!!
+#        root = tk.Tk()
+#        root.withdraw()
+#        
+#        self.file_path = filedialog.askdirectory()
+#        print(self.file_path,2)
+#        self.NameDirValue.setText(self.file_path)
 
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
