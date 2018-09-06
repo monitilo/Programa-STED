@@ -98,10 +98,10 @@ class MainWindow(QtWidgets.QMainWindow):
         redAPDaction.triggered.connect(self.redAPD)
 
         # Create de file location action
-        localDiraction = QtWidgets.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
-        localDiraction.setStatusTip('Select the work folder')
-        localDiraction.setShortcut('Ctrl+D')
-        localDiraction.triggered.connect(self.localDir)
+        localDirAction = QtWidgets.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
+        localDirAction.setStatusTip('Select the work folder')
+        localDirAction.setShortcut('Ctrl+D')
+        localDirAction.triggered.connect(self.localDir)
 
         # Create menu bar and add action
         menuBar = self.menuBar()
