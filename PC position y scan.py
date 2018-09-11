@@ -12,7 +12,7 @@ import time
 #import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
+#from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
 #from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
@@ -35,10 +35,10 @@ def makeRamp(start, end, samples):
 
 #"""
 import sys
-#from PyQt5 import QtCore, QtWidgets
-#from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
-#from PyQt5.QtCore import QSize
-#from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIcon
 
 class MainWindow(QtWidgets.QMainWindow):
     def newCall(self):

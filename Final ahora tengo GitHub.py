@@ -1047,7 +1047,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask = nidaqmx.Task('citask')
 
         # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.Cochans,
+            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.COchans,
                                 name_to_assign_to_channel=u'conter',
                                 initial_count=0)
 
@@ -1162,7 +1162,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask = nidaqmx.Task('citask')
 
         # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.Cochans,
+            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.COchans,
                                 name_to_assign_to_channel=u'conter',
                                 initial_count=0)
 
@@ -1457,7 +1457,7 @@ class ScanWidget(QtGui.QFrame):
 
         filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(self.filepath + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
+        name = str(filepath + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
         guardado = Image.fromarray(self.image)
         guardado.save(name)
 
