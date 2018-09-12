@@ -120,6 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.form_widget)
 
 
+
 class ScanWidget(QtGui.QFrame):
 
     def graphplot(self):
