@@ -129,13 +129,14 @@ class ScanWidget(QtGui.QFrame):
 #        self.edit_save = QtGui.QLineEdit('imagenScan.tiff')
 #        self.edit_save.resize(self.edit_save.sizeHint())
 
-#        self.NameDirButton = QtGui.QPushButton('Open')
-#        self.NameDirButton.clicked.connect(self.openFolder)
+        self.NameDirButton = QtGui.QPushButton('Select Dir')
+        self.NameDirButton.clicked.connect(self.selectFolder)
 #        filepath = main.file_path  # os.path.abspath("")
         self.file_path = os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(self.file_path)
-
+        self.OpenButton = QtGui.QPushButton('open dir')
+        self.OpenButton.clicked.connect(self.openFolder)
     # Defino el tipo de Scan que quiero
 
         self.scanMode = QtGui.QComboBox()
@@ -258,8 +259,8 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.scanMode, 12, 1)
         subgrid.addWidget(self.saveimageButton, 15, 1)
-#        subgrid.addWidget(self.NameDirButton, 1, 2)
-
+        subgrid.addWidget(self.NameDirButton, 1, 2)
+        subgrid.addWidget(self.OpenButton, 2, 2)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -1376,14 +1377,17 @@ class ScanWidget(QtGui.QFrame):
 
         print("\n Hipoteticamente Guardo la imagen\n")
 
-#    def openFolder(self):
+    def selectFolder(self):
 #                           Obsoleto!!!!!!!!!!!!!!!!!!!!!!
-#        root = tk.Tk()
-#        root.withdraw()
-#        
-#        self.file_path = filedialog.askdirectory()
-#        print(self.file_path,2)
-#        self.NameDirValue.setText(self.file_path)
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.NameDirValue.setText(self.file_path)
+
+    def openFolder(self):
+        os.startfile(self.file_path)
 
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):

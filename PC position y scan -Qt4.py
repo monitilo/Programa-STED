@@ -131,10 +131,11 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: gray; }"
                 "QPushButton:pressed { background-color: blue; }")
 
-        self.NameDirButton = QtGui.QPushButton('Open')
-        self.NameDirButton.clicked.connect(self.openFolder)
+        self.NameDirButton = QtGui.QPushButton('select Dir')
+        self.NameDirButton.clicked.connect(self.selectFolder)
         self.file_path = os.path.abspath("")
-
+        self.OpenButton = QtGui.QPushButton('open dir')
+        self.OpenButton.clicked.connect(self.openFolder)
         # Defino el tipo de Scan que quiero
 
         self.scanMode = QtGui.QComboBox()
@@ -279,6 +280,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.saveimageButton, 18, 1)
 
         subgrid.addWidget(self.NameDirButton, 18, 2,2,1)
+        subgrid.addWidget(self.OpenButton, 19, 2,1,1)
 
         subgrid.addWidget(self.stepcheck, 12, 1)
 #        subgrid.addWidget(self.squareRadio, 12, 2)
@@ -713,7 +715,7 @@ y guarde la imagen"""
         name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
         guardado = Image.fromarray(np.flip(self.image,0))
         guardado.save(name)
-
+        os.startfile(self.file_path)
 #        self.folderEdit = QtGui.QLineEdit(self.initialDir)
 #        openFolderButton = QtGui.QPushButton('Open')
 #        openFolderButton.clicked.connect(self.openFolder)
@@ -1008,7 +1010,7 @@ y guarde la imagen"""
             self.liveviewButton.setChecked(True)
             self.liveviewStart()
 
-    def openFolder(self):
+    def selectFolder(self):
 
         root = tk.Tk()
         root.withdraw()
@@ -1016,6 +1018,9 @@ y guarde la imagen"""
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
         self.NameDirValue.setText(self.file_path)
+
+    def openFolder(self):
+        os.startfile(self.file_path)
 
 #---- CM measure ---
     def CMmeasure(self):
