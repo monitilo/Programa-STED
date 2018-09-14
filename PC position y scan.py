@@ -1128,7 +1128,7 @@ y guarde la imagen"""
 #                os.startfile(self.dataDir)
 
     def CMmeasure(self):
-
+        self.viewtimer.stop()
         from scipy import ndimage
         Z = np.flip(np.flip(self.image,0),1)
         N = len(Z)
@@ -1147,32 +1147,33 @@ y guarde la imagen"""
         print("Xcm=", xcm,"\nYcm=", ycm)
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
-        Normal = self.scanRange / self.numberofPixels
+        Normal = self.scanRange / self.numberofPixels  # Normalizo
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
 
-#        resol = 2
-#        for i in range(resol):
-#            for j in range(resol):
-#                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
-        lomas = np.max(Z)
-        Npasos = 4
-        paso = lomas/Npasos
-        tec=time.time()
-        SZ = Z.ravel()
-        mapa = np.zeros((N,N))
-        Smapa = mapa.ravel()
-        for i in range(len(SZ)):
-            if SZ[i] > paso:
-                Smapa[i] = 0.33
-            if SZ[i] > paso*2:
-                Smapa[i] = 0.66
-            if SZ[i] > paso*3:
-                Smapa[i] = 0.99
-        mapa = np.array(np.split(Smapa,N))
-        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+##        resol = 2
+##        for i in range(resol):
+##            for j in range(resol):
+##                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
 
+#        lomas = np.max(Z)
+#        Npasos = 4
+#        paso = lomas/Npasos
+#        tec=time.time()
+#        SZ = Z.ravel()
+#        mapa = np.zeros((N,N))
+#        Smapa = mapa.ravel()
+#        for i in range(len(SZ)):
+#            if SZ[i] > paso:
+#                Smapa[i] = 0.33
+#            if SZ[i] > paso*2:
+#                Smapa[i] = 0.66
+#            if SZ[i] > paso*3:
+#                Smapa[i] = 0.99
+#        mapa = np.array(np.split(Smapa,N))
+#        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
+#        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+        self.viewtimer.start(self.linetime)
 if __name__ == '__main__':
 
     app = QtGui.QApplication([])
