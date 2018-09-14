@@ -701,6 +701,8 @@ y guarde la imagen"""
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
         self.Z = self.Z + np.random.choice([1,-1])*0.01
+
+#---- Guardarimagen ---
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
 
@@ -709,7 +711,7 @@ y guarde la imagen"""
 #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
         timestr = time.strftime("%Y%m%d-%H%M%S")
         name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
-        guardado = Image.fromarray(self.image)
+        guardado = Image.fromarray(np.flip(self.image,0))
         guardado.save(name)
 
 #        self.folderEdit = QtGui.QLineEdit(self.initialDir)
@@ -905,6 +907,7 @@ y guarde la imagen"""
 #            print("shutter otro")
 # Es una idea de lo que tendria que hacer la funcion
 
+# --- rampas y eso ---
     def rampas(self):
         N=self.numberofPixels
         a = float(self.a.text())
@@ -1014,6 +1017,7 @@ y guarde la imagen"""
         print(self.file_path,2)
         self.NameDirValue.setText(self.file_path)
 
+#---- CM measure ---
     def CMmeasure(self):
 
         from scipy import ndimage
