@@ -9,7 +9,7 @@ import time
 import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
+from pyqtgraph.Qt import QtCore, QtGui
 
 #from pyqtgraph.dockarea import Dock, DockArea
 import pyqtgraph.ptime as ptime
@@ -1368,11 +1368,16 @@ class ScanWidget(QtGui.QFrame):
 #--- SaveFrame ---
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
-
+        if self.XYcheck.isChecked():
+            scanmode = "XY"
+        if self.XZcheck.isChecked():
+            scanmode = "XZ"
+        if self.YZcheck.isChecked():
+            scanmode = "YZ"
 #        filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
-        guardado = Image.fromarray(np.flip(self.image,0))
+        name = str(self.file_path + "/image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+        guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
         guardado.save(name)
 
         print("\n Hipoteticamente Guardo la imagen\n")
@@ -1456,8 +1461,7 @@ class ScanWidget(QtGui.QFrame):
 
 
 app = QtGui.QApplication([])
-#win = ScanWidget(device)
-win = ScanWidget()
+win = ScanWidget(device)
 #win = MainWindow()
 win.show()
 

@@ -704,17 +704,23 @@ y guarde la imagen"""
         self.i = 0
         self.Z = self.Z + np.random.choice([1,-1])*0.01
 
-#---- Guardarimagen ---
+#---- Guardarimagen ---SAVE
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
-
+        if self.XYcheck.isChecked():
+            scanmode = "XY"
+        if self.XZcheck.isChecked():
+            scanmode = "XZ"
+        if self.YZcheck.isChecked():
+            scanmode = "YZ"
+#        filepath = self.main.file_path
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        name = str(self.file_path + "/image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+        guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+        guardado.save(name)
 #        ####name = str(self.edit_save.text()) # solo si quiero elegir el nombre ( pero no quiero)
 #        filepath = self.main.file_path
 #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(self.file_path + "/image-" + timestr + ".tiff")  # nombre con la fecha -hora
-        guardado = Image.fromarray(np.flip(self.image,0))
-        guardado.save(name)
         os.startfile(self.file_path)
 #        self.folderEdit = QtGui.QLineEdit(self.initialDir)
 #        openFolderButton = QtGui.QPushButton('Open')
