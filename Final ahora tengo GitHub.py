@@ -1464,7 +1464,6 @@ class ScanWidget(QtGui.QFrame):
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         try:
-
             xc = int(np.round(self.xcm,2))
             yc = int(np.round(self.ycm,2))
             X2=np.transpose(X)
@@ -1473,7 +1472,7 @@ class ScanWidget(QtGui.QFrame):
             for i in range(resol):
                 for j in range(resol):
                     ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
-                    Normal = self.scanRange / self.numberofPixels  # Normalizo
+            Normal = self.scanRange / self.numberofPixels  # Normalizo
             ax.set_title((self.xcm*Normal+float(initPos[0]),
                                          self.ycm*Normal+float(initPos[1])))
         except:

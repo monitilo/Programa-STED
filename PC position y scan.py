@@ -625,7 +625,7 @@ class ScanWidget(QtGui.QFrame):
         if self.scanMode.currentText() == "ramp scan":
             self.rampas()
 
-        self.inputImage = 1 * np.random.normal(size=size)
+#        self.inputImage = 1 * np.random.normal(size=size)
         self.blankImage = np.zeros(size)
         self.image = self.blankImage
         self.i = 0
@@ -782,8 +782,8 @@ y guarde la imagen"""
 
     def movetoStart(self):
 
-        self.inputImage = 1 * np.random.normal(
-                    size=(self.numberofPixels, self.numberofPixels))
+#        self.inputImage = 1 * np.random.normal(
+#                    size=(self.numberofPixels, self.numberofPixels))
         t = self.moveTime
         N = self.moveSamples
         tic = ptime.time()
@@ -801,7 +801,7 @@ y guarde la imagen"""
 #            time.sleep(t / N)
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
-        self.Z = self.Z + np.random.choice([1,-1])*0.01
+        self.Z = self.Z #+ np.random.choice([1,-1])*0.01
 
 # --- Guardar iamgen
     def guardarimagen(self):
@@ -1112,21 +1112,20 @@ y guarde la imagen"""
         y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
         X, Y = np.meshgrid(x, y)
         fig, ax = plt.subplots()
-        p = ax.pcolor(X, Y, np.transpose(self.Iz), cmap=plt.cm.jet)
+        p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
         cb = fig.colorbar(p)
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         try:
-
-            xc = int(np.round(self.xcm,2))
-            yc = int(np.round(self.ycm,2))
+            xc = int(np.floor(self.xcm))
+            yc = int(np.floor(self.ycm))
             X2=np.transpose(X)
             Y2=np.transpose(Y)
             resol = 2
             for i in range(resol):
                 for j in range(resol):
                     ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
-                    Normal = self.scanRange / self.numberofPixels  # Normalizo
+            Normal = self.scanRange / self.numberofPixels  # Normalizo
             ax.set_title((self.xcm*Normal+float(initPos[0]),
                                          self.ycm*Normal+float(initPos[1])))
         except:
