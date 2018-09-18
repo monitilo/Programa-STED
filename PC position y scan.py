@@ -339,7 +339,7 @@ class ScanWidget(QtGui.QFrame):
         self.b.textChanged.connect(self.paramChanged)
 
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
-#        self.shutterotrobutton.setChecked(False)
+        self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
 
         self.paramChanged()
@@ -1170,6 +1170,7 @@ y guarde la imagen"""
 #            elif sys.platform == 'win32':
 #                os.startfile(self.dataDir)
 
+# --- CM measure
     def CMmeasure(self):
         self.viewtimer.stop()
         from scipy import ndimage
@@ -1190,7 +1191,6 @@ y guarde la imagen"""
         print("Xcm=", xcm,"\nYcm=", ycm)
         self.xcm = xcm
         self.ycm = ycm
-        self.Iz=I
 #        if self.shuttergreenbutton.isChecked():
 #            xc = int(np.round(self.xcm,2))
 #            yc = int(np.round(self.ycm,2))

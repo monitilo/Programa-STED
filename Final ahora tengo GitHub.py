@@ -251,6 +251,12 @@ class ScanWidget(QtGui.QFrame):
         self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
         self.shutterotrobutton.clicked.connect(self.shutterotro)
 
+    # new ploting useful
+        self.plotLivebutton = QtGui.QPushButton('Plot this image')
+        self.plotLivebutton.setChecked(False)
+        self.plotLivebutton.clicked.connect(self.plotLive)
+
+
     # Scanning parameters
 
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0 z0] (µm)')
@@ -347,7 +353,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.scanMode, 12, 1)
         subgrid.addWidget(self.saveimageButton, 15, 1)
 #        subgrid.addWidget(self.NameDirButton, 1, 2)
-
+        subgrid.addWidget(self.plotLivebutton, 3, 2)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -1514,7 +1520,7 @@ class ScanWidget(QtGui.QFrame):
 
         tic = ptime.time()
 
-        Z = np.flip(np.flip(self.image,0),1)
+        Z = self.image
 #        N = len(Z)  # numberfoPixels
 #        xcm = 0
 #        ycm = 0
@@ -1552,7 +1558,7 @@ class ScanWidget(QtGui.QFrame):
         print(((toc-tic)+self.reallinetime)*10**3)
 
     def mapa(self):
-        Z =  np.flip(np.flip(self.image,0),1)
+        Z = self.image
         N = len(Z)
         lomas = np.max(Z)
         Npasos = 4

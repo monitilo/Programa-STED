@@ -137,8 +137,8 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setText(self.file_path)
         self.OpenButton = QtGui.QPushButton('open dir')
         self.OpenButton.clicked.connect(self.openFolder)
-    # Defino el tipo de Scan que quiero
 
+    # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
         self.scanMode.addItems(self.scanModes)
@@ -163,6 +163,12 @@ class ScanWidget(QtGui.QFrame):
         self.shuttergreenbutton.clicked.connect(self.shuttergreen)
         self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
         self.shutterotrobutton.clicked.connect(self.shutterotro)
+
+    # new ploting useful
+        self.plotLivebutton = QtGui.QPushButton('Plot this image')
+        self.plotLivebutton.setChecked(False)
+        self.plotLivebutton.clicked.connect(self.plotLive)
+
 
     # Scanning parameters
 
@@ -261,6 +267,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.saveimageButton, 15, 1)
         subgrid.addWidget(self.NameDirButton, 1, 2)
         subgrid.addWidget(self.OpenButton, 2, 2)
+        subgrid.addWidget(self.plotLivebutton, 3, 2)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -1394,6 +1401,34 @@ class ScanWidget(QtGui.QFrame):
     def openFolder(self):
         os.startfile(self.file_path)
 
+# --- ploting in live
+    def plotLive(self):
+        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+        x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+        y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(x, y)
+        fig, ax = plt.subplots()
+        p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
+        cb = fig.colorbar(p)
+        ax.set_xlabel('x [um]')
+        ax.set_ylabel('y [um]')
+        try:
+            xc = int(np.floor(self.xcm))
+            yc = int(np.floor(self.ycm))
+            X2=np.transpose(X)
+            Y2=np.transpose(Y)
+            resol = 2
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title((self.xcm*Normal+float(initPos[0]),
+                                         self.ycm*Normal+float(initPos[1])))
+        except:
+            pass
+        plt.show()
+
 #--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
         if self.scanMode.currentText() == "step scan":
@@ -1403,7 +1438,7 @@ class ScanWidget(QtGui.QFrame):
 
         tic = ptime.time()
 
-        Z = np.flip(np.flip(self.image,0),1)
+        Z = self.image
 #        N = len(Z)  # numberfoPixels
 #        xcm = 0
 #        ycm = 0
@@ -1415,6 +1450,8 @@ class ScanWidget(QtGui.QFrame):
 #        xcm = xcm/M
 #        ycm = ycm/M
         xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+        self.xcm = xcm
+        self.ycm = ycm
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
         Normal = self.scanRange / self.numberofPixels
@@ -1439,7 +1476,7 @@ class ScanWidget(QtGui.QFrame):
         print(((toc-tic)+self.reallinetime)*10**3)
 
     def mapa(self):
-        Z =  np.flip(np.flip(self.image,0),1)
+        Z = self.image
         N = len(Z)
         lomas = np.max(Z)
         Npasos = 4
@@ -1457,7 +1494,7 @@ class ScanWidget(QtGui.QFrame):
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
-        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+        self.img.setImage(mapa, autoLevels=False)
 
 
 app = QtGui.QApplication([])

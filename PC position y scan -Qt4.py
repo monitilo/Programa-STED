@@ -9,7 +9,7 @@ import os
 import numpy as np
 import time
 #import scipy.ndimage as ndi
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui#, QtWidgets
@@ -243,6 +243,10 @@ class ScanWidget(QtGui.QFrame):
         self.a.textChanged.connect(self.paramChanged)
         self.b.textChanged.connect(self.paramChanged)
 
+        self.plotLivebutton = QtGui.QPushButton('Plot this image')
+        self.plotLivebutton.setChecked(False)
+        self.plotLivebutton.clicked.connect(self.plotLive)
+
         self.paramChanged()
 
         self.paramWidget = QtGui.QWidget()
@@ -314,6 +318,7 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDgreen)
         subgrid.addWidget(self.APDred, 0, 1)
         subgrid.addWidget(self.APDgreen, 0, 2)
+        subgrid.addWidget(self.plotLivebutton, 6, 2)
 
 # - POSITIONERRRRR-------------------------------
 
@@ -702,7 +707,7 @@ y guarde la imagen"""
 #            time.sleep(t / N)
         print(t, "vs" , np.round(ptime.time() - tic, 2))
         self.i = 0
-        self.Z = self.Z + np.random.choice([1,-1])*0.01
+        self.Z = self.Z# + np.random.choice([1,-1])*0.01
 
 #---- Guardarimagen ---SAVE
     def guardarimagen(self):
@@ -1028,12 +1033,42 @@ y guarde la imagen"""
     def openFolder(self):
         os.startfile(self.file_path)
 
+
+# --- ploting in live
+    def plotLive(self):
+        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+        x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+        y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(x, y)
+        fig, ax = plt.subplots()
+        p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
+        cb = fig.colorbar(p)
+        ax.set_xlabel('x [um]')
+        ax.set_ylabel('y [um]')
+        try:
+            xc = int(np.floor(self.xcm))
+            yc = int(np.floor(self.ycm))
+            X2=np.transpose(X)
+            Y2=np.transpose(Y)
+            resol = 2
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title((self.xcm*Normal+float(initPos[0]),
+                                         self.ycm*Normal+float(initPos[1])))
+        except:
+            pass
+        plt.show()
+
+
 #---- CM measure ---
     def CMmeasure(self):
 
         from scipy import ndimage
-        Z = np.flip(np.flip(self.image,0),1)
-        N = len(Z)
+        I = self.image
+        N = len(I)
 #        xcm = 0
 #        ycm = 0
 #        for i in range(N):
@@ -1045,8 +1080,10 @@ y guarde la imagen"""
 #        M = np.sum(Z)
 #        xcm = xcm/M
 #        ycm = ycm/M
-        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+        xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
+        self.xcm = xcm
+        self.ycm = ycm
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
         Normal = self.scanRange / self.numberofPixels
@@ -1057,11 +1094,11 @@ y guarde la imagen"""
 #        for i in range(resol):
 #            for j in range(resol):
 #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
-        lomas = np.max(Z)
+        lomas = np.max(I)
         Npasos = 4
         paso = lomas/Npasos
         tec=time.time()
-        SZ = Z.ravel()
+        SZ = I.ravel()
         mapa = np.zeros((N,N))
         Smapa = mapa.ravel()
         for i in range(len(SZ)):
@@ -1073,7 +1110,7 @@ y guarde la imagen"""
                 Smapa[i] = 0.99
         mapa = np.array(np.split(Smapa,N))
         print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+        self.img.setImage(mapa, autoLevels=False)
 
 if __name__ == '__main__':
 
