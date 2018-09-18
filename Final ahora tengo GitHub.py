@@ -1451,6 +1451,34 @@ class ScanWidget(QtGui.QFrame):
         self.dy = 0
 
 
+# --- ploting in live
+    def plotLive(self):
+        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+        x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+        y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(x, y)
+        fig, ax = plt.subplots()
+        p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
+        cb = fig.colorbar(p)
+        ax.set_xlabel('x [um]')
+        ax.set_ylabel('y [um]')
+        try:
+
+            xc = int(np.round(self.xcm,2))
+            yc = int(np.round(self.ycm,2))
+            X2=np.transpose(X)
+            Y2=np.transpose(Y)
+            resol = 2
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+                    Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title((self.xcm*Normal+float(initPos[0]),
+                                         self.ycm*Normal+float(initPos[1])))
+        except:
+            pass
+        plt.show()
 
 #--- SaveFrame ---
     def saveFrame(self):
@@ -1501,6 +1529,8 @@ class ScanWidget(QtGui.QFrame):
         xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
+        self.xcm = xcm
+        self.ycm = ycm
         Normal = self.scanRange / self.numberofPixels
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))

@@ -9,7 +9,7 @@ import os
 import numpy as np
 import time
 #import scipy.ndimage as ndi
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
@@ -338,6 +338,10 @@ class ScanWidget(QtGui.QFrame):
         self.a.textChanged.connect(self.paramChanged)
         self.b.textChanged.connect(self.paramChanged)
 
+        self.plotLivebutton = QtGui.QPushButton('Plot this image')
+#        self.shutterotrobutton.setChecked(False)
+        self.plotLivebutton.clicked.connect(self.plotLive)
+
         self.paramChanged()
 
         self.paramWidget = QtGui.QWidget()
@@ -408,7 +412,7 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDgreen)
         subgrid.addWidget(self.APDred, 0, 1)
         subgrid.addWidget(self.APDgreen, 0, 2)
-
+        subgrid.addWidget(self.plotLivebutton, 6, 2)
 # - POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -740,6 +744,7 @@ y guarde la imagen"""
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
                 self.movetoStart()
+                self.viewtimer.start(self.linetime)
 
     def barridos(self):
         N=self.numberofPixels
@@ -811,7 +816,7 @@ y guarde la imagen"""
         filepath = self.main.file_path
 #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(filepath + "/image-" + + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+        name = str(filepath + "/image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
         guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
         guardado.save(name)
 
@@ -975,6 +980,7 @@ y guarde la imagen"""
     def shuttergreen(self):
         if self.shuttergreenbutton.isChecked():
             self.openShutter("green")
+
         else:
             self.closeShutter("green")
     def shutterotro(self):
@@ -1097,6 +1103,37 @@ y guarde la imagen"""
 #        self.cwidget.setLayout(layout)
 #        layout.addWidget(dockArea, 0, 0, 4, 1)
 
+
+# --- ploting in live
+    def plotLive(self):
+        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+        x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+        y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(x, y)
+        fig, ax = plt.subplots()
+        p = ax.pcolor(X, Y, np.transpose(self.Iz), cmap=plt.cm.jet)
+        cb = fig.colorbar(p)
+        ax.set_xlabel('x [um]')
+        ax.set_ylabel('y [um]')
+        try:
+
+            xc = int(np.round(self.xcm,2))
+            yc = int(np.round(self.ycm,2))
+            X2=np.transpose(X)
+            Y2=np.transpose(Y)
+            resol = 2
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+                    Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title((self.xcm*Normal+float(initPos[0]),
+                                         self.ycm*Normal+float(initPos[1])))
+        except:
+            pass
+        plt.show()
+
+
     def liveviewKey(self):
         '''Triggered by the liveview shortcut.'''
         
@@ -1137,8 +1174,8 @@ y guarde la imagen"""
     def CMmeasure(self):
         self.viewtimer.stop()
         from scipy import ndimage
-        Z = np.flip(np.flip(self.image,0),1)
-        N = len(Z)
+        I = self.image
+        N = len(I)
 #        xcm = 0
 #        ycm = 0
 #        for i in range(N):
@@ -1150,8 +1187,47 @@ y guarde la imagen"""
 #        M = np.sum(Z)
 #        xcm = xcm/M
 #        ycm = ycm/M
-        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+        xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
+        self.xcm = xcm
+        self.ycm = ycm
+        self.Iz=I
+#        if self.shuttergreenbutton.isChecked():
+#            xc = int(np.round(self.xcm,2))
+#            yc = int(np.round(self.ycm,2))
+#            texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+#            initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+#            x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+#            y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+#            X, Y = np.meshgrid(x, y)
+#            fig, ax = plt.subplots()
+#            p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet)
+#            cb = fig.colorbar(p)
+#            ax.set_xlabel('x [um]')
+#            ax.set_ylabel('y [um]')
+
+##            xcm = 0
+##            ycm = 0
+##            for i in range(N):
+##                for j in range(N):
+##                    xcm = xcm + (Z[i,j]*i)
+##                    ycm = ycm + (Z[i,j]*j)
+##            xcm = xcm/np.sum(Z)
+##            ycm = ycm/np.sum(Z)
+##            
+##            print("Xcm=", xcm,"\nYcm=", ycm)
+##            xc2 = int(np.round(xcm,2))
+##            yc2 = int(np.round(ycm,2))
+
+#            resol = 2
+#            X2=X#np.transpose(np.flip(X,1))
+#            Y2=Y#np.transpose(np.flip(Y,1))
+#            for i in range(resol):
+#                for j in range(resol):
+#                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='w')
+##                    ax.text(X2[xc2+i,yc2+j],Y2[xc2+i,yc2+j],"☼",color='w')
+#            plt.show()
+
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
         Normal = self.scanRange / self.numberofPixels  # Normalizo
@@ -1180,7 +1256,8 @@ y guarde la imagen"""
 #        mapa = np.array(np.split(Smapa,N))
 #        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
 #        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-        self.viewtimer.start(self.linetime)
+
+
 if __name__ == '__main__':
 
     app = QtGui.QApplication([])
