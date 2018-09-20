@@ -236,9 +236,13 @@ class ScanWidget(QtGui.QFrame):
 
     # useful Booleans
         self.channelramp = False #canales
+        self.PMTon = False
+        self.APDs = False
+        self.triggeron = False # separo los canales en partes
+        self.channelsteps = False
 #        self.inStart = False
 #        self.working = False
-        self.channelsteps = False
+
         self.shuttering = False
         self.shuttersignal = [False, False, False]
 
@@ -631,6 +635,8 @@ class ScanWidget(QtGui.QFrame):
         else:
 #        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
             self.channelsOpen()
+#            self.APDopen
+#            self.PMTopen
             self.rampScan()
 
     def rampScan(self):
@@ -771,7 +777,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.inStart = False
         print("ya arranca")
     # Starting the trigger. It have a controllable 'delay'
-        self.dotask.write(self.trigger, auto_start=True)
+        self.triggertask.write(self.trigger, auto_start=True)
 
 
     def updateView(self):
@@ -818,7 +824,7 @@ class ScanWidget(QtGui.QFrame):
                   self.saveFrame()  # para guardar siempre (Alan idea)
               print(ptime.time()-self.tic, "Tiempo imagen completa.")
               self.viewtimer.stop()
-              self.dotask.stop()
+              self.triggertask.stop()
               self.aotask.stop()
               self.citask.stop()
               self.liveviewStart()
@@ -1043,28 +1049,76 @@ class ScanWidget(QtGui.QFrame):
         if self.channelsteps:
             self.done()
 
+    def PiezoOpen(self):
+
+        if self.scanMode.currentText() == "step scan":
+            self.done()
+            print("cierro para abrir de nuevo")
+
         if self.channelramp:
-            print("Ya estan abiertos los canales")  # to dont open again 
+            print("Ya estaban abiertos los canales rampa")  # to dont open again 
             #  usando esto podria no cerrarlos nunca.
         else:
-            self.channelramp = True
-        # Create all the channels
+        # Create the channels
             self.aotask = nidaqmx.Task('aotask')
-            self.dotask = nidaqmx.Task('dotask')
+        # Following loop creates the voltage channels
+            for n in range(len(self.AOchans)):
+                self.aotask.ao_channels.add_ao_voltage_chan(
+                    physical_channel='Dev1/ao%s' % self.AOchans[n],
+                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
+                    min_val=minVolt[self.activeChannels[n]],
+                    max_val=maxVolt[self.activeChannels[n]])
+
+                if self.scanMode.currentText() != "step scan":
+                    self.channelramp = True
+                    self.channelsteps = False
+                    self.aotask.timing.cfg_samp_clk_timing(
+                        rate=self.sampleRate,
+        #                source=r'100kHzTimeBase',
+                        sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                        samps_per_chan=len(self.totalrampx))
+
+    def APDOpen(self):
+        if self.APDs:
+            print("Ya esta algun APD")  # to dont open again 
+            #  usando esto podria no cerrarlos nunca.
+        else:
+            self.APDs = True
             self.citask = nidaqmx.Task('citask')
 
-        # Configure the counter channel to read the APD
+            # Configure the counter channel to read the APD
             self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.COchans,
                                 name_to_assign_to_channel=u'conter',
                                 initial_count=0)
-
-            totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
+            if self.scanMode.currentText() == "step scan":
+                totalcinumber = self.Napd + 1
+            else:
+                totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
 
             self.citask.timing.cfg_samp_clk_timing(
               rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
               source=r'100kHzTimebase',
-              samps_per_chan = totalcinumber)  # int(len(self.totalrampx)*self.Napd))
+              samps_per_chan = totalcinumber)
 
+
+    def PMTOpen(self):
+        if self.PMTon:
+            print("Ya esta el PMT")  # to dont open again 
+            #  usando esto podria no cerrarlos nunca.
+        else:
+            self.PMTon = True
+            self.PMTtask = nidaqmx.Task('aotask')
+            self.PMTtask.ao_channels.add_ao_voltage_chan(
+                physical_channel='Dev1/ao1',
+                name_to_assign_to_channel='chan_PMT')
+
+    def TriggerOpen(self):
+        if self.triggeron:
+            print("Ya esta el trigger")  # to dont open again 
+            #  usando esto podria no cerrarlos nunca.
+        else:
+            self.triggeron = True
+            self.triggertask = nidaqmx.Task('dotask')
         # Create the signal trigger
             triggerrate = self.apdrate
             num = int(self.triggerEdit.text()) * self.Napd
@@ -1079,32 +1133,16 @@ class ScanWidget(QtGui.QFrame):
             print((num/self.apdrate)*10**3, "delay (ms)")  # "\n", num, "num elegido", 
 
         # Configure the digital channels to trigger the synchronization signal
-            self.dotask.do_channels.add_do_chan(
+            self.triggertask.do_channels.add_do_chan(
                 lines="Dev1/port0/line6", name_to_assign_to_lines='chan6',
                 line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
     
-            self.dotask.timing.cfg_samp_clk_timing(
+            self.triggertask.timing.cfg_samp_clk_timing(
                          rate=triggerrate,  # muestras por segundo
                          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
     #                         source='100kHzTimebase',
                          active_edge = nidaqmx.constants.Edge.RISING,
                          samps_per_chan=len(self.trigger))
-
-
-        # Following loop creates the voltage channels
-            for n in range(len(self.AOchans)):
-                self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-                    min_val=minVolt[self.activeChannels[n]],
-                    max_val=maxVolt[self.activeChannels[n]])
-
-            self.aotask.timing.cfg_samp_clk_timing(
-                rate=self.sampleRate,
-#                source=r'100kHzTimeBase',
-                sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                samps_per_chan=len(self.totalrampx))
-
         # Configure a start trigger to synchronizate the measure and movement
             triggerchannelname = "PFI4"
             self.aotask.triggers.start_trigger.cfg_dig_edge_start_trig(
@@ -1125,6 +1163,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.citask.triggers.pause_trigger.dig_lvl_when = nidaqmx.constants.Level.LOW
         # En realidad mando un vector con muchos True's, asi que no lo estoy usando
 
+
 #---- done
     def done(self):
         """ stop and close all the channels"""
@@ -1136,8 +1175,8 @@ class ScanWidget(QtGui.QFrame):
             except:
                 print("a")
             try:
-                self.dotask.stop()
-                self.dotask.close()
+                self.triggertask.stop()
+                self.triggertask.close()
             except:
                 print("d")
             try:
@@ -1145,8 +1184,16 @@ class ScanWidget(QtGui.QFrame):
                 self.citask.close()
             except:
                 print("c")
+            try:
+                self.PMTtask.stop()
+                self.PMTtask.close()
+            except:
+                print("d")
             self.channelramp = False
             self.channelsteps = False
+            self.PMTon = False
+            self.APDs = False
+            self.triggeron = False # separo los canales en partes
 
         else:
             print("llego hasta el done pero no tenia nada que cerrar")

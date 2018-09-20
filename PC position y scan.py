@@ -402,16 +402,21 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.a, 2, 2)
         subgrid.addWidget(self.bLabel, 3, 2)
         subgrid.addWidget(self.b, 4, 2)
-        
-        group2 = QtGui.QButtonGroup(self.paramWidget)
-        self.APDred=QtGui.QRadioButton("APD red")
-        self.APDgreen=QtGui.QRadioButton("APD green")
-        self.APDred.setChecked(True)
-        self.APDgreen.setChecked(False)
-        group2.addButton(self.APDred)
-        group2.addButton(self.APDgreen)
-        subgrid.addWidget(self.APDred, 0, 1)
-        subgrid.addWidget(self.APDgreen, 0, 2)
+
+        self.detectMode = QtGui.QComboBox()
+        self.detectModes = ['PMT', 'APD red', 'APD green']
+        self.detectMode.addItems(self.detectModes)
+        self.detectMode.currentIndexChanged.connect(self.paramChanged)
+#        group2 = QtGui.QButtonGroup(self.paramWidget)
+#        self.APDred=QtGui.QRadioButton("APD red")
+#        self.APDgreen=QtGui.QRadioButton("APD green")
+#        self.APDred.setChecked(True)
+#        self.APDgreen.setChecked(False)
+#        group2.addButton(self.APDred)
+#        group2.addButton(self.APDgreen)
+        subgrid.addWidget(self.detectMode, 0, 1)
+#        subgrid.addWidget(self.APDgreen, 0, 2)
+
         subgrid.addWidget(self.plotLivebutton, 6, 2)
 # - POSITIONERRRRR-------------------------------
 
@@ -589,7 +594,10 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
     def paramChanged(self):
-
+        if self.detectMode.currentText() == "APD red":
+            self.COchan = 0
+        elif self.detectMode.currentText() == "APD green":
+            self.COchan = 1
         self.scanRange = float(self.scanRangeEdit.text())
 #        self.scanRangey = self.scanRangex  # float(self.scanRangeyEdit.text())
 
@@ -663,7 +671,7 @@ y guarde la imagen"""
         """ Image live view when not recording"""
         if self.liveviewButton.isChecked():
             self.save = False
-#            self.channelsOpen()
+            self.openShutter("red")
             self.liveviewStart()
 
         else:
@@ -671,11 +679,14 @@ y guarde la imagen"""
 
     def liveviewStart(self):
         if self.scanMode.currentText() in ["step scan", "ramp scan"]:
-            self.openShutter("red")
+            #chanelopen step, channelopen rampa
             self.viewtimer.start(self.linetime)
         else:
             print("elegri step o ramp scan")
             self.liveviewButton.setChecked(False)
+        if self.detectMode.currentText() == "PMT":
+            # channelopen PMT
+            print("PMT")
 
     def liveviewStop(self):
         if self.save:
