@@ -1433,21 +1433,21 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.inStart = True
             print("moving to start")
-            self.done()
-
-    #         Creates the voltage channels to move "slowly"
-            self.aotask = nidaqmx.Task('aotask')
-            for n in range(len(self.AOchans)):
-                self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-                    min_val=minVolt[self.activeChannels[n]],
-                    max_val=maxVolt[self.activeChannels[n]])
-    
-            self.aotask.timing.cfg_samp_clk_timing(
-                rate=(self.moveRate),
-                sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                samps_per_chan=self.moveSamples)
+#            self.done()
+#
+#    #         Creates the voltage channels to move "slowly"
+#            self.aotask = nidaqmx.Task('aotask')
+#            for n in range(len(self.AOchans)):
+#                self.aotask.ao_channels.add_ao_voltage_chan(
+#                    physical_channel='Dev1/ao%s' % self.AOchans[n],
+#                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
+#                    min_val=minVolt[self.activeChannels[n]],
+#                    max_val=maxVolt[self.activeChannels[n]])
+#    
+#            self.aotask.timing.cfg_samp_clk_timing(
+#                rate=(self.moveRate),
+#                sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#                samps_per_chan=self.moveSamples)
 
     #        tic = ptime.time()
             startX = float(self.initialPosition[0])
@@ -1457,40 +1457,51 @@ class ScanWidget(QtGui.QFrame):
                 maximox = self.allstepsx[-1,self.dy]
                 maximoy = self.allstepsy[-1,self.dy]
                 maximoz = self.allstepsz[-1,self.dy]
+                totalSamples = len(self.allstepsx)
+                volviendox = np.linspace(maximox, startX, totalSamples)
+                volviendoy = np.linspace(maximoy, startY, totalSamples)
+                volviendoz = np.linspace(maximoz, startZ, totalSamples)
+    
+    #            volviendotodo = np.zeros((len(self.AOchans), self.moveSamples))
+    #            volviendotodo[0, :] = volviendox / convFactors['x']
+    #            volviendotodo[1, :] = volviendoy / convFactors['y']
+    #            volviendotodo[2, :] = volviendoz / convFactors['z']
+                for i in range(len(self.allstepsx)):
+                    self.aotask.write(np.array(
+                        [volviendox[i] / convFactors['x'],
+                         volviendoy[i] / convFactors['y'],
+                         volviendoz[i] / convFactors['z']]), auto_start=True)
+                    self.aotask.wait_until_done()
             else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
                 stops = ((len(self.onerampx))-1) * self.dy
                 maximox = self.totalrampx[stops]
                 maximoy = self.totalrampy[stops]
                 maximoz = self.totalrampz[stops]
+                totalSamples = len(self.totalrampx)
 
-            volviendox = np.linspace(maximox, startX, self.moveSamples)
-            volviendoy = np.linspace(maximoy, startY, self.moveSamples)
-            volviendoz = np.linspace(maximoz, startZ, self.moveSamples)
+                volviendox = np.linspace(maximox, startX, totalSamples)
+                volviendoy = np.linspace(maximoy, startY, totalSamples)
+                volviendoz = np.linspace(maximoz, startZ, totalSamples)
 
-#            volviendotodo = np.zeros((len(self.AOchans), self.moveSamples))
-#            volviendotodo[0, :] = volviendox / convFactors['x']
-#            volviendotodo[1, :] = volviendoy / convFactors['y']
-#            volviendotodo[2, :] = volviendoz / convFactors['z']
-
-            self.aotask.write(np.array(
-                [volviendox / convFactors['x'],
-                 volviendoy / convFactors['y'],
-                 volviendoz / convFactors['z']]), auto_start=True)
-            self.aotask.wait_until_done()
+                self.aotask.write(np.array(
+                    [volviendox / convFactors['x'],
+                     volviendoy / convFactors['y'],
+                     volviendoz / convFactors['z']]), auto_start=True)
+                self.aotask.wait_until_done()
     #        print(np.round(ptime.time() - tic, 5)*10**3, "MovetoStart (ms)")
 
 
-            self.aotask.stop()
-            self.aotask.close()
+#            self.aotask.stop()
+#            self.aotask.close()
 
-            if self.scanMode.currentText() == "step scan":
-                self.channelsOpenStep()
-            else:
-#            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-                self.channelsOpen()
+#            if self.scanMode.currentText() == "step scan":
+#                self.channelsOpenStep()
+#            else:
+##            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
+#                self.channelsOpen()
 
-        self.dy = 0
+            self.dy = 0
 
 
 # %%--- ploting in live
