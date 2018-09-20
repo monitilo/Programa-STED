@@ -1471,7 +1471,7 @@ class ScanWidget(QtGui.QFrame):
                         [volviendox[i] / convFactors['x'],
                          volviendoy[i] / convFactors['y'],
                          volviendoz[i] / convFactors['z']]), auto_start=True)
-                    self.aotask.wait_until_done()
+#                    self.aotask.wait_until_done()
             else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
                 stops = ((len(self.onerampx))-1) * self.dy
