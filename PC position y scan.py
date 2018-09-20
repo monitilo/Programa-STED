@@ -1,4 +1,4 @@
-
+# %%
 """ Programa inicial donde miraba como anda el liveScan
  sin usar la pc del STED. incluye positioner"""
 
@@ -39,7 +39,7 @@ def makeRamp(start, end, samples):
 #from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
 #from PyQt5.QtCore import QSize
 #from PyQt5.QtGui import QIcon
-
+# %% Main Window
 class MainWindow(QtWidgets.QMainWindow):
     def newCall(self):
         self.a = 0
@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
-
+# %% Scan Widget
 class ScanWidget(QtGui.QFrame):
 
     def keyPressEvent(self, e):
@@ -205,7 +205,7 @@ class ScanWidget(QtGui.QFrame):
         self.zStepEdit = QtGui.QLineEdit("1")
         self.zStepUnit = QtGui.QLabel(" µm")
 
-# ---- fin parte del positioner ----------
+# ---- fin 1ra parte del positioner ----------
         self.step = 1
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
@@ -258,7 +258,9 @@ class ScanWidget(QtGui.QFrame):
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
 
-
+        self.CMcheck = QtGui.QCheckBox('calcula CM')
+        self.CMcheck.setChecked(False)
+        self.CMcheck.clicked.connect(self.CMmeasure)
     # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
 
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
@@ -383,6 +385,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.stepcheck, 12, 1)
 #        subgrid.addWidget(self.squareRadio, 12, 2)
 
+
+
         group1 = QtGui.QButtonGroup(self.paramWidget)
         group1.addButton(self.XYcheck)
         group1.addButton(self.XZcheck)
@@ -418,7 +422,9 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid.addWidget(self.APDgreen, 0, 2)
 
         subgrid.addWidget(self.plotLivebutton, 6, 2)
-# - POSITIONERRRRR-------------------------------
+
+        subgrid.addWidget(self.CMcheck, 8, 2)
+# --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
         grid.addWidget(self.positioner, 1, 0)
@@ -526,7 +532,7 @@ class ScanWidget(QtGui.QFrame):
 #        dockArea.addDock(posDock, 'above', scanDock)
 #        layout.addWidget(dockArea, 2, 3)
 
-#- fin POSITIONEERRRRRR---------------------------
+#--- fin POSITIONEERRRRRR---------------------------
 
         self.paramWidget.setFixedHeight(400)
 
@@ -592,7 +598,7 @@ class ScanWidget(QtGui.QFrame):
             QtGui.QKeySequence('Ctrl+a'), self, self.liveviewKey)
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
-
+# %% paramChanged
     def paramChanged(self):
         if self.detectMode.currentText() == "APD red":
             self.COchan = 0
@@ -638,7 +644,7 @@ class ScanWidget(QtGui.QFrame):
         self.image = self.blankImage
         self.i = 0
 
-# cosas para el save image
+# %% cosas para el save image
     def saveimage(self):
         """ la idea es que escanee la zona deseada (desde cero)
 y guarde la imagen"""
@@ -666,6 +672,7 @@ y guarde la imagen"""
             print("step es 1", self.step==1)
         self.paramChanged()
 
+# %% Liveview
 # This is the function triggered by pressing the liveview button
     def liveview(self):
         """ Image live view when not recording"""
@@ -701,7 +708,7 @@ y guarde la imagen"""
 #        self.done()
 
 
-# ---updateView -----------------
+# %%---updateView -----------------
     def updateView(self):
         if self.scanMode.currentText() == "step scan":
             self.linea()
@@ -740,7 +747,8 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
                 self.guardarimagen()
-                self.CMmeasure()
+                if self.CMcheck.isChecked():
+                  self.CMmeasure()
 
                 self.saveimageButton.setText('Fin')  # ni se ve
                 self.liveviewStop()
@@ -751,12 +759,14 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
 #                self.i = 0
-                self.CMmeasure()
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
+                if self.CMcheck.isChecked():
+                    self.CMmeasure()
                 self.movetoStart()
                 self.viewtimer.start(self.linetime)
 
+# %% Barridos
     def barridos(self):
         N=self.numberofPixels
         a = float(self.a.text())  # self.main.a  # 
@@ -791,6 +801,7 @@ y guarde la imagen"""
 #            time.sleep(self.pixelTime*self.numberofPixels*2)
     #        print("linea")
 
+# %% MovetoStart
     def movetoStart(self):
 
 #        self.inputImage = 1 * np.random.normal(
@@ -814,7 +825,7 @@ y guarde la imagen"""
         self.i = 0
         self.Z = self.Z #+ np.random.choice([1,-1])*0.01
 
-# --- Guardar iamgen
+# %%--- Guardar iamgen
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
         if self.XYcheck.isChecked():
@@ -842,7 +853,7 @@ y guarde la imagen"""
 #        self.formatBox.addItem('hdf5')
 # --------------------------------------------------------------------------
 
-# ---Move----------------------------------------
+# %%---Move----------------------------------------
 
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
@@ -952,7 +963,7 @@ y guarde la imagen"""
                 self.zDownButton.setEnabled(True)
 
             self.paramChanged()
-
+# --- moveto
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
         t = self.moveTime * 3
@@ -981,7 +992,7 @@ y guarde la imagen"""
         self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
 
-# --- Shutter time --------------------------
+# %%--- Shutter time --------------------------
 
     def shutterred(self):
         if self.shutterredbutton.isChecked():
@@ -1025,6 +1036,7 @@ y guarde la imagen"""
 #            print("shutter otro")
 # Es una idea de lo que tendria que hacer la funcion
 
+# %% rampas 
     def rampas(self):
         N=self.numberofPixels
         a = float(self.a.text())
@@ -1115,7 +1127,7 @@ y guarde la imagen"""
 #        layout.addWidget(dockArea, 0, 0, 4, 1)
 
 
-# --- ploting in live
+# %%--- ploting in live
     def plotLive(self):
         texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
@@ -1155,9 +1167,10 @@ y guarde la imagen"""
             self.liveviewButton.setChecked(True)
             self.liveviewStart()
 
-    def openFolder(self):
-    # Quedo obsoleto con la barra de herramientas.
-        print("tengoq ue sacarlo, no sirve mas")
+## %% selectfolder
+#    def openFolder(self):
+#    # Quedo obsoleto con la barra de herramientas.
+#        print("tengoq ue sacarlo, no sirve mas")
 #        root = tk.Tk()
 #        root.withdraw()
 #        
@@ -1181,7 +1194,7 @@ y guarde la imagen"""
 #            elif sys.platform == 'win32':
 #                os.startfile(self.dataDir)
 
-# --- CM measure
+# %%--- CM measure
     def CMmeasure(self):
         self.viewtimer.stop()
         from scipy import ndimage

@@ -1,4 +1,4 @@
-﻿
+﻿# %%
 import os
 import tkinter as tk
 from tkinter import filedialog
@@ -31,7 +31,7 @@ minVolt = {'x': -10, 'y': -10, 'z': 0}
 maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no errarle
 
-
+#%% Main Window
 class MainWindow(QtWidgets.QMainWindow):
     def newCall(self):
         self.a = 0
@@ -65,7 +65,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.a = 0
         self.file_path = os.path.abspath("")
-# ----- MENU
+# ----- MENUbar -----------
         self.setMinimumSize(QtCore.QSize(300, 100))
         self.setWindowTitle("The new-no-Tempesta very piola program")
 
@@ -120,7 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.form_widget)
 
 
-
+# %% ScanWidget
 class ScanWidget(QtGui.QFrame):
 
     def graphplot(self):
@@ -204,6 +204,10 @@ class ScanWidget(QtGui.QFrame):
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
 
+        self.CMcheck = QtGui.QCheckBox('calcula CM')
+        self.CMcheck.setChecked(False)
+        self.CMcheck.clicked.connect(self.CMmeasure)
+
     # save image Button
 
         self.saveimageButton = QtGui.QPushButton('Scan and Save')
@@ -225,7 +229,6 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setText(filepath)
 
     # Defino el tipo de Scan que quiero
-
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
         self.scanMode.addItems(self.scanModes)
@@ -240,6 +243,8 @@ class ScanWidget(QtGui.QFrame):
         self.APDs = False
         self.triggeron = False # separo los canales en partes
         self.channelsteps = False
+        self.piezoramp = False
+        self.piezosteps = False
 #        self.inStart = False
 #        self.working = False
 
@@ -262,7 +267,6 @@ class ScanWidget(QtGui.QFrame):
 
 
     # Scanning parameters
-
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0 z0] (µm)')
 #        self.initialPositionEdit = QtGui.QLineEdit('0 0 1')
         self.scanRangeLabel = QtGui.QLabel('Scan range (µm)')
@@ -358,6 +362,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.saveimageButton, 15, 1)
 #        subgrid.addWidget(self.NameDirButton, 1, 2)
         subgrid.addWidget(self.plotLivebutton, 3, 2)
+
+        subgrid.addWidget(self.CMcheck, 12, 2)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -521,7 +527,7 @@ class ScanWidget(QtGui.QFrame):
         self.steptimer = QtCore.QTimer()
         self.steptimer.timeout.connect(self.stepScan)
 
-#--- paramChanged
+# %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
         if self.APDred.isChecked():
@@ -594,13 +600,13 @@ class ScanWidget(QtGui.QFrame):
                              (self.numberofPixels)))
 
 
-# cosas para el save image nuevo
+# %% cosas para el save image
     def saveimage(self):
         """ la idea es que escanee la zona deseada (desde cero) una sola vez,
         y guarde la imagen"""
         if self.saveimageButton.isChecked():
             self.save = True
-            self.channelsOpen()
+
             self.saveimageButton.setText('Abort')
             self.openShutter("red")
             self.liveviewStart()
@@ -611,7 +617,7 @@ class ScanWidget(QtGui.QFrame):
             self.saveimageButton.setText('Retry Scan and Stop')
             self.liveviewStop()
 
-#--- liveview------
+# %%--- liveview------
 # This is the function triggered by pressing the liveview button
     def liveview(self):
         """ Image live view when not recording
@@ -633,10 +639,7 @@ class ScanWidget(QtGui.QFrame):
             self.tic = ptime.time()
             self.steptimer.start(5)#100*self.pixelTime*10**3)  # imput in ms
         else:
-#        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-            self.channelsOpen()
-#            self.APDopen
-#            self.PMTopen
+            self.channelsOpenRamp()
             self.rampScan()
 
     def rampScan(self):
@@ -664,107 +667,8 @@ class ScanWidget(QtGui.QFrame):
         self.done()
 
 
-    def stepLine(self):
-#        tic = ptime.time()
-        APD = np.zeros((self.Napd+1))
-
-        for i in range(self.numberofPixels):
-#            tec = ptime.time()
-#            self.citask.stop()
-            self.aotask.stop()
-
-            self.aotask.write(
-             [self.allstepsx[i, self.dy] / convFactors['x'],
-              self.allstepsy[i, self.dy] / convFactors['y'],
-              self.allstepsz[i, self.dy] / convFactors['z']],
-                             auto_start=True)
-
-#                self.aotask.start()
-            self.aotask.wait_until_done()
-
-#            tac = ptime.time()
-            APD[:] = self.citask.read(1+self.Napd)
-            self.citask.wait_until_done()
-#            toc = ptime.time()
-
-            self.citask.stop()
-            self.aotask.stop()
-#            self.cuentas[i] = aux + np.random.rand(1)[0]
-            self.image[-1-i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
-
-# ---stemScan ---
-    def stepScan(self):
-    # the step clock calls this function
-        self.stepLine()
-
-#        self.image[:, self.numberofPixels-1-(self.dy)] = self.cuentas
-        self.img.setImage(self.image, autoLevels=True)
-
-
-        if self.dy < self.numberofPixels-1:
-            self.dy = self.dy + 1
-        else:
-            if self.save:
-                self.saveFrame()
-                self.CMmeasure()
-                self.liveviewStop()
-                self.mapa()
-            else:
-                if self.Alancheck.isChecked():
-                    self.saveFrame()  # para guardar siempre (Alan idea)
-                print(ptime.time()-self.tic, "Tiempo imagen completa.")
-                self.viewtimer.stop()
-                self.MovetoStart()
-                self.liveviewStart()
-                self.CMmeasure()
-
-    def Steps(self):
-        self.pixelsofftotal = 0
-        self.cuentas = np.zeros((self.numberofPixels))
-
-#    Barrido x: Primal signal
-#        self.allstepsx = np.zeros((self.numberofPixels,self.numberofPixels))
-        startX = float(self.initialPosition[0])
-        sizeX = self.scanRange
-        Npuntos = self.numberofPixels
-        gox = (np.linspace(0, sizeX, Npuntos) + startX )
-        self.allstepsx = np.transpose(np.tile(gox,(self.numberofPixels,1)))
-    # a matrix [i,j] where i go for the complete ramp and j evolves in y lines
-
-
-#    Barrido y: secondary signal
-        startY = float(self.initialPosition[1])
-        goy = np.ones(Npuntos) * startY
-        self.allstepsy = np.zeros((self.numberofPixels,self.numberofPixels))
-        stepy = self.scanRange / self.numberofPixels
-        for j in range (len(self.allstepsy)):
-            self.allstepsy[:,j] = goy + (j) * stepy
-
-#    Barrido z (se queda en la posicion inicial): thirth signal (static)
-        startZ = float(self.initialPosition[2])
-        goz = np.ones(Npuntos) * startZ 
-        self.allstepsz = np.tile(goz,(self.numberofPixels,1))
-
-        if self.XYcheck.isChecked():
-            print("escaneo x y normal S")
-
-        if self.XZcheck.isChecked():
-            print("intercambio y por z S")
-            self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
-            goy= np.ones(len(self.allstepsx)) * startY
-            self.allstepsy = np.tile(goy,(self.numberofPixels,1))
-
-
-        if self.YZcheck.isChecked():
-            print("intercambio x por y S")
-            self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
-            self.allstepsy = self.allstepsx - startX + startY
-            gox= np.ones(len(self.allstepsy)) * startX
-            self.allstepsx = np.tile(gox, (self.numberofPixels,1))
-
-
 #    def startingSteps(self):
-
+# %%
     def startingRamps(self):
 
 #        self.working = True
@@ -773,13 +677,12 @@ class ScanWidget(QtGui.QFrame):
             [self.totalrampx / convFactors['x'],
              self.totalrampy / convFactors['y'],
              self.totalrampz / convFactors['z']]), auto_start=True)
-
 #        self.inStart = False
-        print("ya arranca")
+        print("starting...")
     # Starting the trigger. It have a controllable 'delay'
         self.triggertask.write(self.trigger, auto_start=True)
 
-
+# %% runing Ramp loop
     def updateView(self):
         paso = 1
     # The counter reads this numbers of points when the trigger starts
@@ -816,7 +719,8 @@ class ScanWidget(QtGui.QFrame):
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
-                self.CMmeasure()
+              if self.CMcheck.isChecked():
+                  self.CMmeasure()
                 self.liveviewStop()
                 self.mapa()
             else:
@@ -828,14 +732,13 @@ class ScanWidget(QtGui.QFrame):
               self.aotask.stop()
               self.citask.stop()
               self.liveviewStart()
-              self.CMmeasure()
+              if self.CMcheck.isChecked():
+                  self.CMmeasure()
 
 #    def fastupdateView(self):
 #        
 
-
-
-# --- Ramps / startingRamps ----
+# %% --- Creating Ramps  ----
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
@@ -910,7 +813,7 @@ class ScanWidget(QtGui.QFrame):
             self.totalrampy = self.totalrampx - startX + startY
             self.totalrampx = np.ones(len(self.totalrampx)) * startX
 
-
+# %% posptocessing ramps
     def apdpostprocessing(self):
         """ takes the evergrowing valors from the counter measure and convert
         it into "number or events" """
@@ -941,7 +844,7 @@ class ScanWidget(QtGui.QFrame):
 # puede fallar en la primer y/o ultima fila
 
 
-# -------Aceleracion----------------------------------------------
+# %%-------Aceleracion----------------------------------------------
     def acceleration(self):
         """ it creates the smooths-edge signals to send to the piezo
         It´s just an u.a.r.m. movement equation"""  # MRUV
@@ -1043,22 +946,40 @@ class ScanWidget(QtGui.QFrame):
         print(self.pixelsoffL, self.pixelsoffM,
               self.pixelsoffB, self.pixelsoffR, "pixelsoff´s")
 
-# --- ChannelsOpen (rampas)
+# %% --- ChannelsOpen (todos)
     def channelsOpen(self):
+        if self.scanMode.currentText() == "step scan":
+            self.channelsOpenStep()
+        else:
+            self.channelsOpenRamp()
+
+    def channelsOpenRamp(self):  # channelsOpen
+        """ Open and Config of all the channels for use"""
+        if self.channelramp:
+            print("ya esta abierto ramp")
+        else:
+            self.PiezoOpen()
+            self.APDOpen()
+            self.TriggerOpen()
+            self.channelramp = True
+
+    def channelsOpenStep(self):
         """ Open and Config of all the channels for use"""
         if self.channelsteps:
-            self.done()
+            print("ya esta abierto step")
+        else:
+            self.PiezoOpen()
+            self.APDOpen()
+            self.channelsteps = True
 
     def PiezoOpen(self):
-
-        if self.scanMode.currentText() == "step scan":
+        if self.piezosteps:
             self.done()
             print("cierro para abrir de nuevo")
-
-        if self.channelramp:
+        if self.piezoramp:
             print("Ya estaban abiertos los canales rampa")  # to dont open again 
-            #  usando esto podria no cerrarlos nunca.
         else:
+            self.piezosteps = True
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
@@ -1069,21 +990,20 @@ class ScanWidget(QtGui.QFrame):
                     min_val=minVolt[self.activeChannels[n]],
                     max_val=maxVolt[self.activeChannels[n]])
 
-                if self.scanMode.currentText() != "step scan":
-                    self.channelramp = True
-                    self.channelsteps = False
-                    self.aotask.timing.cfg_samp_clk_timing(
-                        rate=self.sampleRate,
-        #                source=r'100kHzTimeBase',
-                        sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                        samps_per_chan=len(self.totalrampx))
+            if self.scanMode.currentText() != "step scan":
+                self.piezoramp = True
+                self.piezosteps = False
+                self.aotask.timing.cfg_samp_clk_timing(
+                    rate=self.sampleRate,
+    #                source=r'100kHzTimeBase',
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=len(self.totalrampx))
 
     def APDOpen(self):
-        if self.APDs:
+        if self.APDson:  # esto puede fallar cuando cambio de ramp a step
             print("Ya esta algun APD")  # to dont open again 
-            #  usando esto podria no cerrarlos nunca.
         else:
-            self.APDs = True
+            self.APDson = True
             self.citask = nidaqmx.Task('citask')
 
             # Configure the counter channel to read the APD
@@ -1104,18 +1024,20 @@ class ScanWidget(QtGui.QFrame):
     def PMTOpen(self):
         if self.PMTon:
             print("Ya esta el PMT")  # to dont open again 
-            #  usando esto podria no cerrarlos nunca.
         else:
             self.PMTon = True
             self.PMTtask = nidaqmx.Task('aotask')
-            self.PMTtask.ao_channels.add_ao_voltage_chan(
-                physical_channel='Dev1/ao1',
+            self.PMTtask.ai_channels.add_ai_voltage_chan(
+                physical_channel='Dev1/ai1',
                 name_to_assign_to_channel='chan_PMT')
+            self.PMTtask1.timing.cfg_samp_clk_timing(
+                    rate=self.sampleRate,
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=len(self.totalrampx))
 
     def TriggerOpen(self):
         if self.triggeron:
             print("Ya esta el trigger")  # to dont open again 
-            #  usando esto podria no cerrarlos nunca.
         else:
             self.triggeron = True
             self.triggertask = nidaqmx.Task('dotask')
@@ -1164,78 +1086,145 @@ class ScanWidget(QtGui.QFrame):
         # En realidad mando un vector con muchos True's, asi que no lo estoy usando
 
 
-#---- done
+# %%---- done
     def done(self):
         """ stop and close all the channels"""
-        if self.channelramp or self.channelsteps:
-            try:
-    #            print("Cierro todos los canales")  # para evitar el error
-                self.aotask.stop()
-                self.aotask.close()
-            except:
-                print("a")
-            try:
-                self.triggertask.stop()
-                self.triggertask.close()
-            except:
-                print("d")
-            try:
-                self.citask.stop()
-                self.citask.close()
-            except:
-                print("c")
-            try:
-                self.PMTtask.stop()
-                self.PMTtask.close()
-            except:
-                print("d")
-            self.channelramp = False
-            self.channelsteps = False
-            self.PMTon = False
-            self.APDs = False
-            self.triggeron = False # separo los canales en partes
+#        if self.channelramp or self.channelsteps:
+        try:
+#            print("Cierro todos los canales")
+            self.aotask.stop()  # Piezo
+            self.aotask.close()
+        except:
+            print("a")
+        try:
+            self.citask.stop()  # Apd
+            self.citask.close()
+        except:
+            print("b")
+        try:
+            self.PMTtask.stop()  # PMT
+            self.PMTtask.close()
+        except:
+            print("c")
+        try:
+            self.triggertask.stop()  # trigger, antes dotask
+            self.triggertask.close()
+        except:
+            print("d")
 
+        self.channelramp = False
+        self.channelsteps = False
+        self.piezoramp = False
+        self.piezosteps = False
+        self.PMTon = False
+        self.APDson = False
+        self.triggeron = False # separo los canales en partes
+
+#        else:
+#            print("llego hasta el done pero no tenia nada que cerrar")
+#            # Esto no tendria que pasar
+
+# %%--- Step Cosas --------------
+    def stepLine(self):
+#        tic = ptime.time()
+        APD = np.zeros((self.Napd+1))
+
+        for i in range(self.numberofPixels):
+#            tec = ptime.time()
+#            self.citask.stop()
+            self.aotask.stop()
+
+            self.aotask.write(
+             [self.allstepsx[i, self.dy] / convFactors['x'],
+              self.allstepsy[i, self.dy] / convFactors['y'],
+              self.allstepsz[i, self.dy] / convFactors['z']],
+                             auto_start=True)
+
+#                self.aotask.start()
+            self.aotask.wait_until_done()
+
+#            tac = ptime.time()
+            APD[:] = self.citask.read(1+self.Napd)
+            self.citask.wait_until_done()
+#            toc = ptime.time()
+
+            self.citask.stop()
+            self.aotask.stop()
+#            self.cuentas[i] = aux + np.random.rand(1)[0]
+            self.image[-1-i, self.numberofPixels-1-self.dy] = APD[-1] - APD[0]
+
+
+    def stepScan(self):
+    # the step clock calls this function
+        self.stepLine()
+
+#        self.image[:, self.numberofPixels-1-(self.dy)] = self.cuentas
+        self.img.setImage(self.image, autoLevels=True)
+
+
+        if self.dy < self.numberofPixels-1:
+            self.dy = self.dy + 1
         else:
-            print("llego hasta el done pero no tenia nada que cerrar")
-            # Esto no tendria que pasar
+            if self.save:
+                self.saveFrame()
+                self.CMmeasure()
+                self.liveviewStop()
+                self.mapa()
+            else:
+                if self.Alancheck.isChecked():
+                    self.saveFrame()  # para guardar siempre (Alan idea)
+                print(ptime.time()-self.tic, "Tiempo imagen completa.")
+                self.viewtimer.stop()
+                self.MovetoStart()
+                self.liveviewStart()
+                self.CMmeasure()
 
-# --- channelsOpenStep  (step) --------------------------------
+    def Steps(self):
+        self.pixelsofftotal = 0
+        self.cuentas = np.zeros((self.numberofPixels))
 
-    def channelsOpenStep(self):
-        """ Open and Config of all the channels for use step by step"""
-        if self.channelramp:
-            self.done()
+#    Barrido x: Primal signal
+#        self.allstepsx = np.zeros((self.numberofPixels,self.numberofPixels))
+        startX = float(self.initialPosition[0])
+        sizeX = self.scanRange
+        Npuntos = self.numberofPixels
+        gox = (np.linspace(0, sizeX, Npuntos) + startX )
+        self.allstepsx = np.transpose(np.tile(gox,(self.numberofPixels,1)))
+    # a matrix [i,j] where i go for the complete ramp and j evolves in y lines
 
-        if self.channelsteps:
-            print("Ya estan abiertos los canales step")  # to dont open again 
-            #  usando esto podria no cerrarlos nunca.
-        else:
-            self.channelsteps = True
-        # Create all the channels
-            self.aotask = nidaqmx.Task('aotask')
-            self.citask = nidaqmx.Task('citask')
 
-        # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.COchans,
-                                name_to_assign_to_channel=u'conter',
-                                initial_count=0)
+#    Barrido y: secondary signal
+        startY = float(self.initialPosition[1])
+        goy = np.ones(Npuntos) * startY
+        self.allstepsy = np.zeros((self.numberofPixels,self.numberofPixels))
+        stepy = self.scanRange / self.numberofPixels
+        for j in range (len(self.allstepsy)):
+            self.allstepsy[:,j] = goy + (j) * stepy
 
-            totalcinumber = self.Napd + 1
+#    Barrido z (se queda en la posicion inicial): thirth signal (static)
+        startZ = float(self.initialPosition[2])
+        goz = np.ones(Npuntos) * startZ 
+        self.allstepsz = np.tile(goz,(self.numberofPixels,1))
 
-            self.citask.timing.cfg_samp_clk_timing(
-              rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-              source=r'100kHzTimebase',
-              samps_per_chan = totalcinumber)
+        if self.XYcheck.isChecked():
+            print("escaneo x y normal S")
 
-        # Following loop creates the voltage channels
-            for n in range(len(self.AOchans)):
-                self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-                    min_val=minVolt[self.activeChannels[n]],
-                    max_val=maxVolt[self.activeChannels[n]])
+        if self.XZcheck.isChecked():
+            print("intercambio y por z S")
+            self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
+            goy= np.ones(len(self.allstepsx)) * startY
+            self.allstepsy = np.tile(goy,(self.numberofPixels,1))
 
-# ---Move----------------------------------------
+
+        if self.YZcheck.isChecked():
+            print("intercambio x por y S")
+            self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
+            self.allstepsy = self.allstepsx - startX + startY
+            gox= np.ones(len(self.allstepsy)) * startX
+            self.allstepsx = np.tile(gox, (self.numberofPixels,1))
+
+
+# %% ---Move----------------------------------------
 
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
@@ -1290,7 +1279,7 @@ class ScanWidget(QtGui.QFrame):
                 self.channelsOpenStep()
             else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-                self.channelsOpen()
+                self.channelsOpenRamp()
 
 
     def xMoveUp(self):
@@ -1326,7 +1315,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
 
-
+# %% Go algo
     def goCM(self):
             self.zgotoLabel.setStyleSheet(" background-color: ")
             print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
@@ -1339,7 +1328,7 @@ class ScanWidget(QtGui.QFrame):
             print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),
                   float(self.zLabel.text()))
 
-# ---goto. Para ir a una posicion especifica
+## ---goto. Para ir a una posicion especifica
     def goto(self):
 
         print("arranco en", float(self.xLabel.text()),
@@ -1354,7 +1343,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.paramChanged()
 
-# ---moveto ---
+## ---moveto ---
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
         self.channelsOpenStep()  # se mueve de a puntos, no rampas.
@@ -1387,7 +1376,7 @@ class ScanWidget(QtGui.QFrame):
             print("¡YA ESTOY EN ESAS COORDENADAS!")
 
 
-# ---  Shutters zone ---------------------------------
+# %%---  Shutters zone ---------------------------------
     def shutterred(self):
         if self.shutterredbutton.isChecked():
             self.openShutter("red")
@@ -1436,7 +1425,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             print("ya estaban abiertos los canales shutters")
 
-# --- MovetoStart ---
+# %%--- MovetoStart ---
     def MovetoStart(self):
         """ When called, it gets to the start point"""
         if self.dy==0:
@@ -1504,7 +1493,7 @@ class ScanWidget(QtGui.QFrame):
         self.dy = 0
 
 
-# --- ploting in live
+# %%--- ploting in live
     def plotLive(self):
         texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
@@ -1532,7 +1521,7 @@ class ScanWidget(QtGui.QFrame):
             pass
         plt.show()
 
-#--- SaveFrame ---
+# %%--- SaveFrame ---
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
         if self.XYcheck.isChecked():
@@ -1558,7 +1547,7 @@ class ScanWidget(QtGui.QFrame):
 #        print(self.file_path,2)
 #        self.NameDirValue.setText(self.file_path)
 
-#--- CMmeasure que tambien arma los datos para modular.
+# %%--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
         if self.scanMode.currentText() == "step scan":
             self.steptimer.stop()
@@ -1625,7 +1614,7 @@ class ScanWidget(QtGui.QFrame):
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
         self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
 
-
+#%% END
 app = QtGui.QApplication([])
 #win = ScanWidget(device)
 win = MainWindow()
