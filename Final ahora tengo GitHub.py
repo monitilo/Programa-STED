@@ -254,7 +254,6 @@ class ScanWidget(QtGui.QFrame):
     # Shutters buttons
         self.shutterredbutton = QtGui.QCheckBox('shutter 640')
         self.shutterredbutton.clicked.connect(self.shutterred)
-
         self.shuttergreenbutton = QtGui.QCheckBox('shutter 532')
         self.shuttergreenbutton.clicked.connect(self.shuttergreen)
         self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
@@ -1193,7 +1192,7 @@ class ScanWidget(QtGui.QFrame):
         gox = (np.linspace(0, sizeX, Npuntos) + startX )
         self.allstepsx = np.transpose(np.tile(gox,(self.numberofPixels,1)))
     # a matrix [i,j] where i go for the complete ramp and j evolves in y lines
-
+        self.gox = gox
 
 #    Barrido y: secondary signal
         startY = float(self.initialPosition[1])
@@ -1405,6 +1404,7 @@ class ScanWidget(QtGui.QFrame):
                 self.shuttersignal[i] = True
         self.shuttertask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
+        self.checkShutters()
 
     def closeShutter(self, p):
         self.shuttersnidaq()
@@ -1416,6 +1416,22 @@ class ScanWidget(QtGui.QFrame):
                 self.shuttersignal[i] = False
         self.shuttertask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
+        self.checkShutters()
+
+
+    def checkShutters(self):
+        if self.shuttersignal[0]:
+            self.shutterredbutton.setChecked(True)
+        else:
+            self.shutterredbutton.setChecked(False)
+        if self.shuttersignal[1]:
+            self.shuttergreenbutton.setChecked(True)
+        else:
+            self.shuttergreenbutton.setChecked(False)
+        if self.shuttersignal[2]:
+            self.shutterotrobutton.setChecked(True)
+        else:
+            self.shutterotrobutton.setChecked(False)
 
     def shuttersnidaq(self):
         if self.shuttering == False:
@@ -1459,7 +1475,7 @@ class ScanWidget(QtGui.QFrame):
                 maximox = self.allstepsx[-1,self.dy]
                 maximoy = self.allstepsy[-1,self.dy]
                 maximoz = self.allstepsz[-1,self.dy]
-                totalSamples = len(self.allstepsx)
+                totalSamples = self.gox
                 volviendox = np.linspace(maximox, startX, totalSamples)
                 volviendoy = np.linspace(maximoy, startY, totalSamples)
                 volviendoz = np.linspace(maximoz, startZ, totalSamples)
@@ -1468,7 +1484,7 @@ class ScanWidget(QtGui.QFrame):
     #            volviendotodo[0, :] = volviendox / convFactors['x']
     #            volviendotodo[1, :] = volviendoy / convFactors['y']
     #            volviendotodo[2, :] = volviendoz / convFactors['z']
-                for i in range(len(self.allstepsx)):
+                for i in range(totalSamples):
                     self.aotask.write(np.array(
                         [volviendox[i] / convFactors['x'],
                          volviendoy[i] / convFactors['y'],
@@ -1480,7 +1496,7 @@ class ScanWidget(QtGui.QFrame):
                 maximox = self.totalrampx[stops]
                 maximoy = self.totalrampy[stops]
                 maximoz = self.totalrampz[stops]
-                totalSamples = len(self.totalrampx)
+                totalSamples = len(self.onerampx)
 
                 volviendox = np.linspace(maximox, startX, totalSamples)
                 volviendoy = np.linspace(maximoy, startY, totalSamples)
