@@ -240,7 +240,7 @@ class ScanWidget(QtGui.QFrame):
     # useful Booleans
         self.channelramp = False #canales
         self.PMTon = False
-        self.APDs = False
+        self.APDson = False
         self.triggeron = False # separo los canales en partes
         self.channelsteps = False
         self.piezoramp = False
@@ -569,7 +569,7 @@ class ScanWidget(QtGui.QFrame):
 
         elif self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
             self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
-            self.sampleRate = 1 / self.pixelTime  # self.apdrate
+            self.sampleRate = np.round(1 / self.pixelTime,9)  # self.apdrate
             print("los Nsamples = Npix y 1/tpix la frecuencia\n",
                   self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
 
@@ -719,8 +719,8 @@ class ScanWidget(QtGui.QFrame):
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
-              if self.CMcheck.isChecked():
-                  self.CMmeasure()
+                if self.CMcheck.isChecked():
+                    self.CMmeasure()
                 self.liveviewStop()
                 self.mapa()
             else:
@@ -731,9 +731,11 @@ class ScanWidget(QtGui.QFrame):
               self.triggertask.stop()
               self.aotask.stop()
               self.citask.stop()
-              self.liveviewStart()
+              self.steptimer.stop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
+              self.liveviewStart()
+
 
 #    def fastupdateView(self):
 #        
@@ -1488,7 +1490,7 @@ class ScanWidget(QtGui.QFrame):
                     [volviendox / convFactors['x'],
                      volviendoy / convFactors['y'],
                      volviendoz / convFactors['z']]), auto_start=True)
-                self.aotask.wait_until_done()
+#                self.aotask.wait_until_done()
     #        print(np.round(ptime.time() - tic, 5)*10**3, "MovetoStart (ms)")
 
 
@@ -1560,10 +1562,10 @@ class ScanWidget(QtGui.QFrame):
 
 # %%--- CMmeasure que tambien arma los datos para modular.
     def CMmeasure(self):
-        if self.scanMode.currentText() == "step scan":
-            self.steptimer.stop()
-        else:
-            self.viewtimer.stop()
+#        if self.scanMode.currentText() == "step scan":
+#            self.steptimer.stop()
+#        else:
+#            self.viewtimer.stop()
 
         tic = ptime.time()
 
@@ -1596,10 +1598,10 @@ class ScanWidget(QtGui.QFrame):
         toc = ptime.time()
         print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
 
-        if self.scanMode.currentText() == "step scan":
-            self.steptimer.start(5)
-        else:
-            self.viewtimer.start((self.reallinetime)*10**3)
+#        if self.scanMode.currentText() == "step scan":
+#            self.steptimer.start(5)
+#        else:
+#            self.viewtimer.start((self.reallinetime)*10**3)
 
 #        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
         print(((toc-tic)+self.reallinetime)*10**3)
