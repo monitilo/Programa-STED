@@ -971,10 +971,10 @@ class ScanWidget(QtGui.QFrame):
 
     def channelsOpenStep(self):
         """ Open and Config of all the channels for use"""
-        if self.channelsteps:
-            print("ya esta abierto step")
-        elif self.channelramp:
+        if self.channelramp:
             self.done()
+        elif self.channelsteps:
+            print("ya esta abierto step")
         else:
             self.PiezoOpenStep()
             self.APDOpen()
@@ -998,7 +998,6 @@ class ScanWidget(QtGui.QFrame):
                     max_val=maxVolt[self.activeChannels[n]])
 
                 self.piezoramp = True
-                self.piezosteps = False
                 self.aotask.timing.cfg_samp_clk_timing(
                     rate=self.sampleRate,
     #                source=r'100kHzTimeBase',
@@ -1013,7 +1012,6 @@ class ScanWidget(QtGui.QFrame):
             print("Ya estaban abiertos los canales steps")  # to dont open again 
         else:
             self.piezosteps = True
-            self.piezoramp = False
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
@@ -1047,6 +1045,8 @@ class ScanWidget(QtGui.QFrame):
 
 
     def PMTOpen(self):
+        if self.APDson:
+            print("ojo que quedo abierto el APD")
         if self.PMTon:
             print("Ya esta el PMT")  # to dont open again 
         else:
@@ -1345,9 +1345,10 @@ class ScanWidget(QtGui.QFrame):
             self.zgotoLabel.setStyleSheet(" background-color: ")
             print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
                   float(self.zLabel.text()))
-
-            self.moveto(float(self.CMxValue.text()),
-                        float(self.CMyValue.text()),
+            startX = float(self.xLabel.text())
+            startY = float(self.yLabel.text())
+            self.moveto((float(self.CMxValue.text()) + startX) - (self.scanRange/2),
+                        (float(self.CMyValue.text()) + startY) - (self.scanRange/2),
                         float(self.zLabel.text()))
 
             print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),

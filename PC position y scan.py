@@ -936,8 +936,10 @@ y guarde la imagen"""
             print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
                   float(self.zLabel.text()))
 
-            self.moveto(float(self.CMxValue.text()),
-                        float(self.CMyValue.text()),
+            startX = float(self.xLabel.text())
+            startY = float(self.yLabel.text())
+            self.moveto((float(self.CMxValue.text()) + startX) - (self.scanRange/2),
+                        (float(self.CMyValue.text()) + startY) - (self.scanRange/2),
                         float(self.zLabel.text()))
 
             print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),
@@ -1263,6 +1265,7 @@ y guarde la imagen"""
 
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
+
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
