@@ -68,6 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_path = filedialog.askdirectory()
         print(self.file_path,"◄ dire")
         self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
 #        self.form_widget.paramChanged()
 
 
@@ -330,6 +331,7 @@ class ScanWidget(QtGui.QFrame):
 #                np.around(float(initialPosition[2]), 2)))
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: red; ")
 
         self.CMxLabel = QtGui.QLabel('CM X')
         self.CMxValue = QtGui.QLabel('NaN')
@@ -407,19 +409,23 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.bLabel, 3, 2)
         subgrid.addWidget(self.b, 4, 2)
 
-        self.detectMode = QtGui.QComboBox()
-        self.detectModes = ['PMT', 'APD red', 'APD green']
-        self.detectMode.addItems(self.detectModes)
-        self.detectMode.currentIndexChanged.connect(self.paramChanged)
-#        group2 = QtGui.QButtonGroup(self.paramWidget)
-#        self.APDred=QtGui.QRadioButton("APD red")
-#        self.APDgreen=QtGui.QRadioButton("APD green")
-#        self.APDred.setChecked(True)
-#        self.APDgreen.setChecked(False)
-#        group2.addButton(self.APDred)
-#        group2.addButton(self.APDgreen)
-        subgrid.addWidget(self.detectMode, 0, 1)
-#        subgrid.addWidget(self.APDgreen, 0, 2)
+#        self.detectMode = QtGui.QComboBox()
+#        self.detectModes = ['APD red', 'APD green', 'PMT']
+#        self.detectMode.addItems(self.detectModes)
+#        self.detectMode.activated.connect(self.paramChanged)
+#        self.detectMode.currentIndexChanged.connect(self.paramChanged)
+
+        group2 = QtGui.QButtonGroup(self.paramWidget)
+        self.APDred=QtGui.QRadioButton("APD red")
+        self.APDgreen=QtGui.QRadioButton("APD green")
+        self.APDred.setChecked(True)
+        self.APDgreen.setChecked(False)
+        group2.addButton(self.APDred)
+        group2.addButton(self.APDgreen)
+#        subgrid.addWidget(self.detectMode, 0, 1)
+        subgrid.addWidget(self.APDred, 0, 1)
+        subgrid.addWidget(self.APDgreen, 0, 2)
+
 
         subgrid.addWidget(self.plotLivebutton, 6, 2)
 
@@ -600,10 +606,14 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 # %% paramChanged
     def paramChanged(self):
-        if self.detectMode.currentText() == "APD red":
-            self.COchan = 0
-        elif self.detectMode.currentText() == "APD green":
-            self.COchan = 1
+#        if self.detectMode.currentText() == "APD red":
+#            self.COchan = 0
+#        elif self.detectMode.currentText() == "APD green":
+#            self.COchan = 1
+#        if self.APDred.isChecked():
+#            self.COchan = 0
+#        elif self.APDgreen.isChecked():
+#            self.COchan = 1
         self.scanRange = float(self.scanRangeEdit.text())
 #        self.scanRangey = self.scanRangex  # float(self.scanRangeyEdit.text())
 

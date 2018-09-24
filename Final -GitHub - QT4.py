@@ -510,7 +510,7 @@ class ScanWidget(QtGui.QFrame):
         y guarde la imagen"""
         if self.saveimageButton.isChecked():
             self.save = True
-            self.channelsOpen()
+#            self.channelsOpen()
             self.saveimageButton.setText('Abort')
             self.openShutter("red")
             self.liveviewStart()

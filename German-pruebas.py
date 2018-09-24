@@ -913,7 +913,7 @@ plt.show()
 """
 from nidaqmx.types import CtrTime
 resolucionDAQ = 0.0003 * 2 * 25 # V => µm; uso el doble para no errarle
-Npix=5
+Npix=1
 apdrate= 10**5
 tpix = 0.01 *10**-3 # en milisegundos
 Napd=int(apdrate*tpix)
@@ -987,7 +987,7 @@ with nidaqmx.Task("read") as citask:
 
         aotask.write(signaltodo,auto_start=False)
         tuc=time.time()
-        aotask.start()
+#        aotask.start()
         for i in range(Npix):
             tac=time.time()
             contando[:,i] = citask.read(number_of_samples_per_channel=len(signal))
@@ -997,7 +997,7 @@ with nidaqmx.Task("read") as citask:
             tec = time.time()
 
 
-        aotask.wait_until_done()
+#        aotask.wait_until_done()
 
 #        pp.pprint(cdata)
 toc = time.time()
@@ -1009,12 +1009,12 @@ for j in range(Npix):
 #print((toc-tic)*10**3, "milisegundos", tpix*Npix*10**3,"\ncitask solo = ", (tec-tac)*10**3, "\n ditask")#, (tuc-tupac)*10**3)
 print((toc-tuc)*10**3,"ms total", (tec-tac)*10**3, "cada paso", "\n la cuenta da en s", Npix*(tec-tac))
 
-plt.plot(signaltodo, '-')
-plt.plot(APDtodo, '-.r')
-plt.plot(APD, '*g')
-#plt.plot(contando)
+#plt.plot(signaltodo, '-')
+#plt.plot(APDtodo, '-.r')
+#plt.plot(APD, '*g')
+plt.plot(contando[:,0])
 #plt.plot(cuentas,'.-')
-plt.plot(cuentas.ravel(order='F'), '*-m')
+#plt.plot(cuentas.ravel(order='F'), '*-m')
 #plt.axis([0, len(signal)/2+1, -0.1, 1.1])
 #plt.axis([500, 1500, -0.1, 2.1])
 plt.show()

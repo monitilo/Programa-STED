@@ -60,6 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
         self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
@@ -227,6 +228,8 @@ class ScanWidget(QtGui.QFrame):
         filepath = main.file_path  # os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(filepath)
+        self.NameDirValue.setStyleSheet(" background-color: red; ")
+
 
     # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
@@ -306,6 +309,7 @@ class ScanWidget(QtGui.QFrame):
         self.APDgreen.clicked.connect(self.paramChanged)
 
         self.scanMode.activated.connect(self.paramChanged)
+        self.scanMode.activated.connect(self.done)
 
         self.paramWidget = QtGui.QWidget()
 
@@ -366,7 +370,7 @@ class ScanWidget(QtGui.QFrame):
 
 # ---  Positioner part ---------------------------------
         # Axes control
-        self.xLabel = QtGui.QLabel('5.0')
+        self.xLabel = QtGui.QLabel('-5.0')
         self.xLabel.setTextFormat(QtCore.Qt.RichText)
         self.xname =  QtGui.QLabel("<strong>x =")
         self.xname.setTextFormat(QtCore.Qt.RichText)
@@ -377,7 +381,7 @@ class ScanWidget(QtGui.QFrame):
         self.xStepEdit = QtGui.QLineEdit("1")
         self.xStepUnit = QtGui.QLabel(" µm")
 
-        self.yLabel = QtGui.QLabel('5.0')
+        self.yLabel = QtGui.QLabel('-5.0')
         self.yLabel.setTextFormat(QtCore.Qt.RichText)
         self.yname =  QtGui.QLabel("<strong>y =")
         self.yname.setTextFormat(QtCore.Qt.RichText)
@@ -544,7 +548,7 @@ class ScanWidget(QtGui.QFrame):
                                 float(self.yLabel.text()),
                                 float(self.zLabel.text()))
 
-        self.apdrate = 10**5  # 20*10**6  # samples/seconds
+        self.apdrate = 10**5  # 10**5  # 20*10**6  # samples/seconds
         self.Napd = int(np.round(self.apdrate * self.pixelTime))
         print(self.Napd, "=Napd\n")
 
@@ -595,8 +599,7 @@ class ScanWidget(QtGui.QFrame):
         self.dy = 0
 
       # numberofpixels is the relevant part of the total ramp.
-        self.APD = np.zeros((((self.numberofPixels + self.pixelsofftotal)*self.Napd),
-                             (self.numberofPixels)))
+        self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
 
 
 # %% cosas para el save image
@@ -685,17 +688,17 @@ class ScanWidget(QtGui.QFrame):
     def updateView(self):
         paso = 1
     # The counter reads this numbers of points when the trigger starts
-        self.APD[:, self.dy] = self.citask.read(
+        self.APD[:] = self.citask.read(
                   ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
         
         # have to analize the signal from the counter
         self.apdpostprocessing()
+        self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
+
         if self.scanMode.currentText() == "slalom":
-            self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
             self.image[:, -2-self.dy] = (self.backcounts[:])# + 5* np.random.rand(len(self.backcounts))  # ver si va el flip
             paso = 2
         else:
-            self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
             self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0)# + 5* np.random.rand(len(self.backcounts))
 
     # The plotting method is slow (2-3 ms each), so I´m plotting in packages
@@ -708,7 +711,7 @@ class ScanWidget(QtGui.QFrame):
 
         if self.dy in multi5:
             if self.graphcheck.isChecked():
-                self.img.setImage(self.backimage, autoLevels=True)
+                self.img.setImage(self.backimage, autoLevels=True)  # True
             else:
                 self.img.setImage(self.image, autoLevels=True)
 
@@ -814,24 +817,24 @@ class ScanWidget(QtGui.QFrame):
             self.totalrampy = self.totalrampx - startX + startY
             self.totalrampx = np.ones(len(self.totalrampx)) * startX
 
-# %% posptocessing ramps
+# %% posptocessing APD signal
     def apdpostprocessing(self):
         """ takes the evergrowing valors from the counter measure and convert
         it into "number or events" """
 
         Napd = self.Napd
 
-        j = self.dy
+#        j = self.dy
 
         if self.pixelsoffL == 0:
-            self.counts[0] = self.APD[Napd-1,j] - self.APD[0,j]
+            self.counts[0] = self.APD[Napd-1] - self.APD[0]
         else:
-            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1,j]-self.APD[(Napd*(1+self.pixelsoffL-1))-1,j]
+            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(1+self.pixelsoffL-1))-1]
 
         for i in range(1, self.numberofPixels-1):
             ei = ((self.pixelsoffL+i) * Napd)-1
             ef = ((self.pixelsoffL+i+1) * Napd)-1
-            self.counts[i] = self.APD[ef,j] - self.APD[ei,j]
+            self.counts[i] = self.APD[ef] - self.APD[ei]
 
         # Lo que sigue esta en creacion, para la imagen de vuelta
 
@@ -840,7 +843,7 @@ class ScanWidget(QtGui.QFrame):
 #            evf = ((self.pixelsoffR + i) * Napd)
             evi = (-(self.pixelsoffR + self.pixelsoffB) + (i)  ) * Napd
             evf = (-(self.pixelsoffR + self.pixelsoffB) + (i+1)) * Napd
-            self.backcounts[i] = self.APD[evf,j] - self.APD[evi,j]
+            self.backcounts[i] = self.APD[evf] - self.APD[evi]
 
 # puede fallar en la primer y/o ultima fila
 
@@ -958,6 +961,8 @@ class ScanWidget(QtGui.QFrame):
         """ Open and Config of all the channels for use"""
         if self.channelramp:
             print("ya esta abierto ramp")
+        elif self.channelsteps:
+            self.done()
         else:
             self.PiezoOpen()
             self.APDOpen()
@@ -968,8 +973,10 @@ class ScanWidget(QtGui.QFrame):
         """ Open and Config of all the channels for use"""
         if self.channelsteps:
             print("ya esta abierto step")
+        elif self.channelramp:
+            self.done()
         else:
-            self.PiezoOpen()
+            self.PiezoOpenStep()
             self.APDOpen()
             self.channelsteps = True
 
@@ -980,7 +987,6 @@ class ScanWidget(QtGui.QFrame):
         if self.piezoramp:
             print("Ya estaban abiertos los canales rampa")  # to dont open again 
         else:
-            self.piezosteps = True
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
@@ -991,7 +997,6 @@ class ScanWidget(QtGui.QFrame):
                     min_val=minVolt[self.activeChannels[n]],
                     max_val=maxVolt[self.activeChannels[n]])
 
-            if self.scanMode.currentText() != "step scan":
                 self.piezoramp = True
                 self.piezosteps = False
                 self.aotask.timing.cfg_samp_clk_timing(
@@ -999,6 +1004,25 @@ class ScanWidget(QtGui.QFrame):
     #                source=r'100kHzTimeBase',
                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
                     samps_per_chan=len(self.totalrampx))
+
+    def PiezoOpenStep(self):
+        if self.piezoramp:
+            self.done()
+            print("cierro para abrir de nuevo")
+        if self.piezosteps:
+            print("Ya estaban abiertos los canales steps")  # to dont open again 
+        else:
+            self.piezosteps = True
+            self.piezoramp = False
+        # Create the channels
+            self.aotask = nidaqmx.Task('aotask')
+        # Following loop creates the voltage channels
+            for n in range(len(self.AOchans)):
+                self.aotask.ao_channels.add_ao_voltage_chan(
+                    physical_channel='Dev1/ao%s' % self.AOchans[n],
+                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
+                    min_val=minVolt[self.activeChannels[n]],
+                    max_val=maxVolt[self.activeChannels[n]])
 
     def APDOpen(self):
         if self.APDson:  # esto puede fallar cuando cambio de ramp a step
@@ -1008,7 +1032,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask = nidaqmx.Task('citask')
 
             # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr%s' % self.COchans,
+            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(self.COchan),
                                 name_to_assign_to_channel=u'conter',
                                 initial_count=0)
             if self.scanMode.currentText() == "step scan":
@@ -1018,7 +1042,7 @@ class ScanWidget(QtGui.QFrame):
 
             self.citask.timing.cfg_samp_clk_timing(
               rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-              source=r'100kHzTimebase',
+              source=r'100kHzTimebase',  # 1000k
               samps_per_chan = totalcinumber)
 
 
@@ -1451,21 +1475,21 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.inStart = True
             print("moving to start")
-#            self.done()
-#
-#    #         Creates the voltage channels to move "slowly"
-#            self.aotask = nidaqmx.Task('aotask')
-#            for n in range(len(self.AOchans)):
-#                self.aotask.ao_channels.add_ao_voltage_chan(
-#                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-#                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-#                    min_val=minVolt[self.activeChannels[n]],
-#                    max_val=maxVolt[self.activeChannels[n]])
-#    
-#            self.aotask.timing.cfg_samp_clk_timing(
-#                rate=(self.moveRate),
-#                sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-#                samps_per_chan=self.moveSamples)
+            self.done()
+
+    #         Creates the voltage channels to move "slowly"
+            self.aotask = nidaqmx.Task('aotask')
+            for n in range(len(self.AOchans)):
+                self.aotask.ao_channels.add_ao_voltage_chan(
+                    physical_channel='Dev1/ao%s' % self.AOchans[n],
+                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
+                    min_val=minVolt[self.activeChannels[n]],
+                    max_val=maxVolt[self.activeChannels[n]])
+    
+            self.aotask.timing.cfg_samp_clk_timing(
+                rate=(self.moveRate),
+                sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                samps_per_chan=self.moveSamples)
 
     #        tic = ptime.time()
             startX = float(self.initialPosition[0])
@@ -1475,52 +1499,40 @@ class ScanWidget(QtGui.QFrame):
                 maximox = self.allstepsx[-1,self.dy]
                 maximoy = self.allstepsy[-1,self.dy]
                 maximoz = self.allstepsz[-1,self.dy]
-                totalSamples = self.gox
-                volviendox = np.linspace(maximox, startX, totalSamples)
-                volviendoy = np.linspace(maximoy, startY, totalSamples)
-                volviendoz = np.linspace(maximoz, startZ, totalSamples)
-    
-    #            volviendotodo = np.zeros((len(self.AOchans), self.moveSamples))
-    #            volviendotodo[0, :] = volviendox / convFactors['x']
-    #            volviendotodo[1, :] = volviendoy / convFactors['y']
-    #            volviendotodo[2, :] = volviendoz / convFactors['z']
-                for i in range(totalSamples):
-                    self.aotask.write(np.array(
-                        [volviendox[i] / convFactors['x'],
-                         volviendoy[i] / convFactors['y'],
-                         volviendoz[i] / convFactors['z']]), auto_start=True)
-#                    self.aotask.wait_until_done()
             else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
                 stops = ((len(self.onerampx))-1) * self.dy
                 maximox = self.totalrampx[stops]
                 maximoy = self.totalrampy[stops]
                 maximoz = self.totalrampz[stops]
-                totalSamples = len(self.onerampx)
 
-                volviendox = np.linspace(maximox, startX, totalSamples)
-                volviendoy = np.linspace(maximoy, startY, totalSamples)
-                volviendoz = np.linspace(maximoz, startZ, totalSamples)
+            volviendox = np.linspace(maximox, startX, self.moveSamples)
+            volviendoy = np.linspace(maximoy, startY, self.moveSamples)
+            volviendoz = np.linspace(maximoz, startZ, self.moveSamples)
 
-                self.aotask.write(np.array(
-                    [volviendox / convFactors['x'],
-                     volviendoy / convFactors['y'],
-                     volviendoz / convFactors['z']]), auto_start=True)
-#                self.aotask.wait_until_done()
+#            volviendotodo = np.zeros((len(self.AOchans), self.moveSamples))
+#            volviendotodo[0, :] = volviendox / convFactors['x']
+#            volviendotodo[1, :] = volviendoy / convFactors['y']
+#            volviendotodo[2, :] = volviendoz / convFactors['z']
+
+            self.aotask.write(np.array(
+                [volviendox / convFactors['x'],
+                 volviendoy / convFactors['y'],
+                 volviendoz / convFactors['z']]), auto_start=True)
+            self.aotask.wait_until_done()
     #        print(np.round(ptime.time() - tic, 5)*10**3, "MovetoStart (ms)")
 
 
-#            self.aotask.stop()
-#            self.aotask.close()
+            self.aotask.stop()
+            self.aotask.close()
 
-#            if self.scanMode.currentText() == "step scan":
-#                self.channelsOpenStep()
-#            else:
-##            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-#                self.channelsOpen()
+            if self.scanMode.currentText() == "step scan":
+                self.channelsOpenStep()
+            else:
+#            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
+                self.channelsOpen()
 
-            self.dy = 0
-
+        self.dy = 0
 
 # %%--- ploting in live
     def plotLive(self):
@@ -1560,12 +1572,13 @@ class ScanWidget(QtGui.QFrame):
         if self.YZcheck.isChecked():
             scanmode = "YZ"
         filepath = self.main.file_path
+        print(filepath)
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(filepath + "/image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+        name = str(filepath + "/" +  timestr + "-image-" + scanmode + "-" +".tiff")  # nombre con la fecha -hora
         guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
         guardado.save(name)
 
-        print("\n Hipoteticamente Guardo la imagen\n")
+        print("\n Guardo la imagen\n")
 
 #    def openFolder(self):
 #                           Obsoleto!!!!!!!!!!!!!!!!!!!!!!
@@ -1641,7 +1654,7 @@ class ScanWidget(QtGui.QFrame):
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
-        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
 #%% END
 app = QtGui.QApplication([])
