@@ -425,8 +425,6 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid.addWidget(self.detectMode, 0, 1)
         subgrid.addWidget(self.APDred, 0, 1)
         subgrid.addWidget(self.APDgreen, 0, 2)
-
-
         subgrid.addWidget(self.plotLivebutton, 6, 2)
 
         subgrid.addWidget(self.CMcheck, 8, 2)
@@ -604,6 +602,7 @@ class ScanWidget(QtGui.QFrame):
             QtGui.QKeySequence('Ctrl+a'), self, self.liveviewKey)
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
+
 # %% paramChanged
     def paramChanged(self):
 #        if self.detectMode.currentText() == "APD red":
@@ -701,9 +700,9 @@ y guarde la imagen"""
         else:
             print("elegri step o ramp scan")
             self.liveviewButton.setChecked(False)
-        if self.detectMode.currentText() == "PMT":
-            # channelopen PMT
-            print("PMT")
+#        if self.detectMode.currentText() == "PMT":
+#            # channelopen PMT
+#            print("PMT")
 
     def liveviewStop(self):
         if self.save:
@@ -813,7 +812,6 @@ y guarde la imagen"""
 
 # %% MovetoStart
     def movetoStart(self):
-
 #        self.inputImage = 1 * np.random.normal(
 #                    size=(self.numberofPixels, self.numberofPixels))
         t = self.moveTime
@@ -835,7 +833,7 @@ y guarde la imagen"""
         self.i = 0
         self.Z = self.Z #+ np.random.choice([1,-1])*0.01
 
-# %%--- Guardar iamgen
+# %%--- Guardar imagen
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
         if self.XYcheck.isChecked():
@@ -929,7 +927,8 @@ y guarde la imagen"""
                 "QPushButton { background-color: red; }"
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
-# --goto
+
+# ---go CM goto
     def goCM(self):
 
             self.zgotoLabel.setStyleSheet(" background-color: ")
@@ -1031,6 +1030,7 @@ y guarde la imagen"""
                 self.shuttersignal[i] = 5
 #        self.dotask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
+        self.checkShutters()
 
     def closeShutter(self, p):
         print("cierra shutter", p)
@@ -1040,7 +1040,21 @@ y guarde la imagen"""
                 self.shuttersignal[i] = 0
 #        self.dotask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
-#
+        self.checkShutters()
+
+    def checkShutters(self):
+        if self.shuttersignal[0]:
+            self.shutterredbutton.setChecked(True)
+        else:
+            self.shutterredbutton.setChecked(False)
+        if self.shuttersignal[1]:
+            self.shuttergreenbutton.setChecked(True)
+        else:
+            self.shuttergreenbutton.setChecked(False)
+        if self.shuttersignal[2]:
+            self.shutterotrobutton.setChecked(True)
+        else:
+            self.shutterotrobutton.setChecked(False)
 #        if self.shuttergreen.isChecked():
 #            print("shutter verde")
 #

@@ -34,7 +34,7 @@ apdrate = 10**5
 def makeRamp(start, end, samples):
     return np.linspace(start, end, num=samples)
 
-
+# %% Scan Widget
 class ScanWidget(QtGui.QFrame):
 
     def keyPressEvent(self, e):
@@ -163,7 +163,9 @@ class ScanWidget(QtGui.QFrame):
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
 
-
+        self.CMcheck = QtGui.QCheckBox('calcula CM')
+        self.CMcheck.setChecked(False)
+        self.CMcheck.clicked.connect(self.CMmeasure)
     # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
 
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
@@ -233,6 +235,7 @@ class ScanWidget(QtGui.QFrame):
 #                np.around(float(initialPosition[2]), 2)))
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: red; ")
 
         self.CMxLabel = QtGui.QLabel('CM X')
         self.CMxValue = QtGui.QLabel('NaN')
@@ -320,7 +323,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.APDgreen, 0, 2)
         subgrid.addWidget(self.plotLivebutton, 6, 2)
 
-# - POSITIONERRRRR-------------------------------
+        subgrid.addWidget(self.CMcheck, 8, 2)
+# --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
         grid.addWidget(self.positioner, 1, 0)
@@ -428,7 +432,7 @@ class ScanWidget(QtGui.QFrame):
 #        dockArea.addDock(posDock, 'above', scanDock)
 #        layout.addWidget(dockArea, 2, 3)
 
-#- fin POSITIONEERRRRRR---------------------------
+#--- fin POSITIONEERRRRRR---------------------------
 
         self.paramWidget.setFixedHeight(400)
 
@@ -495,6 +499,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
 
+# %% paramChanged
     def paramChanged(self):
 
         self.scanRange = float(self.scanRangeEdit.text())
@@ -532,12 +537,12 @@ class ScanWidget(QtGui.QFrame):
         if self.scanMode.currentText() == "ramp scan":
             self.rampas()
 
-        self.inputImage = 1 * np.random.normal(size=size)
+#        self.inputImage = 1 * np.random.normal(size=size)
         self.blankImage = np.zeros(size)
         self.image = self.blankImage
         self.i = 0
 
-# cosas para el save image
+# %% cosas para el save image
     def saveimage(self):
         """ la idea es que escanee la zona deseada (desde cero)
 y guarde la imagen"""
@@ -565,12 +570,14 @@ y guarde la imagen"""
             print("step es 1", self.step==1)
         self.paramChanged()
 
+# %% Liveview
+
 # This is the function triggered by pressing the liveview button
     def liveview(self):
         """ Image live view when not recording"""
         if self.liveviewButton.isChecked():
             self.save = False
-#            self.channelsOpen()
+            self.openShutter("red")
             self.liveviewStart()
 
         else:
@@ -578,11 +585,14 @@ y guarde la imagen"""
 
     def liveviewStart(self):
         if self.scanMode.currentText() in ["step scan", "ramp scan"]:
-            self.openShutter("red")
+            #chanelopen step, channelopen rampa
             self.viewtimer.start(self.linetime)
         else:
             print("elegri step o ramp scan")
             self.liveviewButton.setChecked(False)
+#        if self.detectMode.currentText() == "PMT":
+#            # channelopen PMT
+#            print("PMT")
 
     def liveviewStop(self):
         if self.save:
@@ -636,7 +646,8 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
                 self.guardarimagen()
-                self.CMmeasure()
+                if self.CMcheck.isChecked():
+                  self.CMmeasure()
 
                 self.saveimageButton.setText('Fin')  # ni se ve
                 self.liveviewStop()
@@ -647,11 +658,15 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
 #                self.i = 0
-                self.CMmeasure()
+
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
+                if self.CMcheck.isChecked():
+                  self.CMmeasure()
                 self.movetoStart()
+                self.viewtimer.start(self.linetime)
 
+# %% Barridos
     def barridos(self):
         N=self.numberofPixels
         a = float(self.a.text())  # self.main.a  # 
@@ -686,10 +701,10 @@ y guarde la imagen"""
 #            time.sleep(self.pixelTime*self.numberofPixels*2)
     #        print("linea")
 
+# %% MovetoStart
     def movetoStart(self):
-
-        self.inputImage = 1 * np.random.normal(
-                    size=(self.numberofPixels, self.numberofPixels))
+#        self.inputImage = 1 * np.random.normal(
+#                    size=(self.numberofPixels, self.numberofPixels))
         t = self.moveTime
         N = self.moveSamples
         tic = ptime.time()
@@ -709,7 +724,7 @@ y guarde la imagen"""
         self.i = 0
         self.Z = self.Z# + np.random.choice([1,-1])*0.01
 
-#---- Guardarimagen ---SAVE
+# %%--- Guardar imagen SAVE
     def guardarimagen(self):
         print("\n Guardo la imagen\n")
         if self.XYcheck.isChecked():
@@ -726,7 +741,7 @@ y guarde la imagen"""
 #        ####name = str(self.edit_save.text()) # solo si quiero elegir el nombre ( pero no quiero)
 #        filepath = self.main.file_path
 #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-        os.startfile(self.file_path)
+
 #        self.folderEdit = QtGui.QLineEdit(self.initialDir)
 #        openFolderButton = QtGui.QPushButton('Open')
 #        openFolderButton.clicked.connect(self.openFolder)
@@ -738,7 +753,7 @@ y guarde la imagen"""
 #        self.formatBox.addItem('hdf5')
 # --------------------------------------------------------------------------
 
-# ---Move----------------------------------------
+# %%---Move----------------------------------------
 
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
@@ -804,15 +819,18 @@ y guarde la imagen"""
                 "QPushButton { background-color: red; }"
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
-# --goto
+
+# ---goCM goto
     def goCM(self):
 
             self.zgotoLabel.setStyleSheet(" background-color: ")
             print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
                   float(self.zLabel.text()))
 
-            self.moveto(float(self.CMxValue.text()),
-                        float(self.CMyValue.text()),
+            startX = float(self.xLabel.text())
+            startY = float(self.yLabel.text())
+            self.moveto((float(self.CMxValue.text()) + startX) - (self.scanRange/2),
+                        (float(self.CMyValue.text()) + startY) - (self.scanRange/2),
                         float(self.zLabel.text()))
 
             print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),
@@ -848,7 +866,7 @@ y guarde la imagen"""
                 self.zDownButton.setEnabled(True)
 
             self.paramChanged()
-
+# --- moveto
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
         t = self.moveTime * 3
@@ -877,7 +895,7 @@ y guarde la imagen"""
         self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
 
-# --- Shutter time --------------------------
+# %%--- Shutter time --------------------------
 
     def shutterred(self):
         if self.shutterredbutton.isChecked():
@@ -903,6 +921,7 @@ y guarde la imagen"""
                 self.shuttersignal[i] = 5
 #        self.dotask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
+        self.checkShutters()
 
     def closeShutter(self, p):
         print("cierra shutter", p)
@@ -912,7 +931,21 @@ y guarde la imagen"""
                 self.shuttersignal[i] = 0
 #        self.dotask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
-#
+        self.checkShutters()
+
+    def checkShutters(self):
+        if self.shuttersignal[0]:
+            self.shutterredbutton.setChecked(True)
+        else:
+            self.shutterredbutton.setChecked(False)
+        if self.shuttersignal[1]:
+            self.shuttergreenbutton.setChecked(True)
+        else:
+            self.shuttergreenbutton.setChecked(False)
+        if self.shuttersignal[2]:
+            self.shutterotrobutton.setChecked(True)
+        else:
+            self.shutterotrobutton.setChecked(False)
 #        if self.shuttergreen.isChecked():
 #            print("shutter verde")
 #
@@ -920,7 +953,7 @@ y guarde la imagen"""
 #            print("shutter otro")
 # Es una idea de lo que tendria que hacer la funcion
 
-# --- rampas y eso ---
+# %% rampas y eso ---
     def rampas(self):
         N=self.numberofPixels
         a = float(self.a.text())
@@ -1010,31 +1043,7 @@ y guarde la imagen"""
 #        self.cwidget.setLayout(layout)
 #        layout.addWidget(dockArea, 0, 0, 4, 1)
 
-    def liveviewKey(self):
-        '''Triggered by the liveview shortcut.'''
-        
-        if self.liveviewButton.isChecked():
-            self.liveviewStop()
-            self.liveviewButton.setChecked(False)
-        
-        else:
-            self.liveviewButton.setChecked(True)
-            self.liveviewStart()
-
-    def selectFolder(self):
-
-        root = tk.Tk()
-        root.withdraw()
-        
-        self.file_path = filedialog.askdirectory()
-        print(self.file_path,2)
-        self.NameDirValue.setText(self.file_path)
-
-    def openFolder(self):
-        os.startfile(self.file_path)
-
-
-# --- ploting in live
+# %%--- ploting in live
     def plotLive(self):
         texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
@@ -1062,8 +1071,30 @@ y guarde la imagen"""
             pass
         plt.show()
 
+    def liveviewKey(self):
+        '''Triggered by the liveview shortcut.'''
+        
+        if self.liveviewButton.isChecked():
+            self.liveviewStop()
+            self.liveviewButton.setChecked(False)
+        
+        else:
+            self.liveviewButton.setChecked(True)
+            self.liveviewStart()
+# %% buttos to open and select folder
+    def selectFolder(self):
 
-#---- CM measure ---
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.NameDirValue.setText(self.file_path)
+
+    def openFolder(self):
+        os.startfile(self.file_path)
+
+# %%--- CM measure
     def CMmeasure(self):
 
         from scipy import ndimage
