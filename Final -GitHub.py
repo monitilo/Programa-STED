@@ -1481,13 +1481,13 @@ class ScanWidget(QtGui.QFrame):
         print("\n Image saved\n")
 
     def selectFolder(self):
-#                           Obsoleto!!!!!!!!!!!!!!!!!!!!!!
+
         root = tk.Tk()
         root.withdraw()
-        
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
         self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ")
 
     def openFolder(self):
         os.startfile(self.file_path)
