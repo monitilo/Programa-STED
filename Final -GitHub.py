@@ -353,9 +353,9 @@ class ScanWidget(QtGui.QFrame):
         grid.addWidget(self.gotoWidget, 1, 1)
         layout2 = QtGui.QGridLayout()
         self.gotoWidget.setLayout(layout2)
-        layout2.addWidget(QtGui.QLabel("||x"), 1, 7)
-        layout2.addWidget(QtGui.QLabel("||y"), 2, 7)
-        layout2.addWidget(QtGui.QLabel("||z"), 3, 7)
+        layout2.addWidget(QtGui.QLabel("X"), 1, 7)
+        layout2.addWidget(QtGui.QLabel("Y"), 2, 7)
+        layout2.addWidget(QtGui.QLabel("Z"), 3, 7)
         self.xgotoLabel = QtGui.QLineEdit("0")
         self.ygotoLabel = QtGui.QLineEdit("0")
         self.zgotoLabel = QtGui.QLineEdit("0")
@@ -610,9 +610,11 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0)# + 5* np.random.rand(len(self.backcounts))
 
-    # The plotting method is slow (2-3 ms each), so I´m plotting in packages
+    # The plotting method is slow (2-3 ms each, for 500x500 pix)
+    #, don't know how to do it fast
+    #, so I´m plotting in packages. It's looks like realtime
         if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
-            multi5 = np.arange(0, self.numberofPixels, 20)  # looks like realtime
+            multi5 = np.arange(0, self.numberofPixels, 20)
         elif self.numberofPixels >= 200:
             multi5 = np.arange(0, self.numberofPixels, 10)
         else:
