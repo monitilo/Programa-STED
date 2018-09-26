@@ -115,6 +115,9 @@ class ScanWidget(QtGui.QFrame):
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
 
+        self.CMcheck = QtGui.QCheckBox('calcula CM')
+        self.CMcheck.setChecked(False)
+        self.CMcheck.clicked.connect(self.CMmeasure)
     # save image Button
 
         self.saveimageButton = QtGui.QPushButton('Scan and Save')
@@ -135,6 +138,7 @@ class ScanWidget(QtGui.QFrame):
         self.file_path = os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: red; ")
         self.OpenButton = QtGui.QPushButton('open dir')
         self.OpenButton.clicked.connect(self.openFolder)
 
@@ -478,7 +482,7 @@ class ScanWidget(QtGui.QFrame):
 
         elif self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
             self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
-            self.sampleRate = 1 / self.pixelTime  # self.apdrate
+            self.sampleRate = np.round(1 / self.pixelTime,9)  # self.apdrate
             print("los Nsamples = Npix y 1/tpix la frecuencia\n",
                   self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
 
@@ -489,15 +493,17 @@ class ScanWidget(QtGui.QFrame):
                   self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
 
 
-        print(self.linetime, "linetime\n")
+#        print(self.linetime, "linetime\n")
 
         if self.scanMode.currentText() == "step scan":
             self.Steps()
+            print(self.linetime, "linetime\n")
         else:
 #        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
             self.Ramps()
             self.reallinetime = len(self.onerampx) * self.pixelTime  # seconds
-            print(self.reallinetime, "reallinetime")
+            print(self.linetime, "linetime")
+            print(self.reallinetime, "reallinetime\n")
 
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
         self.image = self.blankImage
@@ -633,7 +639,7 @@ class ScanWidget(QtGui.QFrame):
                   self.saveFrame()  # para guardar siempre (Alan idea)
               print(ptime.time()-self.tic, "Tiempo imagen completa.")
               self.viewtimer.stop()
-              self.dotask.stop()
+              self.triggertask.stop()
               self.aotask.stop()
               self.citask.stop()
               self.steptimer.stop()
@@ -733,7 +739,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(1+self.pixelsoffL-1))-1]
 
-        for i in range(1, self.numberofPixels-1):
+        for i in range(1, self.numberofPixels):
             ei = ((self.pixelsoffL+i) * Napd)-1
             ef = ((self.pixelsoffL+i+1) * Napd)-1
             self.counts[i] = self.APD[ef] - self.APD[ei]
@@ -747,7 +753,7 @@ class ScanWidget(QtGui.QFrame):
             evf = (-(self.pixelsoffR + self.pixelsoffB) + (i+1)) * Napd
             self.backcounts[i] = self.APD[evf] - self.APD[evi]
 
-# puede fallar en la primer y/o ultima fila
+##### puede fallar en la primer y/o ultima fila. YA NO FALLA, ANDA TODO bien
 
 # %%-------Aceleracion----------------------------------------------
     def acceleration(self):
@@ -804,14 +810,14 @@ class ScanWidget(QtGui.QFrame):
             if xchange[-1] < startX:
                 q = np.where(xchange<=startX)[0][0]
                 xchange = xchange[:q]
-                print("xchange < 0")
+                print("! xchange < 0")
                 self.xback = np.linspace(0,0,4)  #e lo creo para que no tire error nomas
 
             else:
                 q = np.where(xchange <= xlow)[0][0]
                 xchange = xchange[:q]
                 self.xback = np.linspace(xlow, 0, Nvuelta) + startX
-                print("xchange < xlow")
+                print("! xchange < xlow")
             xstops = np.linspace(0,0,2)
         else:
 
@@ -819,7 +825,7 @@ class ScanWidget(QtGui.QFrame):
 
             xlowpuntos = int(np.ceil(tlow * rate))
             tiempolow=np.linspace(0,tlow,xlowpuntos)
-            print("without cut the ramps")
+            print("acceleration ok")
             xstops=np.zeros(xlowpuntos)
             for i in range(xlowpuntos):
                 xstops[i] = 0.5*(av)*(tiempolow[i]**2) + startX
@@ -848,8 +854,8 @@ class ScanWidget(QtGui.QFrame):
         tofftotal = toffL+toffM+toffB+toffR
         self.pixelsofftotal = int(np.round((tofftotal)*self.apdrate)/self.Napd)
 #        self.pixelsoffini = int(np.ceil(xipuntos / (self.pixelTime*self.sampleRate)))
-        print(self.pixelsoffL, self.pixelsoffM,
-              self.pixelsoffB, self.pixelsoffR, "pixelsoff´s")
+#        print(self.pixelsoffL, self.pixelsoffM,
+#              self.pixelsoffB, self.pixelsoffR, "pixelsoff´s")
 
 # %% --- ChannelsOpen (todos)
     def channelsOpen(self):
@@ -1152,6 +1158,9 @@ class ScanWidget(QtGui.QFrame):
 # %% ---Move----------------------------------------
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
+#        try 
+#            self.viewtimer.stop()  # imput in ms
+
         self.channelsOpenStep()  # cambiar a movimiento por puntos
 #        t = self.moveTime
         N = self.moveSamples
@@ -1198,6 +1207,7 @@ class ScanWidget(QtGui.QFrame):
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
 
         self.paramChanged()
+        self.done()
         if self.dy != 0:
             if self.scanMode.currentText() == "step scan":
                 self.channelsOpenStep()
@@ -1293,7 +1303,7 @@ class ScanWidget(QtGui.QFrame):
                                    rampz[i] / convFactors['z']], auto_start=True)
                 time.sleep(t / N)
 
-            print("se mueve todo en", np.round(ptime.time()-tuc, 4), "segs")
+            print("se mueve todo en", np.round(ptime.time()-tuc, 4), "segs\n")
 
             self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
             self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
@@ -1537,7 +1547,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.viewtimer.start((self.reallinetime)*10**3)
 
 #        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
-        print(((toc-tic)+self.reallinetime)*10**3)
+#        print(((toc-tic)+self.reallinetime)*10**3)
 
     def mapa(self):
         Z = self.image
@@ -1558,7 +1568,7 @@ class ScanWidget(QtGui.QFrame):
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
-        self.img.setImage(mapa, autoLevels=False)
+        self.img.setImage((np.array(mapa)), autoLevels=False)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
 

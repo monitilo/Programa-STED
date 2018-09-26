@@ -230,7 +230,6 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setText(filepath)
         self.NameDirValue.setStyleSheet(" background-color: red; ")
 
-
     # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
