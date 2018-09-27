@@ -142,7 +142,7 @@ class ScanWidget(QtGui.QFrame):
         self.OpenButton = QtGui.QPushButton('open dir')
         self.OpenButton.clicked.connect(self.openFolder)
 
-    # Defino el tipo de Scan que quiero
+    # Select the wanted scan mode
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
         self.scanMode.addItems(self.scanModes)
@@ -177,6 +177,10 @@ class ScanWidget(QtGui.QFrame):
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
 
+    # Select the detector
+        self.detectMode = QtGui.QComboBox()
+        self.detectModes = ['APD red', 'APD green', 'PMT']
+        self.detectMode.addItems(self.detectModes)
 
     # Scanning parameters
 
@@ -221,6 +225,9 @@ class ScanWidget(QtGui.QFrame):
 
         self.scanMode.activated.connect(self.paramChanged)
         self.scanMode.activated.connect(self.done)
+
+        self.detectMode.activated.connect(self.paramChanged)
+        self.detectMode.activated.connect(self.done)
 
         self.paramWidget = QtGui.QWidget()
 
@@ -269,8 +276,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.YZcheck, 16, 2)
 
         subgrid.addWidget(self.shutterredbutton, 1, 1)
-        subgrid.addWidget(self.APDred, 0, 1)
-        subgrid.addWidget(self.APDgreen, 0, 2)
+#        subgrid.addWidget(self.APDred, 0, 1)
+#        subgrid.addWidget(self.APDgreen, 0, 2)
+        subgrid.addWidget(self.detectMode, 0, 1)
 
         subgrid.addWidget(self.scanMode, 12, 1)
         subgrid.addWidget(self.saveimageButton, 15, 1)
@@ -434,10 +442,10 @@ class ScanWidget(QtGui.QFrame):
 #                               translateSnap=True)
 
         self.viewtimer = QtCore.QTimer()
-        self.viewtimer.timeout.connect(self.updateView)
+        self.viewtimer.timeout.connect(self.APDupdateView)
 
-#        self.fasttimer = QtCore.QTimer()
-#        self.fasttimer.timeout.connect(self.fastupdateView)
+        self.PMTtimer = QtCore.QTimer()
+        self.PMTtimer.timeout.connect(self.PMTupdate)
 
         self.steptimer = QtCore.QTimer()
         self.steptimer.timeout.connect(self.stepScan)
@@ -445,9 +453,11 @@ class ScanWidget(QtGui.QFrame):
 # %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
-        if self.APDred.isChecked():
+        if self.detectMode .currentText() == 'APD red':
+#        if self.APDred.isChecked():
             self.COchan = 0
-        elif self.APDgreen.isChecked():
+        elif self.detectMode .currentText() == 'APD green':
+#        elif self.APDgreen.isChecked():
             self.COchan = 1
 
         self.scanRange = float(self.scanRangeEdit.text())
@@ -512,8 +522,10 @@ class ScanWidget(QtGui.QFrame):
 
       # numberofpixels is the relevant part of the total ramp.
         self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
-
         self.APDstep = np.zeros((self.Napd+1))
+
+        self.PMT = np.zeros(self.numberofPixels + self.pixelsofftotal)
+
 # %% cosas para el save image
     def saveimage(self):
         """ la idea es que escanee la zona deseada (desde cero) una sola vez,
@@ -552,9 +564,18 @@ class ScanWidget(QtGui.QFrame):
         else:
 #        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
             self.channelsOpenRamp()
-            self.rampScan()
+            if self.detectMode.currentText() == "APD":
+                self.rampScanAPD()
+            elif self.detectMode.currentText() == "PMT":
+                self.rampScanPMT()
 
-    def rampScan(self):
+    def rampScanPMT(self):
+        self.MovetoStart()
+        self.startingRamps()
+        self.tic = ptime.time()
+        self.PMTtimer.start(self.reallinetime*10**3)  # imput in ms
+
+    def rampScanAPD(self):
         self.MovetoStart()
         self.startingRamps()
         self.tic = ptime.time()
@@ -593,8 +614,8 @@ class ScanWidget(QtGui.QFrame):
     # Starting the trigger. It have a controllable 'delay'
         self.triggertask.write(self.trigger, auto_start=True)
 
-# %% runing Ramp loop
-    def updateView(self):
+# %% runing Ramp loop (APD)
+    def APDupdateView(self):
         paso = 1
     # The counter reads this numbers of points when the trigger starts
         self.APD[:] = self.citask.read(
@@ -644,19 +665,71 @@ class ScanWidget(QtGui.QFrame):
               self.triggertask.stop()
               self.aotask.stop()
               self.citask.stop()
-              self.steptimer.stop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
               self.liveviewStart()
 
 #    def fastupdateView(self):
 #        
+# %% runing Ramp loop PMT()
+    def PMTupdate(self):
+        paso = 1
+    # The counter reads this numbers of points when the trigger starts
+        self.PMT[:] = self.PMTtask.read(self.numberofPixels + self.pixelsofftotal)
+        self.PMTtask.wait_until_done()
+        # have to analize the signal from the counter
+
+        pixelsEnd = self.numberofPixels + self.pixelsoffL
+        self.image[:, -1-self.dy] = np.flip(self.PMT[self.pixelsoffL:pixelsEnd],0)
+
+        if self.scanMode.currentText() == "slalom":
+            self.image[:, -2-self.dy] = (self.PMT[pixelsEnd:-self.pixelsoffR])
+            paso = 2
+        else:
+            self.backimage[:, -1-self.dy] = np.flip(self.PMT[pixelsEnd:-self.pixelsoffR],0)
+
+    # The plotting method is slow (2-3 ms each, for 500x500 pix)
+    #, don't know how to do it fast
+    #, so I´m plotting in packages. It's looks like realtime
+        if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
+            multi5 = np.arange(0, self.numberofPixels, 20)
+        elif self.numberofPixels >= 101:
+            multi5 = np.arange(0, self.numberofPixels, 10)
+        else:
+            multi5 = np.arange(0, self.numberofPixels, 2)
+
+        if self.dy in multi5:
+            if self.graphcheck.isChecked():
+                self.img.setImage(self.backimage, autoLevels=True)
+            else:
+                self.img.setImage(self.image, autoLevels=True)
+
+        if self.dy < self.numberofPixels-paso:
+            self.dy = self.dy + paso
+        else:
+            if self.save:
+                self.saveFrame()
+                self.saveimageButton.setText('End')
+                if self.CMcheck.isChecked():
+                    self.CMmeasure()
+                self.liveviewStop()
+                self.mapa()
+            else:
+              if self.Alancheck.isChecked():
+                  self.saveFrame()  # para guardar siempre (Alan idea)
+              print(ptime.time()-self.tic, "Tiempo imagen completa.")
+              self.viewtimer.stop()
+              self.triggertask.stop()
+              self.aotask.stop()
+              self.PMTtask.stop()
+              if self.CMcheck.isChecked():
+                  self.CMmeasure()
+              self.liveviewStart()
 
 # %% --- Creating Ramps  ----
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
-
 
         self.acceleration()
         self.backcounts = np.zeros((self.pixelsoffB))
@@ -954,7 +1027,7 @@ class ScanWidget(QtGui.QFrame):
 
     def PMTOpen(self):
         if self.APDson:
-            print("ojo que quedo abierto el APD")
+            print("ojo que sigue preparado el APD")
         if self.PMTon:
             print("Ya esta el PMT")  # to dont open again 
         else:

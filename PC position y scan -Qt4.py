@@ -141,7 +141,12 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['step scan', 'ramp scan', 'otro scan']
         self.scanMode.addItems(self.scanModes)
-        self.scanMode.currentIndexChanged.connect(self.paramChanged)
+#        self.scanMode.currentIndexChanged.connect(self.paramChanged)
+        self.scanMode.activated.connect(self.paramChanged)  # funcionan las dos
+
+#        self.detectMode = QtGui.QComboBox()
+#        self.detectModes = ['APD red', 'APD green', 'PMT']
+#        self.detectMode.addItems(self.detectModes)
 
         # no lo quiero cuadrado
 
