@@ -290,7 +290,7 @@ class ScanWidget(QtGui.QFrame):
 
 # ---  Positioner part ---------------------------------
         # Axes control
-        self.xLabel = QtGui.QLabel('-5.0')
+        self.xLabel = QtGui.QLabel('0.0')
         self.xLabel.setTextFormat(QtCore.Qt.RichText)
         self.xname =  QtGui.QLabel("<strong>x =")
         self.xname.setTextFormat(QtCore.Qt.RichText)
@@ -301,7 +301,7 @@ class ScanWidget(QtGui.QFrame):
         self.xStepEdit = QtGui.QLineEdit("1")
         self.xStepUnit = QtGui.QLabel(" µm")
 
-        self.yLabel = QtGui.QLabel('-5.0')
+        self.yLabel = QtGui.QLabel('0.0')
         self.yLabel.setTextFormat(QtCore.Qt.RichText)
         self.yname =  QtGui.QLabel("<strong>y =")
         self.yname.setTextFormat(QtCore.Qt.RichText)
@@ -564,10 +564,10 @@ class ScanWidget(QtGui.QFrame):
         else:
 #        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
             self.channelsOpenRamp()
-            if self.detectMode.currentText() == "APD":
-                self.rampScanAPD()
-            elif self.detectMode.currentText() == "PMT":
+            if self.detectMode.currentText() == "PMT":
                 self.rampScanPMT()
+            else:
+                self.rampScanAPD()
 
     def rampScanPMT(self):
         self.MovetoStart()
@@ -595,6 +595,7 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewButton.setChecked(False)
         self.viewtimer.stop()
         self.steptimer.stop()
+        self.PMTtimer.stop()
         self.closeShutter("red")
         self.done()
 
@@ -612,7 +613,8 @@ class ScanWidget(QtGui.QFrame):
 #        self.inStart = False
         print("ya arranca")
     # Starting the trigger. It have a controllable 'delay'
-        self.triggertask.write(self.trigger, auto_start=True)
+        if self.detectMode.currentText() != "PMT":
+            self.triggertask.write(self.trigger, auto_start=True)
 
 # %% runing Ramp loop (APD)
     def APDupdateView(self):
@@ -676,17 +678,17 @@ class ScanWidget(QtGui.QFrame):
         paso = 1
     # The counter reads this numbers of points when the trigger starts
         self.PMT[:] = self.PMTtask.read(self.numberofPixels + self.pixelsofftotal)
-        self.PMTtask.wait_until_done()
+#        self.PMTtask.wait_until_done()
         # have to analize the signal from the counter
 
-        pixelsEnd = self.numberofPixels + self.pixelsoffL
-        self.image[:, -1-self.dy] = np.flip(self.PMT[self.pixelsoffL:pixelsEnd],0)
+        pixelsEnd = self.numberofPixels + len(self.xini[:-1])
+        self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]
 
         if self.scanMode.currentText() == "slalom":
-            self.image[:, -2-self.dy] = (self.PMT[pixelsEnd:-self.pixelsoffR])
+            self.image[:, -2-self.dy] = (self.PMT[pixelsEnd+len(self.xchange[1:-1]) :-len(self.xstops[1:])])
             paso = 2
         else:
-            self.backimage[:, -1-self.dy] = np.flip(self.PMT[pixelsEnd:-self.pixelsoffR],0)
+            self.backimage[:, -1-self.dy] = np.flip(self.PMT[pixelsEnd+len(self.xchange[1:-1]) :-len(self.xstops[1:])],0)
 
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
@@ -719,7 +721,6 @@ class ScanWidget(QtGui.QFrame):
                   self.saveFrame()  # para guardar siempre (Alan idea)
               print(ptime.time()-self.tic, "Tiempo imagen completa.")
               self.viewtimer.stop()
-              self.triggertask.stop()
               self.aotask.stop()
               self.PMTtask.stop()
               if self.CMcheck.isChecked():
@@ -947,8 +948,11 @@ class ScanWidget(QtGui.QFrame):
             self.done()
         else:
             self.PiezoOpen()
-            self.APDOpen()
-            self.TriggerOpen()
+            if self.detectMode.currentText() == "PMT":
+                self.PMTOpen()
+            else:
+                self.APDOpen()
+                self.TriggerOpen()
             self.channelramp = True
 
     def channelsOpenStep(self):
@@ -1032,11 +1036,11 @@ class ScanWidget(QtGui.QFrame):
             print("Ya esta el PMT")  # to dont open again 
         else:
             self.PMTon = True
-            self.PMTtask = nidaqmx.Task('aotask')
+            self.PMTtask = nidaqmx.Task('PMTtask')
             self.PMTtask.ai_channels.add_ai_voltage_chan(
                 physical_channel='Dev1/ai1',
                 name_to_assign_to_channel='chan_PMT')
-            self.PMTtask1.timing.cfg_samp_clk_timing(
+            self.PMTtask.timing.cfg_samp_clk_timing(
                     rate=self.sampleRate,
                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
                     samps_per_chan=len(self.totalrampx))
@@ -1280,8 +1284,8 @@ class ScanWidget(QtGui.QFrame):
         self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
         self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-
         self.paramChanged()
+        
         self.done()
         if self.dy != 0:
             if self.scanMode.currentText() == "step scan":
@@ -1383,6 +1387,7 @@ class ScanWidget(QtGui.QFrame):
             self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
             self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
             self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+            self.paramChanged()
         else:
             print("¡YA ESTOY EN ESAS COORDENADAS!")
 
@@ -1643,7 +1648,7 @@ class ScanWidget(QtGui.QFrame):
                 Smapa[i] = 3
         mapa = np.split(Smapa,N)
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
-        self.img.setImage((np.array(mapa)), autoLevels=False)
+        self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
 
