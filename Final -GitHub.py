@@ -155,7 +155,8 @@ class ScanWidget(QtGui.QFrame):
         self.channelramp = False #canales
         self.PMTon = False
         self.APDson = False
-        self.triggeron = False # separo los canales en partes
+        self.triggerAPD = False # separo los canales en partes
+        self.triggerPMT = False
         self.channelsteps = False
         self.piezoramp = False
         self.piezosteps = False
@@ -514,6 +515,7 @@ class ScanWidget(QtGui.QFrame):
             self.reallinetime = len(self.onerampx) * self.pixelTime  # seconds
             print(self.linetime, "linetime")
             print(self.reallinetime, "reallinetime\n")
+            self.PMT = np.zeros(len(self.onerampx))
 
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
         self.image = self.blankImage
@@ -524,7 +526,8 @@ class ScanWidget(QtGui.QFrame):
         self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
         self.APDstep = np.zeros((self.Napd+1))
 
-        self.PMT = np.zeros(self.numberofPixels + self.pixelsofftotal)
+
+#        self.PMT = np.zeros((self.numberofPixels + self.pixelsofftotal, self.numberofPixels))
 
 # %% cosas para el save image
     def saveimage(self):
@@ -609,12 +612,10 @@ class ScanWidget(QtGui.QFrame):
             [self.totalrampx / convFactors['x'],
              self.totalrampy / convFactors['y'],
              self.totalrampz / convFactors['z']]), auto_start=True)
-
 #        self.inStart = False
         print("ya arranca")
     # Starting the trigger. It have a controllable 'delay'
-        if self.detectMode.currentText() != "PMT":
-            self.triggertask.write(self.trigger, auto_start=True)
+        self.triggertask.write(self.trigger, auto_start=True)
 
 # %% runing Ramp loop (APD)
     def APDupdateView(self):
@@ -673,22 +674,22 @@ class ScanWidget(QtGui.QFrame):
 
 #    def fastupdateView(self):
 #        
-# %% runing Ramp loop PMT()
+# %% runing Ramp loop (PMT)
     def PMTupdate(self):
         paso = 1
     # The counter reads this numbers of points when the trigger starts
-        self.PMT[:] = self.PMTtask.read(self.numberofPixels + self.pixelsofftotal)
-#        self.PMTtask.wait_until_done()
-        # have to analize the signal from the counter
+        self.PMT[:] = self.PMTtask.read(len(self.onerampx))
+#        self.PMTtask.wait_until_done()  # no va porque quiere medirlo TODO
 
-        pixelsEnd = self.numberofPixels + len(self.xini[:-1])
+    # limpio la parte acelerada.
+        pixelsEnd = len(self.xini[:-1]) + self.numberofPixels
         self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]
-
+        pixelsIniB = pixelsEnd+len(self.xchange[1:-1])
         if self.scanMode.currentText() == "slalom":
-            self.image[:, -2-self.dy] = (self.PMT[pixelsEnd+len(self.xchange[1:-1]) :-len(self.xstops[1:])])
+            self.image[:, -2-self.dy] = (self.PMT[pixelsIniB : -len(self.xstops[1:])])
             paso = 2
         else:
-            self.backimage[:, -1-self.dy] = np.flip(self.PMT[pixelsEnd+len(self.xchange[1:-1]) :-len(self.xstops[1:])],0)
+            self.backimage[:, -1-self.dy] = np.flip(self.PMT[pixelsIniB : -len(self.xstops[1:])],0)
 
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
@@ -720,7 +721,9 @@ class ScanWidget(QtGui.QFrame):
               if self.Alancheck.isChecked():
                   self.saveFrame()  # para guardar siempre (Alan idea)
               print(ptime.time()-self.tic, "Tiempo imagen completa.")
-              self.viewtimer.stop()
+              self.PMTtimer.stop()
+#              self.done()
+              self.triggertask.stop()
               self.aotask.stop()
               self.PMTtask.stop()
               if self.CMcheck.isChecked():
@@ -944,35 +947,37 @@ class ScanWidget(QtGui.QFrame):
         """ Open and Config of all the channels for use"""
         if self.channelramp:
             print("ya esta abierto ramp")
-        elif self.channelsteps:
-            self.done()
         else:
-            self.PiezoOpen()
+            if self.channelsteps:
+                self.done()
+            self.PiezoOpenRamp()
             if self.detectMode.currentText() == "PMT":
                 self.PMTOpen()
+                self.TriggerOpenPMT()
             else:
                 self.APDOpen()
-                self.TriggerOpen()
+                self.TriggerOpenAPD()
             self.channelramp = True
 
     def channelsOpenStep(self):
         """ Open and Config of all the channels for use"""
-        if self.channelramp:
-            self.done()
-        elif self.channelsteps:
+        if self.channelsteps:
             print("ya esta abierto step")
         else:
+            if self.channelramp:
+                self.done()
             self.PiezoOpenStep()
             self.APDOpen()
             self.channelsteps = True
 
-    def PiezoOpen(self):
-        if self.piezosteps:
-            self.done()
-            print("cierro para abrir de nuevo")
+    def PiezoOpenRamp(self):
         if self.piezoramp:
             print("Ya estaban abiertos los canales rampa")  # to dont open again 
         else:
+            if self.piezosteps:
+                self.aotask.stop()
+                self.aotask.close()
+                print("cierro auque no es necesario")
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
@@ -983,20 +988,22 @@ class ScanWidget(QtGui.QFrame):
                     min_val=minVolt[self.activeChannels[n]],
                     max_val=maxVolt[self.activeChannels[n]])
 
-                self.piezoramp = True
-                self.aotask.timing.cfg_samp_clk_timing(
-                    rate=self.sampleRate,
-    #                source=r'100kHzTimeBase',
-                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                    samps_per_chan=len(self.totalrampx))
+            self.piezoramp = True
+            self.aotask.timing.cfg_samp_clk_timing(
+                rate=self.sampleRate,
+#                source=r'100kHzTimeBase',
+                sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                samps_per_chan=len(self.totalrampx))
 
     def PiezoOpenStep(self):
-        if self.piezoramp:
-            self.done()
-            print("cierro para abrir de nuevo")
         if self.piezosteps:
             print("Ya estaban abiertos los canales steps")  # to dont open again 
         else:
+            if self.piezoramp:
+                self.aotask.stop()
+                self.aotask.close()
+                print("cierro para abrir de nuevo")
+#           else:
             self.piezosteps = True
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
@@ -1012,6 +1019,8 @@ class ScanWidget(QtGui.QFrame):
         if self.APDson:  # esto puede fallar cuando cambio de ramp a step
             print("Ya esta algun APD")  # to dont open again 
         else:
+            if self.PMTon:
+                print("ojo que sigue preparado el PMT (no hago nada al respecto)")
             self.APDson = True
             self.citask = nidaqmx.Task('citask')
 
@@ -1030,11 +1039,11 @@ class ScanWidget(QtGui.QFrame):
               samps_per_chan = totalcinumber)
 
     def PMTOpen(self):
-        if self.APDson:
-            print("ojo que sigue preparado el APD")
         if self.PMTon:
             print("Ya esta el PMT")  # to dont open again 
         else:
+            if self.APDson:
+                print("ojo que sigue preparado el APD (no hago nada al respecto)")
             self.PMTon = True
             self.PMTtask = nidaqmx.Task('PMTtask')
             self.PMTtask.ai_channels.add_ai_voltage_chan(
@@ -1045,13 +1054,51 @@ class ScanWidget(QtGui.QFrame):
                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
                     samps_per_chan=len(self.totalrampx))
 
-
-    def TriggerOpen(self):
-        if self.triggeron:
-            print("Ya esta el trigger")  # to dont open again 
+    def TriggerOpenPMT(self):
+        if self.triggerPMT:
+            print("Ya esta el trigger PMT")  # to dont open again 
         else:
-            self.triggeron = True
-            self.triggertask = nidaqmx.Task('dotask')
+            if self.triggerAPD:
+                self.triggertask.stop()
+                self.triggertask.close()
+            self.triggerPMT = True
+            self.triggertask = nidaqmx.Task('TriggerPMTtask')
+        # Create the signal trigger
+            triggerrate = self.sampleRate
+            num = int(self.triggerEdit.text())
+            trigger2 = [True, True, False]  # np.tile(trigger, self.numberofPixels)
+            self.trigger = np.concatenate((np.zeros(num,dtype="bool"), trigger2))
+
+            print((num/triggerrate)*10**3, "delay (ms)")  # "\n", num, "num elegido", 
+
+        # Configure the digital channels to trigger the synchronization signal
+            self.triggertask.do_channels.add_do_chan(
+                lines="Dev1/port0/line6", name_to_assign_to_lines='chan6',
+                line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+    
+            self.triggertask.timing.cfg_samp_clk_timing(
+                         rate=triggerrate,  # muestras por segundo
+                         sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+    #                         source='100kHzTimebase',
+                         active_edge = nidaqmx.constants.Edge.RISING,
+                         samps_per_chan=len(self.trigger))
+        # Configure a start trigger to synchronizate the measure and movement
+            triggerchannelname = "PFI4"
+            self.aotask.triggers.start_trigger.cfg_dig_edge_start_trig(
+                                trigger_source = triggerchannelname)#,
+    #                                trigger_edge = nidaqmx.constants.Edge.RISING)
+            self.PMTtask.triggers.start_trigger.cfg_dig_edge_start_trig(
+                            trigger_source = triggerchannelname)#,
+
+    def TriggerOpenAPD(self):
+        if self.triggerAPD:
+            print("Ya esta el trigger APD")  # to dont open again 
+        else:
+            if self.triggerPMT:
+                self.triggertask.stop()
+                self.triggertask.close()
+            self.triggerAPD = True
+            self.triggertask = nidaqmx.Task('TriggerAPDtask')
         # Create the signal trigger
             triggerrate = self.apdrate
             num = int(self.triggerEdit.text()) * self.Napd
@@ -1651,7 +1698,7 @@ class ScanWidget(QtGui.QFrame):
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
-
+# %% FIN
 app = QtGui.QApplication([])
 win = ScanWidget(device)
 #win = MainWindow()
