@@ -613,9 +613,10 @@ class ScanWidget(QtGui.QFrame):
              self.totalrampy / convFactors['y'],
              self.totalrampz / convFactors['z']]), auto_start=True)
 #        self.inStart = False
-        print("ya arranca")
-    # Starting the trigger. It have a controllable 'delay'
-        self.triggertask.write(self.trigger, auto_start=True)
+        print("ya arranca...")
+        if self.detectMode.currentText() != "PMT":
+        # Starting the trigger. It have a controllable 'delay'
+            self.triggertask.write(self.trigger, auto_start=True)
 
 # %% runing Ramp loop (APD)
     def APDupdateView(self):
@@ -679,6 +680,7 @@ class ScanWidget(QtGui.QFrame):
         paso = 1
     # The counter reads this numbers of points when the trigger starts
         self.PMT[:] = self.PMTtask.read(len(self.onerampx))
+        self.triggertask.write(self.trigger, auto_start=True)
 #        self.PMTtask.wait_until_done()  # no va porque quiere medirlo TODO
 
     # limpio la parte acelerada.
@@ -1061,7 +1063,7 @@ class ScanWidget(QtGui.QFrame):
             if self.triggerAPD:
                 self.triggertask.stop()
                 self.triggertask.close()
-            self.triggerPMT = True
+
             self.triggertask = nidaqmx.Task('TriggerPMTtask')
         # Create the signal trigger
             triggerrate = self.sampleRate
@@ -1089,6 +1091,7 @@ class ScanWidget(QtGui.QFrame):
     #                                trigger_edge = nidaqmx.constants.Edge.RISING)
             self.PMTtask.triggers.start_trigger.cfg_dig_edge_start_trig(
                             trigger_source = triggerchannelname)#,
+            self.triggerPMT = True
 
     def TriggerOpenAPD(self):
         if self.triggerAPD:
@@ -1660,7 +1663,7 @@ class ScanWidget(QtGui.QFrame):
         self.CMyValue.setText(str(ycm*Normal))
         tac = ptime.time()
 
-#        resol = 2  # NO SE DIBUJAR ARRIBA DE LA IMAGEN
+#        resol = 2  # NO SE DIBUJAR ARRIBA DE LA IMAGEN en vivo
 #        for i in range(resol):
 #            for j in range(resol):
 #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
