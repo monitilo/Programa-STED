@@ -74,7 +74,7 @@ class ScanWidget(QtGui.QFrame):
     def zeroImage(self):
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
         self.image = self.blankImage
-
+        self.image2 = self.blankImage
     def __init__(self, device, *args, **kwargs):  # agregue device
 
         super().__init__(*args, **kwargs)
@@ -186,7 +186,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Select the detector
         self.detectMode = QtGui.QComboBox()
-        self.detectModes = ['APD red', 'APD green', 'PMT']
+        self.detectModes = ['APD red', 'APD green', 'both APDs', 'PMT']
         self.detectMode.addItems(self.detectModes)
 
     # Scanning parameters
@@ -470,6 +470,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
         self.image = self.blankImage
+        self.image2 = self.blankImage
         self.dy = 0
 # %%--- paramChanged
     def paramChanged(self):
@@ -541,6 +542,7 @@ class ScanWidget(QtGui.QFrame):
 
       # numberofpixels is the relevant part of the total ramp.
         self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
+        self.APD2 = self.APD
         self.APDstep = np.zeros((self.Napd+1))
 
 
@@ -639,9 +641,21 @@ class ScanWidget(QtGui.QFrame):
 # %% runing Ramp loop (APD)
     def APDupdateView(self):
         paso = 1
+
     # The counter reads this numbers of points when the trigger starts
-        self.APD[:] = self.citask.read(
-                  ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+        if self.detectMode .currentText() == 'APD red':
+            self.APD[:] = self.APD1task.read(
+                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+        elif self.detectMode .currentText() == 'APD green':
+            self.APD[:] = self.APD2task.read(
+                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+        elif self.detectMode .currentText() == 'both APDs':
+            self.APD[:] = self.APD1task.read(
+                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+            self.APD2[:] = self.APD2task.read(
+                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+        elif self.detectMode .currentText() == 'PMT':
+            print("algo salio muy mal. entro a APDupdate, con la opcion PMT")
 
         # have to analize the signal from the counter
         self.apdpostprocessing()
@@ -653,6 +667,12 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.backimage[:, -1-self.dy] = np.flip(self.backcounts[:],0)# + 5* np.random.rand(len(self.backcounts))
 
+        try:
+            self.image2[:, -1-self.dy] = np.flip(self.counts2[:],0)# + np.random.rand(len(self.counts))
+            self.backimage2[:, -1-self.dy] = np.flip(self.backcounts2[:],0)# + 5* np.random.rand(len(self.backcounts))
+        except:
+            pass
+
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
     #, so I´m plotting in packages. It's looks like realtime
@@ -663,9 +683,12 @@ class ScanWidget(QtGui.QFrame):
         else:
             multi5 = np.arange(0, self.numberofPixels, 2)
 
+        """podria poner un boton para que grafique la 
+        vuelta de ser necesario"""
+
         if self.dy in multi5:
             if self.graphcheck.isChecked():
-                self.img.setImage(self.backimage, autoLevels=True)
+                self.img.setImage(self.image2, autoLevels=True)
             else:
                 self.img.setImage(self.image, autoLevels=True)
 
@@ -686,7 +709,7 @@ class ScanWidget(QtGui.QFrame):
               self.viewtimer.stop()
               self.triggertask.stop()
               self.aotask.stop()
-              self.citask.stop()
+              self.APDstop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
               if self.Continouscheck.isChecked():
@@ -695,6 +718,15 @@ class ScanWidget(QtGui.QFrame):
                   self.MovetoStart()
                   self.done()
 
+    def APDstop(self):
+        try:
+            self.APDtask.stop()
+        except:
+            pass
+        try:
+            self.APD2task.stop()
+        except:
+            pass
 #    def fastupdateView(self):
 #        
 # %% runing Ramp loop (PMT)
@@ -763,9 +795,11 @@ class ScanWidget(QtGui.QFrame):
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
+        self.counts2 = self.counts
 
         self.acceleration()
         self.backcounts = np.zeros((self.pixelsoffB))
+        self.backcounts2 = self.backcounts
         self.backimage = np.zeros((self.pixelsoffB, self.numberofPixels))  # para la vuelta (poner back Velocity=1)
 
 #    Barrido x
@@ -862,7 +896,27 @@ class ScanWidget(QtGui.QFrame):
             self.backcounts[i] = self.APD[evf] - self.APD[evi]
 
 ##### puede fallar en la primer y/o ultima fila. YA NO FALLA, ANDA TODO bien
-
+        try:
+            if self.pixelsoffL == 0:
+                self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
+            else:
+                self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
+    
+            for i in range(1, self.numberofPixels):
+                ei = ((self.pixelsoffL+i) * Napd)-1
+                ef = ((self.pixelsoffL+i+1) * Napd)-1
+                self.counts2[i] = self.APD2[ef] - self.APD2[ei]
+    
+            # Lo que sigue esta en creacion, para la imagen de vuelta
+    
+            for i in range(len(self.backcounts2)):  # len(back...)= pixelsoffB
+    #            evi = ((self.pixelsoffR + i + 1) * Napd)
+    #            evf = ((self.pixelsoffR + i) * Napd)
+                evi = (-(self.pixelsoffR + self.pixelsoffB) + (i)  ) * Napd
+                evf = (-(self.pixelsoffR + self.pixelsoffB) + (i+1)) * Napd
+                self.backcounts2[i] = self.APD2[evf] - self.APD2[evi]
+        except:
+            pass
 # %%-------Aceleracion----------------------------------------------
     def acceleration(self):
         """ it creates the smooths-edge signals to send to the piezo
@@ -1052,18 +1106,34 @@ class ScanWidget(QtGui.QFrame):
             if self.PMTon:
                 print("ojo que sigue preparado el PMT (no hago nada al respecto)")
             self.APDson = True
-            self.citask = nidaqmx.Task('citask')
+            self.APD1task = nidaqmx.Task('APD1task')
 
             # Configure the counter channel to read the APD
-            self.citask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(self.COchan),
-                                name_to_assign_to_channel=u'conter',
+            self.APD1task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ct0',
+                                name_to_assign_to_channel=u'conter_RED',
                                 initial_count=0)
             if self.scanMode.currentText() == "step scan":
                 totalcinumber = self.Napd + 1
             else:
                 totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
 
-            self.citask.timing.cfg_samp_clk_timing(
+            self.APD1task.timing.cfg_samp_clk_timing(
+              rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+              source=r'100kHzTimebase',  # 1000k
+              samps_per_chan = totalcinumber)
+
+            self.APD2task = nidaqmx.Task('APD2task')
+
+            # Configure the counter channel to read the APD
+            self.APD2task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr1',
+                                name_to_assign_to_channel=u'conter_GREEN',
+                                initial_count=0)
+#            if self.scanMode.currentText() == "step scan":
+#                totalcinumber = self.Napd + 1
+#            else:
+#                totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
+
+            self.ADP2task.timing.cfg_samp_clk_timing(
               rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
               source=r'100kHzTimebase',  # 1000k
               samps_per_chan = totalcinumber)
@@ -1160,8 +1230,10 @@ class ScanWidget(QtGui.QFrame):
                                 trigger_source = triggerchannelname)#,
     #                                trigger_edge = nidaqmx.constants.Edge.RISING)
     
-            self.citask.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
-            self.citask.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
+            self.APD1task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
+            self.APD1task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
+            self.APD2task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
+            self.APD2task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 #            self.citask.triggers.arm_start_trigger.dig_edge_edge = nidaqmx.constants.Edge.RISING
             self.triggerAPD = True
         # Pause trigger to get the signal on only when is a True in the referense
@@ -1185,10 +1257,15 @@ class ScanWidget(QtGui.QFrame):
         except:
             print("a")
         try:
-            self.citask.stop()  # Apd
-            self.citask.close()
+            self.APD1task.stop()  # Apd
+            self.APD1task.close()
         except:
-            print("b")
+            print("b_0")
+        try:
+            self.APD2task.stop()  # Apd
+            self.APD2task.close()
+        except:
+            print("b_1")
         try:
             self.PMTtask.stop()  # PMT
             self.PMTtask.close()
@@ -1230,11 +1307,11 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.wait_until_done()
 
 #            tac = ptime.time()
-            self.APDstep[:] = self.citask.read(1+self.Napd)
-            self.citask.wait_until_done()
+            self.APDstep[:] = self.APD1task.read(1+self.Napd)
+            self.APD1task.wait_until_done()
 #            toc = ptime.time()
 
-            self.citask.stop()
+            self.APD1task.stop()
             self.aotask.stop()
 #            self.cuentas[i] = aux + np.random.rand(1)[0]
             self.image[-1-i, self.numberofPixels-1-self.dy] = self.APDstep[-1] - self.APDstep[0]
@@ -1650,9 +1727,24 @@ class ScanWidget(QtGui.QFrame):
             scanmode = "YZ"
 #        filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(self.file_path + "/image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-        guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-        guardado.save(name)
+        if self.detectMode .currentText() == 'APD red':
+            name = str(self.file_path + "/RED-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+            guardado.save(name)
+
+        elif self.detectMode .currentText() == 'APD green':
+            name = str(self.file_path + "/GREEN-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
+            guardado.save(name)
+
+        elif self.detectMode .currentText() == 'both APDs':
+            name = str(self.file_path + "/RED-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+            guardado.save(name)
+            name = str(self.file_path + "/GREEN-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
+            guardado.save(name)
+
 
         print("\n Image saved\n")
 
