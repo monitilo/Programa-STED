@@ -71,6 +71,9 @@ class ScanWidget(QtGui.QFrame):
 #            plt.plot(self.onerampy[1,:],'k')
         plt.show()
 
+    def zeroImage(self):
+        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
+        self.image = self.blankImage
 
     def __init__(self, device, *args, **kwargs):  # agregue device
 
@@ -114,6 +117,9 @@ class ScanWidget(QtGui.QFrame):
 
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
+
+        self.Continouscheck = QtGui.QCheckBox('Continous')
+        self.Continouscheck.setChecked(False)
 
         self.CMcheck = QtGui.QCheckBox('calcula CM')
         self.CMcheck.setChecked(False)
@@ -170,8 +176,8 @@ class ScanWidget(QtGui.QFrame):
         self.shutterredbutton.clicked.connect(self.shutterred)
         self.shuttergreenbutton = QtGui.QCheckBox('shutter 532')
         self.shuttergreenbutton.clicked.connect(self.shuttergreen)
-        self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
-        self.shutterotrobutton.clicked.connect(self.shutterotro)
+        self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
+        self.shutterSTEDbutton.clicked.connect(self.shutterSTED)
 
     # new ploting useful
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
@@ -213,6 +219,8 @@ class ScanWidget(QtGui.QFrame):
         self.scanRangeEdit.setValidator(self.onlypos)
 
         self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
+        self.numberofPixelsEdit.textChanged.connect(self.zeroImage)
+
         self.scanRangeEdit.textChanged.connect(self.paramChanged)
         self.pixelTimeEdit.textChanged.connect(self.paramChanged)
 #        self.initialPositionEdit.textChanged.connect(self.paramChanged)
@@ -250,44 +258,53 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDgreen)
 
 
-#        subgrid.addWidget(self.initialPositionLabel, 0, 1)
-#        subgrid.addWidget(self.initialPositionEdit, 1, 1)
-        subgrid.addWidget(self.scanRangeLabel, 2, 1)
-        subgrid.addWidget(self.scanRangeEdit, 3, 1)
-        subgrid.addWidget(self.pixelTimeLabel, 4, 1)
-        subgrid.addWidget(self.pixelTimeEdit, 5, 1)
+        subgrid.addWidget(self.shutterredbutton, 0, 1)
+        subgrid.addWidget(self.shuttergreenbutton, 1, 1)
+        subgrid.addWidget(self.shutterSTEDbutton, 2, 1)
+        subgrid.addWidget(self.scanRangeLabel, 3, 1)
+        subgrid.addWidget(self.scanRangeEdit, 4, 1)
+        subgrid.addWidget(self.pixelTimeLabel, 5, 1)
+        subgrid.addWidget(self.pixelTimeEdit, 6, 1)
+        subgrid.addWidget(self.numberofPixelsLabel, 7, 1)
+        subgrid.addWidget(self.numberofPixelsEdit, 8, 1)
+        subgrid.addWidget(self.pixelSizeLabel, 9, 1)
+        subgrid.addWidget(self.pixelSizeValue, 10, 1)
+        subgrid.addWidget(self.liveviewButton, 11, 1)
+
+        subgrid.addWidget(self.scanMode, 13, 1)
+        subgrid.addWidget(self.timeTotalLabel, 14, 1)
+        subgrid.addWidget(self.timeTotalValue, 15, 1)
+        subgrid.addWidget(self.saveimageButton, 16, 1)
+#        subgrid.addWidget(self.APDred, 0, 1)
+#        subgrid.addWidget(self.APDgreen, 0, 2)
+        subgrid.addWidget(self.detectMode, 0, 2)
+        subgrid.addWidget(self.NameDirButton, 1, 2)
+        subgrid.addWidget(self.OpenButton, 2, 2)
+        subgrid.addWidget(self.plotLivebutton, 3, 2)
         subgrid.addWidget(self.triggerLabel, 4, 2)
         subgrid.addWidget(self.triggerEdit, 5, 2)
-        subgrid.addWidget(self.numberofPixelsLabel, 6, 1)
-        subgrid.addWidget(self.numberofPixelsEdit, 7, 1)
         subgrid.addWidget(self.acelerationLabel, 6, 2)
         subgrid.addWidget(self.acelerationEdit, 7, 2)
-        subgrid.addWidget(self.pixelSizeLabel, 8, 1)
-        subgrid.addWidget(self.pixelSizeValue, 9, 1)
         subgrid.addWidget(self.vueltaLabel, 8, 2)
         subgrid.addWidget(self.vueltaEdit, 9, 2)
-        subgrid.addWidget(self.liveviewButton, 10, 1)
-        subgrid.addWidget(self.graphcheck, 11, 2)
-        subgrid.addWidget(self.timeTotalLabel, 13, 1)
-        subgrid.addWidget(self.timeTotalValue, 14, 1)
-#        subgrid.addWidget(self.XZButton, 10, 2)
         subgrid.addWidget(self.Alancheck, 10, 2)
+        subgrid.addWidget(self.Continouscheck, 11, 2)
+        subgrid.addWidget(self.graphcheck, 12, 2)
+        subgrid.addWidget(self.CMcheck, 13, 2)
         subgrid.addWidget(self.XYcheck, 14, 2)
         subgrid.addWidget(self.XZcheck, 15, 2)
         subgrid.addWidget(self.YZcheck, 16, 2)
 
-        subgrid.addWidget(self.shutterredbutton, 1, 1)
-#        subgrid.addWidget(self.APDred, 0, 1)
-#        subgrid.addWidget(self.APDgreen, 0, 2)
-        subgrid.addWidget(self.detectMode, 0, 1)
 
-        subgrid.addWidget(self.scanMode, 12, 1)
-        subgrid.addWidget(self.saveimageButton, 15, 1)
-        subgrid.addWidget(self.NameDirButton, 1, 2)
-        subgrid.addWidget(self.OpenButton, 2, 2)
-        subgrid.addWidget(self.plotLivebutton, 3, 2)
 
-        subgrid.addWidget(self.CMcheck, 12, 2)
+
+
+
+
+
+
+
+
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -451,6 +468,9 @@ class ScanWidget(QtGui.QFrame):
         self.steptimer = QtCore.QTimer()
         self.steptimer.timeout.connect(self.stepScan)
 
+        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
+        self.image = self.blankImage
+        self.dy = 0
 # %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
@@ -517,10 +537,7 @@ class ScanWidget(QtGui.QFrame):
             print(self.reallinetime, "reallinetime\n")
             self.PMT = np.zeros(len(self.onerampx))
 
-        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.image = self.blankImage
 
-        self.dy = 0
 
       # numberofpixels is the relevant part of the total ramp.
         self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
@@ -614,8 +631,9 @@ class ScanWidget(QtGui.QFrame):
              self.totalrampz / convFactors['z']]), auto_start=True)
 #        self.inStart = False
         print("ya arranca...")
-        if self.detectMode.currentText() != "PMT":
-        # Starting the trigger. It have a controllable 'delay'
+
+        if not self.detectMode.currentText() == "PMT":
+    # Starting the trigger. It have a controllable 'delay'
             self.triggertask.write(self.trigger, auto_start=True)
 
 # %% runing Ramp loop (APD)
@@ -671,7 +689,11 @@ class ScanWidget(QtGui.QFrame):
               self.citask.stop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
-              self.liveviewStart()
+              if self.Continouscheck.isChecked():
+                  self.liveviewStart()
+              else:
+                  self.MovetoStart()
+                  self.done()
 
 #    def fastupdateView(self):
 #        
@@ -730,7 +752,12 @@ class ScanWidget(QtGui.QFrame):
               self.PMTtask.stop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
-              self.liveviewStart()
+              if self.Continouscheck.isChecked():
+                  self.liveviewStart()
+              else:
+                  self.MovetoStart()
+                  self.done()
+
 
 # %% --- Creating Ramps  ----
     def Ramps(self):
@@ -943,6 +970,7 @@ class ScanWidget(QtGui.QFrame):
         if self.scanMode.currentText() == "step scan":
             self.channelsOpenStep()
         else:
+#            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
             self.channelsOpenRamp()
 
     def channelsOpenRamp(self):  # channelsOpen
@@ -953,7 +981,7 @@ class ScanWidget(QtGui.QFrame):
             if self.channelsteps:
                 self.done()
             self.PiezoOpenRamp()
-            if self.detectMode.currentText() == "PMT":
+            if self.detectMode.currentText() == 'PMT':
                 self.PMTOpen()
                 self.TriggerOpenPMT()
             else:
@@ -1100,7 +1128,7 @@ class ScanWidget(QtGui.QFrame):
             if self.triggerPMT:
                 self.triggertask.stop()
                 self.triggertask.close()
-            self.triggerAPD = True
+
             self.triggertask = nidaqmx.Task('TriggerAPDtask')
         # Create the signal trigger
             triggerrate = self.apdrate
@@ -1135,7 +1163,7 @@ class ScanWidget(QtGui.QFrame):
             self.citask.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
             self.citask.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 #            self.citask.triggers.arm_start_trigger.dig_edge_edge = nidaqmx.constants.Edge.RISING
-
+            self.triggerAPD = True
         # Pause trigger to get the signal on only when is a True in the referense
 #            self.aotask.triggers.pause_trigger.dig_lvl_src = triggerchannelname
 #            self.aotask.triggers.pause_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_LEVEL
@@ -1236,7 +1264,11 @@ class ScanWidget(QtGui.QFrame):
                 self.viewtimer.stop()
                 if self.CMcheck.isChecked():
                     self.CMmeasure()
-                self.liveviewStart()
+                if self.Continouscheck.isChecked():
+                    self.liveviewStart()
+                else:
+                    self.MovetoStart()
+                    self.done()
 
 
     def Steps(self):
@@ -1337,13 +1369,13 @@ class ScanWidget(QtGui.QFrame):
         self.paramChanged()
         
         self.done()
-        if self.dy != 0:
-            if self.scanMode.currentText() == "step scan":
-                self.channelsOpenStep()
-            else:
-#            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-                self.channelsOpenRamp()
-
+        self.channelsOpen()
+#        if self.dy != 0:
+#            if self.scanMode.currentText() == "step scan":
+#                self.channelsOpenStep()
+#            else:
+##            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
+#                self.channelsOpenRamp()
 
     def xMoveUp(self):
         self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
@@ -1438,11 +1470,15 @@ class ScanWidget(QtGui.QFrame):
             self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
             self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
             self.paramChanged()
+
+            self.done()
+            self.channelsOpen()
+
         else:
             print("¡YA ESTOY EN ESAS COORDENADAS!")
 
 
-# ---  Shutters zone ---------------------------------
+# %% ---  Shutters zone ---------------------------------
     def shutterred(self):
         if self.shutterredbutton.isChecked():
             self.openShutter("red")
@@ -1453,17 +1489,17 @@ class ScanWidget(QtGui.QFrame):
             self.openShutter("green")
         else:
             self.closeShutter("green")
-    def shutterotro(self):
+    def shutterSTED(self):
         if self.shutterotrobutton.isChecked():
-            self.openShutter("otro")
+            self.openShutter("STED")
         else:
-            self.closeShutter("otro")
+            self.closeShutter("STED")
 
     def openShutter(self, p):
         self.shuttersnidaq()
 #        self.opendo()
         print("abre shutter", p)
-        shutters = ["red", "green", "otro"]
+        shutters = ["red", "green", "STED"]
         for i in range(3):
             if p == shutters[i]:
                 self.shuttersignal[i] = True
@@ -1475,7 +1511,7 @@ class ScanWidget(QtGui.QFrame):
         self.shuttersnidaq()
 #        self.closedo()
         print("cierra shutter", p)
-        shutters = ["red", "green", "otro"]
+        shutters = ["red", "green", "STED"]
         for i in range(3):
             if p == shutters[i]:
                 self.shuttersignal[i] = False
@@ -1639,45 +1675,45 @@ class ScanWidget(QtGui.QFrame):
 #            self.steptimer.stop()
 #        else:
 #            self.viewtimer.stop()
-
-        tic = ptime.time()
-
-        Z = self.image
-#        N = len(Z)  # numberfoPixels
-#        xcm = 0
-#        ycm = 0
-#        for i in range(N):
-#            for j in range(N):
-#                xcm = xcm + (Z[i,j]*i)
-#                ycm = ycm + (Z[i,j]*j)
-#        M = np.sum(Z)
-#        xcm = xcm/M
-#        ycm = ycm/M
-        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
-        self.xcm = xcm
-        self.ycm = ycm
-#        xc = int(np.round(xcm,2))
-#        yc = int(np.round(ycm,2))
-        Normal = self.scanRange / self.numberofPixels
-        self.CMxValue.setText(str(xcm*Normal))
-        self.CMyValue.setText(str(ycm*Normal))
-        tac = ptime.time()
-
-#        resol = 2  # NO SE DIBUJAR ARRIBA DE LA IMAGEN en vivo
-#        for i in range(resol):
-#            for j in range(resol):
-#                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
-
-        toc = ptime.time()
-        print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
-
-#        if self.scanMode.currentText() == "step scan":
-#            self.steptimer.start(5)
-#        else:
-#            self.viewtimer.start((self.reallinetime)*10**3)
-
-#        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
-#        print(((toc-tic)+self.reallinetime)*10**3)
+        if self.dy  == self.numberofPixels-1:
+            tic = ptime.time()
+    
+            Z = self.image
+    #        N = len(Z)  # numberfoPixels
+    #        xcm = 0
+    #        ycm = 0
+    #        for i in range(N):
+    #            for j in range(N):
+    #                xcm = xcm + (Z[i,j]*i)
+    #                ycm = ycm + (Z[i,j]*j)
+    #        M = np.sum(Z)
+    #        xcm = xcm/M
+    #        ycm = ycm/M
+            xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+            self.xcm = xcm
+            self.ycm = ycm
+    #        xc = int(np.round(xcm,2))
+    #        yc = int(np.round(ycm,2))
+            Normal = self.scanRange / self.numberofPixels
+            self.CMxValue.setText(str(xcm*Normal))
+            self.CMyValue.setText(str(ycm*Normal))
+            tac = ptime.time()
+    
+    #        resol = 2  # NO SE DIBUJAR ARRIBA DE LA IMAGEN en vivo
+    #        for i in range(resol):
+    #            for j in range(resol):
+    #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+    
+            toc = ptime.time()
+            print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
+    
+    #        if self.scanMode.currentText() == "step scan":
+    #            self.steptimer.start(5)
+    #        else:
+    #            self.viewtimer.start((self.reallinetime)*10**3)
+    
+    #        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
+    #        print(((toc-tic)+self.reallinetime)*10**3)
 
     def mapa(self):
         Z = self.image

@@ -755,6 +755,7 @@ y guarde la imagen"""
                 # no es necesario crear guarda. self.image es lo mismo
                 self.i = self.i + self.step
             else:
+                print(self.i,"i")
                 self.guardarimagen()
                 if self.CMcheck.isChecked():
                   self.CMmeasure()
@@ -767,6 +768,7 @@ y guarde la imagen"""
             if self.i < self.numberofPixels-self.step:
                 self.i = self.i + self.step
             else:
+                print(self.i,"i")
 #                self.i = 0
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
@@ -796,7 +798,7 @@ y guarde la imagen"""
     def linea(self):
         Z=self.Z
         if self.step == 1:
-            self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
+            self.cuentas = Z[self.i,:] * np.random.normal(size=(1, self.numberofPixels))[0]
             for i in range(self.numberofPixels):
                 borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
@@ -1222,91 +1224,93 @@ y guarde la imagen"""
 
 # %%--- CM measure
     def CMmeasure(self):
-        self.viewtimer.stop()
-        from scipy import ndimage
-        I = self.image
-        N = len(I)
-#        xcm = 0
-#        ycm = 0
-#        for i in range(N):
-#            for j in range(N):
-##                if Z[i,j]<0:
-##                    Z[i,j]=0
-#                xcm = xcm + (Z[i,j]*i)
-#                ycm = ycm + (Z[i,j]*j)
-#        M = np.sum(Z)
-#        xcm = xcm/M
-#        ycm = ycm/M
-        xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
-        print("Xcm=", xcm,"\nYcm=", ycm)
-        self.xcm = xcm
-        self.ycm = ycm
-#        if self.shuttergreenbutton.isChecked():
-#            xc = int(np.round(self.xcm,2))
-#            yc = int(np.round(self.ycm,2))
-#            texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
-#            initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-#            x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
-#            y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
-#            X, Y = np.meshgrid(x, y)
-#            fig, ax = plt.subplots()
-#            p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet)
-#            cb = fig.colorbar(p)
-#            ax.set_xlabel('x [um]')
-#            ax.set_ylabel('y [um]')
-
-##            xcm = 0
-##            ycm = 0
-##            for i in range(N):
-##                for j in range(N):
-##                    xcm = xcm + (Z[i,j]*i)
-##                    ycm = ycm + (Z[i,j]*j)
-##            xcm = xcm/np.sum(Z)
-##            ycm = ycm/np.sum(Z)
-##            
-##            print("Xcm=", xcm,"\nYcm=", ycm)
-##            xc2 = int(np.round(xcm,2))
-##            yc2 = int(np.round(ycm,2))
-
-#            resol = 2
-#            X2=X#np.transpose(np.flip(X,1))
-#            Y2=Y#np.transpose(np.flip(Y,1))
-#            for i in range(resol):
-#                for j in range(resol):
-#                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='w')
-##                    ax.text(X2[xc2+i,yc2+j],Y2[xc2+i,yc2+j],"☼",color='w')
-#            plt.show()
-
-#        xc = int(np.round(xcm,2))
-#        yc = int(np.round(ycm,2))
-
-        Normal = self.scanRange / self.numberofPixels  # Normalizo
-        self.CMxValue.setText(str(xcm*Normal))
-        self.CMyValue.setText(str(ycm*Normal))
-
-##        resol = 2
-##        for i in range(resol):
-##            for j in range(resol):
-##                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
-
-#        lomas = np.max(Z)
-#        Npasos = 4
-#        paso = lomas/Npasos
-#        tec=time.time()
-#        SZ = Z.ravel()
-#        mapa = np.zeros((N,N))
-#        Smapa = mapa.ravel()
-#        for i in range(len(SZ)):
-#            if SZ[i] > paso:
-#                Smapa[i] = 0.33
-#            if SZ[i] > paso*2:
-#                Smapa[i] = 0.66
-#            if SZ[i] > paso*3:
-#                Smapa[i] = 0.99
-#        mapa = np.array(np.split(Smapa,N))
-#        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-#        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-
+        if self.i  == self.numberofPixels-1:
+            self.viewtimer.stop()
+            from scipy import ndimage
+            I = self.image
+            N = len(I)
+    #        xcm = 0
+    #        ycm = 0
+    #        for i in range(N):
+    #            for j in range(N):
+    ##                if Z[i,j]<0:
+    ##                    Z[i,j]=0
+    #                xcm = xcm + (Z[i,j]*i)
+    #                ycm = ycm + (Z[i,j]*j)
+    #        M = np.sum(Z)
+    #        xcm = xcm/M
+    #        ycm = ycm/M
+            xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
+            print("Xcm=", xcm,"\nYcm=", ycm)
+            self.xcm = xcm
+            self.ycm = ycm
+    #        if self.shuttergreenbutton.isChecked():
+    #            xc = int(np.round(self.xcm,2))
+    #            yc = int(np.round(self.ycm,2))
+    #            texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+    #            initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+    #            x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+    #            y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+    #            X, Y = np.meshgrid(x, y)
+    #            fig, ax = plt.subplots()
+    #            p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet)
+    #            cb = fig.colorbar(p)
+    #            ax.set_xlabel('x [um]')
+    #            ax.set_ylabel('y [um]')
+    
+    ##            xcm = 0
+    ##            ycm = 0
+    ##            for i in range(N):
+    ##                for j in range(N):
+    ##                    xcm = xcm + (Z[i,j]*i)
+    ##                    ycm = ycm + (Z[i,j]*j)
+    ##            xcm = xcm/np.sum(Z)
+    ##            ycm = ycm/np.sum(Z)
+    ##            
+    ##            print("Xcm=", xcm,"\nYcm=", ycm)
+    ##            xc2 = int(np.round(xcm,2))
+    ##            yc2 = int(np.round(ycm,2))
+    
+    #            resol = 2
+    #            X2=X#np.transpose(np.flip(X,1))
+    #            Y2=Y#np.transpose(np.flip(Y,1))
+    #            for i in range(resol):
+    #                for j in range(resol):
+    #                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='w')
+    ##                    ax.text(X2[xc2+i,yc2+j],Y2[xc2+i,yc2+j],"☼",color='w')
+    #            plt.show()
+    
+    #        xc = int(np.round(xcm,2))
+    #        yc = int(np.round(ycm,2))
+    
+            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            self.CMxValue.setText(str(xcm*Normal))
+            self.CMyValue.setText(str(ycm*Normal))
+    
+    ##        resol = 2
+    ##        for i in range(resol):
+    ##            for j in range(resol):
+    ##                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+    
+    #        lomas = np.max(Z)
+    #        Npasos = 4
+    #        paso = lomas/Npasos
+    #        tec=time.time()
+    #        SZ = Z.ravel()
+    #        mapa = np.zeros((N,N))
+    #        Smapa = mapa.ravel()
+    #        for i in range(len(SZ)):
+    #            if SZ[i] > paso:
+    #                Smapa[i] = 0.33
+    #            if SZ[i] > paso*2:
+    #                Smapa[i] = 0.66
+    #            if SZ[i] > paso*3:
+    #                Smapa[i] = 0.99
+    #        mapa = np.array(np.split(Smapa,N))
+    #        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
+    #        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
+        else:
+            print("nada")
 
 if __name__ == '__main__':
 
