@@ -24,6 +24,8 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 
+import tools
+import viewbox_tools
 
 device = 9
 convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
@@ -191,6 +193,15 @@ class ScanWidget(QtGui.QFrame):
 #       This boolean is set to True when open the nidaq channels
         self.ischannelopen = False
 
+    # ROI buttons
+        self.roi = None
+        self.ROIButton = QtGui.QPushButton('ROI')
+        self.ROIButton.setCheckable(True)
+        self.ROIButton.clicked.connect(self.ROImethod)
+
+        self.selectROIButton = QtGui.QPushButton('select ROI')
+        self.selectROIButton.clicked.connect(self.selectROI)
+
         # Scanning parameters
 
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
@@ -329,6 +340,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.plotLivebutton, 6, 2)
 
         subgrid.addWidget(self.CMcheck, 8, 2)
+
+        subgrid.addWidget(self.ROIButton, 2, 3)
+        subgrid.addWidget(self.selectROIButton, 3, 3)
 # --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -1147,6 +1161,72 @@ y guarde la imagen"""
         mapa = np.array(np.split(Smapa,N))
         print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
         self.img.setImage(mapa, autoLevels=False)
+
+# %%  ROI cosas
+    def ROImethod(self):
+        self.NofPixels = self.numberofPixels
+
+        if self.roi is None:
+
+            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
+
+            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+
+        else:
+
+            self.vb.removeItem(self.roi)
+            self.roi.hide()
+
+            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
+            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+
+
+    def selectROI(self):
+        self.NofPixels = self.numberofPixels
+        self.pxSize = self.pixelSize
+        self.liveviewStop()
+
+        print("Estoy en", float(self.xLabel.text()), float(self.yLabel.text()),
+              float(self.zLabel.text()))
+
+        array = self.roi.getArrayRegion(self.image, self.img)
+        ROIpos = np.array(self.roi.pos())
+
+        newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                             self.NofPixels,
+                                             np.shape(array)[1])
+        print(self.initialPosition)
+        newPos_µm = newPos_px * self.pxSize + self.initialPosition[0:2]
+
+        newPos_µm = np.around(newPos_µm, 2)
+
+#        self.initialPosEdit.setText('{} {} {}'.format(newPos_µm[0],
+#                                                      newPos_µm[1],
+#                                                      self.initialPos[2]))
+
+        self.xLabel.setText("{}".format((float(newPos_µm[0]))))
+        self.yLabel.setText("{}".format((float(newPos_µm[1]))))
+        self.zLabel.setText("{}".format((float(self.initialPosition[2]))))
+
+        print("Roi va a", float(self.xLabel.text()), float(self.yLabel.text()),
+              float(self.zLabel.text()))
+        newRange_px = np.shape(array)[0]
+        newRange_µm = self.pxSize * newRange_px
+        newRange_µm = np.around(newRange_µm, 2)
+
+        self.scanRangeEdit.setText('{}'.format(newRange_µm))
+
+
+        self.paramChanged()
+
 
 if __name__ == '__main__':
 

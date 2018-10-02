@@ -216,7 +216,9 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
         self.liveviewButton.clicked.connect(self.liveview)
-
+        self.liveviewButton.setStyleSheet(
+                "QPushButton { background-color: green; }"
+                "QPushButton:pressed { background-color: blue; }")
         self.liveviewButton.setToolTip('This is a tooltip message.')
 
         # save image Button

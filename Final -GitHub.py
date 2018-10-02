@@ -19,6 +19,9 @@ from scipy import ndimage
 
 import re
 
+import tools
+import viewbox_tools
+
 import nidaqmx
 
 device = nidaqmx.system.System.local().devices['Dev1']
@@ -86,25 +89,29 @@ class ScanWidget(QtGui.QFrame):
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
     # Parameters for smooth moving (to no go hard on the piezo (or galvos))
-        self.moveTime = 1 / 10**3  # total time to move(s)
+        self.moveTime = 10  / 10**3  # total time to move (s)
         self.moveSamples = 1000  # samples to move
         self.moveRate = self.moveSamples / self.moveTime  # 10**5
 
         self.activeChannels = ["x", "y", "z"]
         self.AOchans = [0, 1, 2]
-        self.COchans = 1  # where is the APD, lo cambie por botones
+#        self.COchans = 1  # cual APD uso;      lo cambie por botones
 
-    # APD's detectors
-        self.APDred=QtGui.QRadioButton("APD red")
-        self.APDred.setChecked(True)
-        self.APDgreen=QtGui.QRadioButton("APD green")
-        self.APDgreen.setChecked(False)
+#    # APD's detectors;                      los cambie por un desplegable
+#        self.APDred=QtGui.QRadioButton("APD red")
+#        self.APDred.setChecked(True)
+#        self.APDgreen=QtGui.QRadioButton("APD green")
+#        self.APDgreen.setChecked(False)
+
     # LiveView Button
-
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
         self.liveviewButton.clicked.connect(self.liveview)
-    # XZ PSF scan
+        self.liveviewButton.setStyleSheet(
+                "QPushButton { background-color: green; }"
+                "QPushButton:pressed { background-color: blue; }")
+
+    # XZ PSF scan (or XY or YZ)
         self.XYcheck = QtGui.QRadioButton('XY normal scan')
         self.XYcheck.setChecked(True)
 
@@ -113,19 +120,21 @@ class ScanWidget(QtGui.QFrame):
 
         self.YZcheck = QtGui.QRadioButton('YZ psf scan')
         self.YZcheck.setChecked(False)
-    # para que guarde todo (trazas de Alan)
 
-        self.Alancheck = QtGui.QCheckBox('Alan continous save')
+    # To save all images until stops
+        self.Alancheck = QtGui.QCheckBox('/"video/" save')
         self.Alancheck.setChecked(False)
 
+    # to run continuously
         self.Continouscheck = QtGui.QCheckBox('Continous')
         self.Continouscheck.setChecked(False)
 
+    # to Calculate the mass center
         self.CMcheck = QtGui.QCheckBox('calcula CM')
         self.CMcheck.setChecked(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
-    # save image Button
 
+    # save image Button
         self.saveimageButton = QtGui.QPushButton('Scan and Save')
         self.saveimageButton.setCheckable(True)
         self.saveimageButton.clicked.connect(self.saveimage)
@@ -153,6 +162,7 @@ class ScanWidget(QtGui.QFrame):
         self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
         self.scanMode.addItems(self.scanModes)
 
+    # Plot ramps scan button
         self.graphcheck = QtGui.QCheckBox('Scan Plot')
         self.graphcheck.clicked.connect(self.graphplot)
         self.step = False
@@ -172,22 +182,31 @@ class ScanWidget(QtGui.QFrame):
         self.shuttersignal = [False, False, False]
 
     # Shutters buttons
-        self.shutterredbutton = QtGui.QCheckBox('shutter 640')
+        self.shutterredbutton = QtGui.QCheckBox('shutter Red')
         self.shutterredbutton.clicked.connect(self.shutterred)
-        self.shuttergreenbutton = QtGui.QCheckBox('shutter 532')
-        self.shuttergreenbutton.clicked.connect(self.shuttergreen)
+        self.shutteryellowbutton = QtGui.QCheckBox('shutter Yellow')
+        self.shutteryellowbutton.clicked.connect(self.shutteryellow)
         self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
         self.shutterSTEDbutton.clicked.connect(self.shutterSTED)
 
-    # new ploting useful
+    # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
 
     # Select the detector
         self.detectMode = QtGui.QComboBox()
-        self.detectModes = ['APD red', 'APD green', 'both APDs', 'PMT']
+        self.detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
         self.detectMode.addItems(self.detectModes)
+
+    # ROI buttons
+        self.roi = None
+        self.ROIButton = QtGui.QPushButton('ROI')
+        self.ROIButton.setCheckable(True)
+        self.ROIButton.clicked.connect(self.ROImethod)
+
+        self.selectROIButton = QtGui.QPushButton('select ROI')
+        self.selectROIButton.clicked.connect(self.selectROI)
 
     # Scanning parameters
 
@@ -229,14 +248,15 @@ class ScanWidget(QtGui.QFrame):
         self.XYcheck.clicked.connect(self.paramChanged)
         self.XZcheck.clicked.connect(self.paramChanged)
         self.YZcheck.clicked.connect(self.paramChanged)
-        self.APDred.clicked.connect(self.paramChanged)
-        self.APDgreen.clicked.connect(self.paramChanged)
+#        self.APDred.clicked.connect(self.paramChanged)
+#        self.APDgreen.clicked.connect(self.paramChanged)
 
         self.scanMode.activated.connect(self.paramChanged)
         self.scanMode.activated.connect(self.done)
 
         self.detectMode.activated.connect(self.paramChanged)
         self.detectMode.activated.connect(self.done)
+
 
         self.paramWidget = QtGui.QWidget()
 
@@ -253,13 +273,13 @@ class ScanWidget(QtGui.QFrame):
         group1.addButton(self.XZcheck)
         group1.addButton(self.YZcheck)
 
-        group2 = QtGui.QButtonGroup(self.paramWidget)
-        group2.addButton(self.APDred)
-        group2.addButton(self.APDgreen)
+#        group2 = QtGui.QButtonGroup(self.paramWidget)
+#        group2.addButton(self.APDred)
+#        group2.addButton(self.APDgreen)
 
 
         subgrid.addWidget(self.shutterredbutton, 0, 1)
-        subgrid.addWidget(self.shuttergreenbutton, 1, 1)
+        subgrid.addWidget(self.shutteryellowbutton, 1, 1)
         subgrid.addWidget(self.shutterSTEDbutton, 2, 1)
         subgrid.addWidget(self.scanRangeLabel, 3, 1)
         subgrid.addWidget(self.scanRangeEdit, 4, 1)
@@ -296,15 +316,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.YZcheck, 16, 2)
 
 
-
-
-
-
-
-
-
-
-
+        subgrid.addWidget(self.ROIButton, 2, 3)
+        subgrid.addWidget(self.selectROIButton, 3, 3)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -478,7 +491,7 @@ class ScanWidget(QtGui.QFrame):
         if self.detectMode .currentText() == 'APD red':
 #        if self.APDred.isChecked():
             self.COchan = 0
-        elif self.detectMode .currentText() == 'APD green':
+        elif self.detectMode .currentText() == 'APD yellow':
 #        elif self.APDgreen.isChecked():
             self.COchan = 1
 
@@ -646,7 +659,7 @@ class ScanWidget(QtGui.QFrame):
         if self.detectMode .currentText() == 'APD red':
             self.APD[:] = self.APD1task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-        elif self.detectMode .currentText() == 'APD green':
+        elif self.detectMode .currentText() == 'APD yellow':
             self.APD[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
         elif self.detectMode .currentText() == 'both APDs':
@@ -1126,7 +1139,7 @@ class ScanWidget(QtGui.QFrame):
 
             # Configure the counter channel to read the APD
             self.APD2task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr1',
-                                name_to_assign_to_channel=u'conter_GREEN',
+                                name_to_assign_to_channel=u'conter_YELLOW',
                                 initial_count=0)
 #            if self.scanMode.currentText() == "step scan":
 #                totalcinumber = self.Napd + 1
@@ -1561,11 +1574,11 @@ class ScanWidget(QtGui.QFrame):
             self.openShutter("red")
         else:
             self.closeShutter("red")
-    def shuttergreen(self):
-        if self.shuttergreenbutton.isChecked():
-            self.openShutter("green")
+    def shutteryellow(self):
+        if self.shutteryellowbutton.isChecked():
+            self.openShutter("yellow")
         else:
-            self.closeShutter("green")
+            self.closeShutter("yellow")
     def shutterSTED(self):
         if self.shutterotrobutton.isChecked():
             self.openShutter("STED")
@@ -1576,7 +1589,7 @@ class ScanWidget(QtGui.QFrame):
         self.shuttersnidaq()
 #        self.opendo()
         print("abre shutter", p)
-        shutters = ["red", "green", "STED"]
+        shutters = ["red", "yellow", "STED"]
         for i in range(3):
             if p == shutters[i]:
                 self.shuttersignal[i] = True
@@ -1588,7 +1601,7 @@ class ScanWidget(QtGui.QFrame):
         self.shuttersnidaq()
 #        self.closedo()
         print("cierra shutter", p)
-        shutters = ["red", "green", "STED"]
+        shutters = ["red", "yellow", "STED"]
         for i in range(3):
             if p == shutters[i]:
                 self.shuttersignal[i] = False
@@ -1602,9 +1615,9 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.shutterredbutton.setChecked(False)
         if self.shuttersignal[1]:
-            self.shuttergreenbutton.setChecked(True)
+            self.shutteryellowbutton.setChecked(True)
         else:
-            self.shuttergreenbutton.setChecked(False)
+            self.shutteryellowbutton.setChecked(False)
         if self.shuttersignal[2]:
             self.shutterotrobutton.setChecked(True)
         else:
@@ -1732,16 +1745,16 @@ class ScanWidget(QtGui.QFrame):
             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
 
-        elif self.detectMode .currentText() == 'APD green':
-            name = str(self.file_path + "/GREEN-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
+        elif self.detectMode .currentText() == 'APD yellow':
+            name = str(self.file_path + "/YELLOW-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
 
         elif self.detectMode .currentText() == 'both APDs':
             name = str(self.file_path + "/RED-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
-            name = str(self.file_path + "/GREEN-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/YELLOW-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
             guardado.save(name)
 
@@ -1829,6 +1842,66 @@ class ScanWidget(QtGui.QFrame):
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
+# %%  ROI cosas
+    def ROImethod(self):
+        self.NofPixels = self.numberofPixels
+        if self.roi is None:
+
+            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
+            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+
+        else:
+
+            self.vb.removeItem(self.roi)
+            self.roi.hide()
+
+            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
+            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+
+    def selectROI(self):
+        self.liveviewStop()
+        self.NofPixels = self.numberofPixels
+        self.pxSize = self.pixelSize
+
+        print("Estoy en", float(self.xLabel.text()), float(self.yLabel.text()),
+              float(self.zLabel.text()))
+
+        array = self.roi.getArrayRegion(self.image, self.img)
+        ROIpos = np.array(self.roi.pos())
+
+        newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                             self.NofPixels,
+                                             np.shape(array)[1])
+        print(self.initialPosition)
+        newPos_µm = newPos_px * self.pxSize + self.initialPosition[0:2]
+
+        newPos_µm = np.around(newPos_µm, 2)
+
+#        self.initialPosEdit.setText('{} {} {}'.format(newPos_µm[0],
+#                                                      newPos_µm[1],
+#                                                      self.initialPos[2]))
+
+        self.xLabel.setText("{}".format((float(newPos_µm[0]))))
+        self.yLabel.setText("{}".format((float(newPos_µm[1]))))
+        self.zLabel.setText("{}".format((float(self.initialPosition[2]))))
+
+        print("Roi va a", float(self.xLabel.text()), float(self.yLabel.text()),
+              float(self.zLabel.text()))
+        newRange_px = np.shape(array)[0]
+        newRange_µm = self.pxSize * newRange_px
+        newRange_µm = np.around(newRange_µm, 2)
+
+        self.scanRangeEdit.setText('{}'.format(newRange_µm))
+
+        self.paramChanged()
 # %% FIN
 app = QtGui.QApplication([])
 win = ScanWidget(device)
