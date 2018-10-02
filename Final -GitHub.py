@@ -78,6 +78,7 @@ class ScanWidget(QtGui.QFrame):
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
         self.image = self.blankImage
         self.image2 = self.blankImage
+
     def __init__(self, device, *args, **kwargs):  # agregue device
 
         super().__init__(*args, **kwargs)
@@ -208,6 +209,8 @@ class ScanWidget(QtGui.QFrame):
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
 
+        self.PointLabel = QtGui.QLabel('0.0')
+
     # Scanning parameters
 
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0 z0] (µm)')
@@ -318,7 +321,7 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.ROIButton, 2, 3)
         subgrid.addWidget(self.selectROIButton, 3, 3)
-
+        subgrid.addWidget(self.PointLabel, 6, 3)
 # ---  Positioner part ---------------------------------
         # Axes control
         self.xLabel = QtGui.QLabel('0.0')
@@ -485,6 +488,11 @@ class ScanWidget(QtGui.QFrame):
         self.image = self.blankImage
         self.image2 = self.blankImage
         self.dy = 0
+
+        #self.startRutine()  # que lea de algun lado la posicion y la setee como start x,y,z
+
+#    def startRutine(self):
+#        read algo
 # %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
@@ -1457,7 +1465,7 @@ class ScanWidget(QtGui.QFrame):
         self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
         self.paramChanged()
-        
+
         self.done()
         self.channelsOpen()
 #        if self.dy != 0:
@@ -1841,6 +1849,29 @@ class ScanWidget(QtGui.QFrame):
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
+
+# %% Point profile ---+--- Solo el APD rojo por ahora
+    def PointProfile(self):
+        tiempo = 10 # ms
+        self.points = np.zeros((self.apdrate*(tiempo /10**3)))
+        self.pointtask = nidaqmx.Task('pointtask')
+
+        # Configure the counter channel to read the APD
+        self.pointtask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr0',
+                            name_to_assign_to_channel=u'Line_counter',
+                            initial_count=0)
+
+        self.pointtimer = QtCore.QTimer()
+        self.pointtimer.timeout.connect(self.updatePoint)
+        self.pointtimer.start(tiempo)
+
+    def updatePoint(self):
+        N = len(self.points)
+        self.points[:] = self.pointtask.read(N)
+        m = np.mean(self.points)
+#        print("valor traza", m)
+        self.PointLabel.setText("{}".format(float(m)))
+
 
 # %%  ROI cosas
     def ROImethod(self):
