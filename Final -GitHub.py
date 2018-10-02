@@ -209,6 +209,10 @@ class ScanWidget(QtGui.QFrame):
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
 
+    # Point scan
+        self.PointButton = QtGui.QPushButton('Point scan')
+        self.PointButton.setCheckable(True)
+        self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('0.0')
 
     # Scanning parameters
@@ -470,10 +474,6 @@ class ScanWidget(QtGui.QFrame):
         for tick in self.hist.gradient.ticks:
             tick.hide()
         imageWidget.addItem(self.hist, row=1, col=2)
-
-# TO DO:      self.ROI = guitools.ROI((0, 0), self.vb, (0, 0), handlePos=(1, 0),
-#                               handleCenter=(0, 1), color='y', scaleSnap=True,
-#                               translateSnap=True)
 
         self.viewtimer = QtCore.QTimer()
         self.viewtimer.timeout.connect(self.APDupdateView)
@@ -1851,6 +1851,12 @@ class ScanWidget(QtGui.QFrame):
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
 # %% Point profile ---+--- Solo el APD rojo por ahora
+    def PointStart(self):
+        if self.PointButton.isChecked():
+            self.PointProfile()
+        else:
+            self.pointtimer.stop()
+
     def PointProfile(self):
         tiempo = 10 # ms
         self.points = np.zeros((self.apdrate*(tiempo /10**3)))
