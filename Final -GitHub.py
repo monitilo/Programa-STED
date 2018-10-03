@@ -238,9 +238,9 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('total scan time (s)')
         self.timeTotalValue = QtGui.QLabel('')
 
-        self.onlyInt = QtGui.QIntValidator(0,10**6)
+        self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
-        self.onlypos = QtGui.QDoubleValidator(0, 10**6,10)
+        self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
@@ -327,7 +327,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.selectROIButton, 3, 3)
 
         subgrid.addWidget(self.PointButton, 6, 3)
-        subgrid.addWidget(self.PointLabel, 7, 3)
+        subgrid.addWidget(self.PointLabel, 7, 3, 2, 1)
 # ---  Positioner part ---------------------------------
         # Axes control
         self.xLabel = QtGui.QLabel('0.0')
@@ -498,12 +498,12 @@ class ScanWidget(QtGui.QFrame):
 # %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
-        if self.detectMode .currentText() == 'APD red':
-#        if self.APDred.isChecked():
-            self.COchan = 0
-        elif self.detectMode .currentText() == 'APD yellow':
-#        elif self.APDgreen.isChecked():
-            self.COchan = 1
+#        if self.detectMode .currentText() == 'APD red':
+##        if self.APDred.isChecked():
+#            self.COchan = 0
+#        elif self.detectMode .currentText() == 'APD yellow':
+##        elif self.APDgreen.isChecked():
+#            self.COchan = 1
 
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
@@ -1852,21 +1852,28 @@ class ScanWidget(QtGui.QFrame):
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
-# %% Point profile ---+--- Solo el APD rojo por ahora
+# %% Point profile ---+--- Se puede elegir APD
     def PointStart(self):
         if self.PointButton.isChecked():
             self.PointProfile()
-            print("mide intensidad")
+            print("midiendo")
         else:
             self.pointtimer.stop()
-            print("listo")
+            print("fin")
     def PointProfile(self):
-        tiempo = 250 # ms
+        if self.detectMode .currentText() == 'APD red':
+#        if self.APDred.isChecked():
+            self.COchan = 0
+        elif self.detectMode .currentText() == 'APD yellow':
+#        elif self.APDgreen.isChecked():
+            self.COchan = 1
+
+        tiempo = 400 # ms
         self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
         self.pointtask = nidaqmx.Task('pointtask')
 
         # Configure the counter channel to read the APD
-        self.pointtask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr0',
+        self.pointtask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(self.COchan),
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
 
@@ -1879,8 +1886,7 @@ class ScanWidget(QtGui.QFrame):
         self.points[:] = self.pointtask.read(N)
         m = np.mean(self.points)
 #        print("valor traza", m)
-        self.PointLabel.setText("{}".format(float(m)))
-
+        self.PointLabel.setText("<strong>{0:.2e}".format(float(m)))
 
 # %%  ROI cosas
     def ROImethod(self):

@@ -695,3 +695,13 @@ for i in range(20):
     plt.pause(0.05)
 
 plt.show()
+
+# %% cosas utiles para textos
+>>> "Hello {}, my name is {}".format('john', 'mike')
+'Hello john, my name is mike'.
+
+>>> "{1}, {0}".format('world', 'Hello')
+'Hello, world'
+
+>>> "{greeting}, {}".format('world', greeting='Hello')
+'Hello, world'

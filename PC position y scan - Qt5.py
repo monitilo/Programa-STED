@@ -303,9 +303,9 @@ class ScanWidget(QtGui.QFrame):
 
 
 
-        self.onlyInt = QtGui.QIntValidator(0,10**6)
+        self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
-        self.onlypos = QtGui.QDoubleValidator(0, 10**6,10)
+        self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
@@ -631,7 +631,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.pixelSize = self.scanRange/self.numberofPixels
 
-        self.pixelSizeValue.setText('{}'.format(np.around(
+        self.pixelSizeValue.setText('<strong>{0:.2e}'.format(np.around(
                         1000 * self.pixelSize, 2)))
 
 #        self.linetime = (1/1000)*float(

@@ -219,11 +219,9 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
 
-
-
-        self.onlyInt = QtGui.QIntValidator(0,10**6)
+        self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
-        self.onlypos = QtGui.QDoubleValidator(0, 10**6,10)
+        self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
