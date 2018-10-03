@@ -123,7 +123,7 @@ class ScanWidget(QtGui.QFrame):
         self.YZcheck.setChecked(False)
 
     # To save all images until stops
-        self.Alancheck = QtGui.QCheckBox('/"video/" save')
+        self.Alancheck = QtGui.QCheckBox('"video" save')
         self.Alancheck.setChecked(False)
 
     # to run continuously
@@ -325,7 +325,9 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.ROIButton, 2, 3)
         subgrid.addWidget(self.selectROIButton, 3, 3)
-        subgrid.addWidget(self.PointLabel, 6, 3)
+
+        subgrid.addWidget(self.PointButton, 6, 3)
+        subgrid.addWidget(self.PointLabel, 7, 3)
 # ---  Positioner part ---------------------------------
         # Axes control
         self.xLabel = QtGui.QLabel('0.0')
@@ -1854,12 +1856,13 @@ class ScanWidget(QtGui.QFrame):
     def PointStart(self):
         if self.PointButton.isChecked():
             self.PointProfile()
+            print("mide intensidad")
         else:
             self.pointtimer.stop()
-
+            print("listo")
     def PointProfile(self):
-        tiempo = 10 # ms
-        self.points = np.zeros((self.apdrate*(tiempo /10**3)))
+        tiempo = 250 # ms
+        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
         self.pointtask = nidaqmx.Task('pointtask')
 
         # Configure the counter channel to read the APD
@@ -1908,9 +1911,6 @@ class ScanWidget(QtGui.QFrame):
         self.NofPixels = self.numberofPixels
         self.pxSize = self.pixelSize
 
-        print("Estoy en", float(self.xLabel.text()), float(self.yLabel.text()),
-              float(self.zLabel.text()))
-
         array = self.roi.getArrayRegion(self.image, self.img)
         ROIpos = np.array(self.roi.pos())
 
@@ -1926,18 +1926,28 @@ class ScanWidget(QtGui.QFrame):
 #                                                      newPos_µm[1],
 #                                                      self.initialPos[2]))
 
-        self.xLabel.setText("{}".format((float(newPos_µm[0]))))
-        self.yLabel.setText("{}".format((float(newPos_µm[1]))))
-        self.zLabel.setText("{}".format((float(self.initialPosition[2]))))
+        print("estaba en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
-        print("Roi va a", float(self.xLabel.text()), float(self.yLabel.text()),
-              float(self.zLabel.text()))
+        self.moveto(float(newPos_µm[0]),
+                    float(newPos_µm[1]),
+                    float(self.initialPosition[2]))
+
+        print("ROI fue a", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()), "/n")
+
+#        self.xLabel.setText("{}".format((float(newPos_µm[0]))))
+#        self.yLabel.setText("{}".format((float(newPos_µm[1]))))
+#        self.zLabel.setText("{}".format((float(self.initialPosition[2]))))
+
+
         newRange_px = np.shape(array)[0]
         newRange_µm = self.pxSize * newRange_px
         newRange_µm = np.around(newRange_µm, 2)
 
+        print("cambio el rango de", self.scanRange)
         self.scanRangeEdit.setText('{}'.format(newRange_µm))
-
+        print("hasta :", self.scanRange, "/n")
         self.paramChanged()
 # %% FIN
 app = QtGui.QApplication([])
