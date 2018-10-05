@@ -39,6 +39,8 @@ detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
 COchans = [0,1]  # apd rojo y verde
 PMTchan = 1
+scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
+
 
 # %% ScanWidget
 class ScanWidget(QtGui.QFrame):
@@ -171,8 +173,8 @@ class ScanWidget(QtGui.QFrame):
 
     # Select the wanted scan mode
         self.scanMode = QtGui.QComboBox()
-        self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
-        self.scanMode.addItems(self.scanModes)
+#        self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
+        self.scanMode.addItems(scanModes)
 
     # Plot ramps scan button
         self.graphcheck = QtGui.QCheckBox('Scan Plot')
@@ -553,11 +555,11 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalValue.setText('{}'.format(np.around(
                          self.numberofPixels * self.linetime, 2)))
 
-        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
         # en el caso step no hay frecuencias
             print("Step time, very slow")
 
-        elif self.scanMode.currentText() == self.scanModes[2]:  # "full frec ramp":
+        elif self.scanMode.currentText() == scanModes[2]:  # "full frec ramp":
             self.sampleRate = (self.scanRange /resolucionDAQ) / (self.linetime)
             self.nSamplesrampa = int(np.ceil(self.scanRange /resolucionDAQ))
             print("a full resolucion\n",
@@ -571,7 +573,7 @@ class ScanWidget(QtGui.QFrame):
 
 #        print(self.linetime, "linetime\n")
 
-        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
             self.Steps()
             print(self.linetime, "linetime\n")
         else:
@@ -622,7 +624,7 @@ class ScanWidget(QtGui.QFrame):
     def liveviewStart(self):
 #        self.working = True
         self.openShutter("red")
-        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
             self.channelsOpenStep()
 #            self.inStart = False
             self.tic = ptime.time()
@@ -702,7 +704,7 @@ class ScanWidget(QtGui.QFrame):
         self.apdpostprocessing()
         self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
 
-        if self.scanMode.currentText() == self.scanModes[-1]:  # "slalom":
+        if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.backcounts[:])# + 5* np.random.rand(len(self.backcounts))  # ver si va el flip
             paso = 2
         else:
@@ -782,7 +784,7 @@ class ScanWidget(QtGui.QFrame):
         pixelsEnd = len(self.xini[:-1]) + self.numberofPixels
         self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]
         pixelsIniB = pixelsEnd+len(self.xchange[1:-1])
-        if self.scanMode.currentText() == self.scanModes[-1]:  # "slalom":
+        if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.PMT[pixelsIniB : -len(self.xstops[1:])])
             paso = 2
         else:
@@ -877,7 +879,7 @@ class ScanWidget(QtGui.QFrame):
         muchasrampasy = np.tile(rampay, (self.numberofPixels, 1))
         self.onerampy = np.zeros((self.numberofPixels, len(rampay)))
 
-        if self.scanMode.currentText() == self.scanModes[-1]:  # "slalom":  # Gotta go fast
+        if self.scanMode.currentText() == scanModes[-1]:  # "slalom":  # Gotta go fast
             fast=2
         else:
             fast=1
@@ -1065,7 +1067,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %% --- ChannelsOpen (todos)
     def channelsOpen(self):
-        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
             self.channelsOpenStep()
         else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
@@ -1156,7 +1158,7 @@ class ScanWidget(QtGui.QFrame):
             self.APD1task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(COchans[0]),
                                 name_to_assign_to_channel=u'conter_RED',
                                 initial_count=0)
-            if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+            if self.scanMode.currentText() == scanModes[1]:  # "step scan":
                 totalcinumber = self.Napd + 1
             else:
                 totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
@@ -1694,7 +1696,7 @@ class ScanWidget(QtGui.QFrame):
             startX = float(self.initialPosition[0])
             startY = float(self.initialPosition[1])
             startZ = float(self.initialPosition[2])
-            if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+            if self.scanMode.currentText() == scanModes[1]:  # "step scan":
                 maximox = self.allstepsx[-1,self.dy]
                 maximoy = self.allstepsy[-1,self.dy]
                 maximoz = self.allstepsz[-1,self.dy]
@@ -1725,7 +1727,7 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.stop()
             self.aotask.close()
 
-            if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
+            if self.scanMode.currentText() == scanModes[1]:  # "step scan":
                 self.channelsOpenStep()
             else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
