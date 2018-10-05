@@ -33,6 +33,12 @@ convFactors = {'x': 25, 'y': 25, 'z': 1.683}
 minVolt = {'x': -10, 'y': -10, 'z': 0}
 maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no errarle
+activeChannels = ["x", "y", "z"]
+AOchans = [0, 1, 2]  # x,y,z
+detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
+# detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
+COchans = [0,1]  # apd rojo y verde
+PMTchan = 1
 
 # %% ScanWidget
 class ScanWidget(QtGui.QFrame):
@@ -94,10 +100,6 @@ class ScanWidget(QtGui.QFrame):
         self.moveSamples = 1000  # samples to move
         self.moveRate = self.moveSamples / self.moveTime  # 10**5
 
-        self.activeChannels = ["x", "y", "z"]
-        self.AOchans = [0, 1, 2]
-#        self.COchans = 1  # cual APD uso;      lo cambie por botones
-
 #    # APD's detectors;                      los cambie por un desplegable
 #        self.APDred=QtGui.QRadioButton("APD red")
 #        self.APDred.setChecked(True)
@@ -113,14 +115,18 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
 
     # XZ PSF scan (or XY or YZ)
-        self.XYcheck = QtGui.QRadioButton('XY normal scan')
-        self.XYcheck.setChecked(True)
+#        self.XYcheck = QtGui.QRadioButton('XY normal scan')
+#        self.XYcheck.setChecked(True)
+#
+#        self.XZcheck = QtGui.QRadioButton('XZ psf scan')
+#        self.XZcheck.setChecked(False)
+#
+#        self.YZcheck = QtGui.QRadioButton('YZ psf scan')
+#        self.YZcheck.setChecked(False)
 
-        self.XZcheck = QtGui.QRadioButton('XZ psf scan')
-        self.XZcheck.setChecked(False)
-
-        self.YZcheck = QtGui.QRadioButton('YZ psf scan')
-        self.YZcheck.setChecked(False)
+        self.PSFMode = QtGui.QComboBox()
+        self.PSFModes = ['XY normal psf', 'XZ', 'YZ']
+        self.PSFMode.addItems(self.PSFModes)
 
     # To save all images until stops
         self.Alancheck = QtGui.QCheckBox('"video" save')
@@ -197,8 +203,8 @@ class ScanWidget(QtGui.QFrame):
 
     # Select the detector
         self.detectMode = QtGui.QComboBox()
-        self.detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
-        self.detectMode.addItems(self.detectModes)
+#        self.detectModes = ['APD red', 'APD green', 'both APDs', 'PMT']  lo agregue antes.
+        self.detectMode.addItems(detectModes)
 
     # ROI buttons
         self.roi = None
@@ -252,18 +258,21 @@ class ScanWidget(QtGui.QFrame):
 #        self.initialPositionEdit.textChanged.connect(self.paramChanged)
         self.acelerationEdit.textChanged.connect(self.paramChanged)
         self.vueltaEdit.textChanged.connect(self.paramChanged)
-        self.XYcheck.clicked.connect(self.paramChanged)
-        self.XZcheck.clicked.connect(self.paramChanged)
-        self.YZcheck.clicked.connect(self.paramChanged)
+
+#        self.XYcheck.clicked.connect(self.paramChanged)
+#        self.XZcheck.clicked.connect(self.paramChanged)
+#        self.YZcheck.clicked.connect(self.paramChanged)
 #        self.APDred.clicked.connect(self.paramChanged)
 #        self.APDgreen.clicked.connect(self.paramChanged)
 
-        self.scanMode.activated.connect(self.paramChanged)
         self.scanMode.activated.connect(self.done)
+        self.scanMode.activated.connect(self.paramChanged)
 
-        self.detectMode.activated.connect(self.paramChanged)
         self.detectMode.activated.connect(self.done)
+        self.detectMode.activated.connect(self.paramChanged)
 
+        self.PSFMode.activated.connect(self.done)
+        self.PSFMode.activated.connect(self.paramChanged)
 
         self.paramWidget = QtGui.QWidget()
 
@@ -275,10 +284,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
 
-        group1 = QtGui.QButtonGroup(self.paramWidget)
-        group1.addButton(self.XYcheck)
-        group1.addButton(self.XZcheck)
-        group1.addButton(self.YZcheck)
+#        group1 = QtGui.QButtonGroup(self.paramWidget)
+#        group1.addButton(self.XYcheck)
+#        group1.addButton(self.XZcheck)
+#        group1.addButton(self.YZcheck)
 
 #        group2 = QtGui.QButtonGroup(self.paramWidget)
 #        group2.addButton(self.APDred)
@@ -318,9 +327,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.Continouscheck, 11, 2)
         subgrid.addWidget(self.graphcheck, 12, 2)
         subgrid.addWidget(self.CMcheck, 13, 2)
-        subgrid.addWidget(self.XYcheck, 14, 2)
-        subgrid.addWidget(self.XZcheck, 15, 2)
-        subgrid.addWidget(self.YZcheck, 16, 2)
+#        subgrid.addWidget(self.XYcheck, 14, 2)
+#        subgrid.addWidget(self.XZcheck, 15, 2)
+#        subgrid.addWidget(self.YZcheck, 16, 2)
+        subgrid.addWidget(self.PSFMode, 15, 2)
 
 
         subgrid.addWidget(self.ROIButton, 2, 3)
@@ -498,12 +508,6 @@ class ScanWidget(QtGui.QFrame):
 # %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
-#        if self.detectMode .currentText() == 'APD red':
-##        if self.APDred.isChecked():
-#            self.COchan = 0
-#        elif self.detectMode .currentText() == 'APD yellow':
-##        elif self.APDgreen.isChecked():
-#            self.COchan = 1
 
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
@@ -666,18 +670,18 @@ class ScanWidget(QtGui.QFrame):
         paso = 1
 
     # The counter reads this numbers of points when the trigger starts
-        if self.detectMode .currentText() == 'APD red':
+        if self.detectMode .currentText() == detectModes[0]:
             self.APD[:] = self.APD1task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-        elif self.detectMode .currentText() == 'APD yellow':
+        elif self.detectMode .currentText() == detectModes[1]:
             self.APD[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-        elif self.detectMode .currentText() == 'both APDs':
+        elif self.detectMode .currentText() == detectModes[-2]:
             self.APD[:] = self.APD1task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
             self.APD2[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-        elif self.detectMode .currentText() == 'PMT':
+        elif self.detectMode .currentText() == detectModes[-1]:
             print("algo salio muy mal. entro a APDupdate, con la opcion PMT")
 
         # have to analize the signal from the counter
@@ -876,15 +880,18 @@ class ScanWidget(QtGui.QFrame):
 
         self.totalrampy = (self.onerampy.ravel())
 
-        if self.XYcheck.isChecked():
+        if self.PSFMode.currentText() == 'XY normal psf':
+#        if self.XYcheck.isChecked():
             print("escaneo x y normal R")
 
-        if self.XZcheck.isChecked():
+        elif self.PSFMode.currentText() == 'XZ':
+#        if self.XZcheck.isChecked():
             print("intercambio y por z R")
             self.totalrampz = self.totalrampy - startY + startZ
             self.totalrampy = np.ones(len(self.totalrampx)) * startY
 
-        if self.YZcheck.isChecked():
+        elif self.PSFMode.currentText() == 'YZ':
+#        if self.YZcheck.isChecked():
             print("intercambio x por z R")
             self.totalrampz = self.totalrampy - startY + startZ
             self.totalrampy = self.totalrampx - startX + startY
@@ -1088,12 +1095,12 @@ class ScanWidget(QtGui.QFrame):
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
-            for n in range(len(self.AOchans)):
+            for n in range(len(AOchans)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-                    min_val=minVolt[self.activeChannels[n]],
-                    max_val=maxVolt[self.activeChannels[n]])
+                    physical_channel='Dev1/ao%s' % AOchans[n],
+                    name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                    min_val=minVolt[activeChannels[n]],
+                    max_val=maxVolt[activeChannels[n]])
 
             self.piezoramp = True
             self.aotask.timing.cfg_samp_clk_timing(
@@ -1115,12 +1122,12 @@ class ScanWidget(QtGui.QFrame):
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
-            for n in range(len(self.AOchans)):
+            for n in range(len(AOchans)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-                    min_val=minVolt[self.activeChannels[n]],
-                    max_val=maxVolt[self.activeChannels[n]])
+                    physical_channel='Dev1/ao%s' % AOchans[n],
+                    name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                    min_val=minVolt[activeChannels[n]],
+                    max_val=maxVolt[activeChannels[n]])
 
     def APDOpen(self):
         if self.APDson:  # esto puede fallar cuando cambio de ramp a step
@@ -1132,7 +1139,7 @@ class ScanWidget(QtGui.QFrame):
             self.APD1task = nidaqmx.Task('APD1task')
 
             # Configure the counter channel to read the APD
-            self.APD1task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ct0',
+            self.APD1task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(COchans[0]),
                                 name_to_assign_to_channel=u'conter_RED',
                                 initial_count=0)
             if self.scanMode.currentText() == "step scan":
@@ -1148,8 +1155,8 @@ class ScanWidget(QtGui.QFrame):
             self.APD2task = nidaqmx.Task('APD2task')
 
             # Configure the counter channel to read the APD
-            self.APD2task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr1',
-                                name_to_assign_to_channel=u'conter_YELLOW',
+            self.APD2task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(COchans[1]),
+                                name_to_assign_to_channel=u'conter_GREEN',
                                 initial_count=0)
 #            if self.scanMode.currentText() == "step scan":
 #                totalcinumber = self.Napd + 1
@@ -1170,7 +1177,7 @@ class ScanWidget(QtGui.QFrame):
             self.PMTon = True
             self.PMTtask = nidaqmx.Task('PMTtask')
             self.PMTtask.ai_channels.add_ai_voltage_chan(
-                physical_channel='Dev1/ai1',
+                physical_channel='Dev1/ai{}'.format(PMTchan),
                 name_to_assign_to_channel='chan_PMT')
             self.PMTtask.timing.cfg_samp_clk_timing(
                     rate=self.sampleRate,
@@ -1399,17 +1406,19 @@ class ScanWidget(QtGui.QFrame):
         goz = np.ones(Npuntos) * startZ
         self.allstepsz = np.tile(goz,(self.numberofPixels,1))
 
-        if self.XYcheck.isChecked():
+        if self.PSFMode.currentText() == 'XY normal psf':
+#        if self.XYcheck.isChecked():
             print("escaneo x y normal S")
 
-        if self.XZcheck.isChecked():
+        elif self.PSFMode.currentText() == 'XZ':
+#        if self.XZcheck.isChecked():
             print("intercambio y por z S")
             self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
             goy= np.ones(len(self.allstepsx)) * startY
             self.allstepsy = np.tile(goy,(self.numberofPixels,1))
 
-
-        if self.YZcheck.isChecked():
+        elif self.PSFMode.currentText() == 'YZ':
+#        if self.YZcheck.isChecked():
             print("intercambio x por y S")
             self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
             self.allstepsy = self.allstepsx - startX + startY
@@ -1427,14 +1436,14 @@ class ScanWidget(QtGui.QFrame):
         N = self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
-                 for ax in self.activeChannels]
+                 for ax in activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 #        initPos = np.array(initPos, dtype=float)[:, np.newaxis]
 #        fullPos = np.repeat(initPos, N, axis=1)
 
         # make position ramp for moving axis
 #        ramp = np.linspace(0, dist, N)
-#        fullPos[self.activeChannels.index(axis)] += ramp
+#        fullPos[activeChannels.index(axis)] += ramp
 
 #        factors = np.array([convFactors['x'], convFactors['y'],
 #                           convFactors['z']])[:, np.newaxis]
@@ -1460,7 +1469,7 @@ class ScanWidget(QtGui.QFrame):
         print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
 
         # update position text
-#        newPos = fullPos[self.activeChannels.index(axis)][-1]
+#        newPos = fullPos[activeChannels.index(axis)][-1]
 #        newText = "{}".format(newPos)
 #        getattr(self, axis + "Label").setText(newText)
         self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
@@ -1549,7 +1558,7 @@ class ScanWidget(QtGui.QFrame):
 
     # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
-                 for ax in self.activeChannels]
+                 for ax in activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 
         if float(initPos[0]) != x or float(initPos[1]) != y or float(initPos[2]) != z:
@@ -1655,12 +1664,12 @@ class ScanWidget(QtGui.QFrame):
 
     #         Creates the voltage channels to move "slowly"
             self.aotask = nidaqmx.Task('aotask')
-            for n in range(len(self.AOchans)):
+            for n in range(len(AOchans)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % self.AOchans[n],
-                    name_to_assign_to_channel='chan_%s' % self.activeChannels[n],
-                    min_val=minVolt[self.activeChannels[n]],
-                    max_val=maxVolt[self.activeChannels[n]])
+                    physical_channel='Dev1/ao%s' % AOchans[n],
+                    name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                    min_val=minVolt[activeChannels[n]],
+                    max_val=maxVolt[activeChannels[n]])
 
             self.aotask.timing.cfg_samp_clk_timing(
                 rate=(self.moveRate),
@@ -1686,7 +1695,7 @@ class ScanWidget(QtGui.QFrame):
             volviendoy = np.linspace(maximoy, startY, self.moveSamples)
             volviendoz = np.linspace(maximoz, startZ, self.moveSamples)
 
-#            volviendotodo = np.zeros((len(self.AOchans), self.moveSamples))
+#            volviendotodo = np.zeros((len(AOchans), self.moveSamples))
 #            volviendotodo[0, :] = volviendox / convFactors['x']
 #            volviendotodo[1, :] = volviendoy / convFactors['y']
 #            volviendotodo[2, :] = volviendoz / convFactors['z']
@@ -1713,7 +1722,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %%--- ploting in live
     def plotLive(self):
-        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        texts = [getattr(self, ax + "Label").text() for ax in activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
         x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
         y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
@@ -1742,32 +1751,27 @@ class ScanWidget(QtGui.QFrame):
 # %%--- SaveFrame ---
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
-        if self.XYcheck.isChecked():
+        if self.PSFMode.currentText() == 'XY normal psf':
             scanmode = "XY"
-        if self.XZcheck.isChecked():
+        elif self.PSFMode.currentText() == 'XZ':
             scanmode = "XZ"
-        if self.YZcheck.isChecked():
+        elif self.PSFMode.currentText() == 'YZ':
             scanmode = "YZ"
 #        filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
-        if self.detectMode .currentText() == 'APD red':
-            name = str(self.file_path + "/RED-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-            guardado.save(name)
 
-        elif self.detectMode .currentText() == 'APD yellow':
-            name = str(self.file_path + "/YELLOW-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+        if self.detectMode .currentText() == detectModes[-2]:
+            name = str(self.file_path + "/" + detectModes[0] + "-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
-
-        elif self.detectMode .currentText() == 'both APDs':
-            name = str(self.file_path + "/RED-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-            guardado.save(name)
-            name = str(self.file_path + "/YELLOW-image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + detectModes[1] + "-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
             guardado.save(name)
 
+        else:
+            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+            guardado.save(name)
 
         print("\n Image saved\n")
 
@@ -1860,20 +1864,21 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.pointtimer.stop()
             print("fin")
+
     def PointProfile(self):
-        if self.detectMode .currentText() == 'APD red':
+        if self.detectMode .currentText() == detectModes[0]:
 #        if self.APDred.isChecked():
-            self.COchan = 0
-        elif self.detectMode .currentText() == 'APD yellow':
+            c = COchans[0]
+        elif self.detectMode .currentText() == detectModes[1]:
 #        elif self.APDgreen.isChecked():
-            self.COchan = 1
+            c = COchans[1]
 
         tiempo = 400 # ms
         self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
         self.pointtask = nidaqmx.Task('pointtask')
 
         # Configure the counter channel to read the APD
-        self.pointtask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(self.COchan),
+        self.pointtask.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(COchans[c]),
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
 
