@@ -192,7 +192,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.working = False
         self.shuttering = False
         self.shuttersignal = [False, False, False]
-        self.preseteado = False
+#        self.preseteado = False  Era por si fijaba los valores, pero no
 
     # Shutters buttons
         self.shutterredbutton = QtGui.QCheckBox('shutter Red')
@@ -272,7 +272,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.APDgreen.clicked.connect(self.paramChanged)
 
         self.scanMode.activated.connect(self.done)
-        self.scanMode.activated.connect(self.paramChanged)
+        self.scanMode.activated.connect(self.paramChangedCASI)
 
         self.detectMode.activated.connect(self.done)
         self.detectMode.activated.connect(self.paramChanged)
@@ -514,6 +514,15 @@ class ScanWidget(QtGui.QFrame):
 
 #    def startRutine(self):
 #        read algo
+
+    def paramChangedCASI(self):
+        if self.scanMode.currentText() == "slalom":
+            self.vueltaEdit.setText("1")
+            self.vueltaEdit.setStyleSheet(" background-color: red; ")
+        else:
+            self.vueltaEdit.setStyleSheet("{ background-color: }")
+        self.paramChanged()
+
 # %%--- paramChanged
     def paramChanged(self):
         """ Update the parameters when the user edit them """
@@ -544,26 +553,25 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalValue.setText('{}'.format(np.around(
                          self.numberofPixels * self.linetime, 2)))
 
-        if self.scanMode.currentText() == "step scan":
+        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
         # en el caso step no hay frecuencias
             print("Step time, very slow")
 
-        elif self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
-            self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
-            self.sampleRate = np.round(1 / self.pixelTime,9)  # self.apdrate
-            print("los Nsamples = Npix y 1/tpix la frecuencia\n",
-                  self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
-
-        elif self.scanMode.currentText() == "full frec ramp":
+        elif self.scanMode.currentText() == self.scanModes[2]:  # "full frec ramp":
             self.sampleRate = (self.scanRange /resolucionDAQ) / (self.linetime)
             self.nSamplesrampa = int(np.ceil(self.scanRange /resolucionDAQ))
             print("a full resolucion\n",
                   self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
 
+        else: #self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
+            self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
+            self.sampleRate = np.round(1 / self.pixelTime,9)  # self.apdrate
+            print("los Nsamples = Npix y 1/tpix la frecuencia\n",
+                  self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
 
 #        print(self.linetime, "linetime\n")
 
-        if self.scanMode.currentText() == "step scan":
+        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
             self.Steps()
             print(self.linetime, "linetime\n")
         else:
@@ -614,7 +622,7 @@ class ScanWidget(QtGui.QFrame):
     def liveviewStart(self):
 #        self.working = True
         self.openShutter("red")
-        if self.scanMode.currentText() == "step scan":
+        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
             self.channelsOpenStep()
 #            self.inStart = False
             self.tic = ptime.time()
@@ -637,9 +645,6 @@ class ScanWidget(QtGui.QFrame):
         self.MovetoStart()
         self.startingRamps()
         self.tic = ptime.time()
-#        if self.scanMode.currentText() == "slalom":
-#          self.fasttimer.start(self.reallinetime*10**3)
-#        else:
         self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
 
 
@@ -697,7 +702,7 @@ class ScanWidget(QtGui.QFrame):
         self.apdpostprocessing()
         self.image[:, -1-self.dy] = np.flip(self.counts[:],0)# + np.random.rand(len(self.counts))
 
-        if self.scanMode.currentText() == "slalom":
+        if self.scanMode.currentText() == self.scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.backcounts[:])# + 5* np.random.rand(len(self.backcounts))  # ver si va el flip
             paso = 2
         else:
@@ -777,7 +782,7 @@ class ScanWidget(QtGui.QFrame):
         pixelsEnd = len(self.xini[:-1]) + self.numberofPixels
         self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]
         pixelsIniB = pixelsEnd+len(self.xchange[1:-1])
-        if self.scanMode.currentText() == "slalom":
+        if self.scanMode.currentText() == self.scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.PMT[pixelsIniB : -len(self.xstops[1:])])
             paso = 2
         else:
@@ -872,7 +877,7 @@ class ScanWidget(QtGui.QFrame):
         muchasrampasy = np.tile(rampay, (self.numberofPixels, 1))
         self.onerampy = np.zeros((self.numberofPixels, len(rampay)))
 
-        if self.scanMode.currentText() == "slalom":  # Gotta go fast
+        if self.scanMode.currentText() == self.scanModes[-1]:  # "slalom":  # Gotta go fast
             fast=2
         else:
             fast=1
@@ -984,11 +989,11 @@ class ScanWidget(QtGui.QFrame):
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
 
-        if self.scanMode.currentText() == "slalom":  # (or Slalom mode)
-          self.vueltaEdit.setText("1")
-          self.vueltaEdit.setStyleSheet(" background-color: red; ")
-        else:
-          self.vueltaEdit.setStyleSheet("{ background-color: }")
+#        if self.scanMode.currentText() == "slalom":
+#            self.vueltaEdit.setText("1")
+#            self.vueltaEdit.setStyleSheet(" background-color: red; ")
+#        else:
+#            self.vueltaEdit.setStyleSheet("{ background-color: }")
 
         Vback = float(self.vueltaEdit.text())
 
@@ -1060,7 +1065,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %% --- ChannelsOpen (todos)
     def channelsOpen(self):
-        if self.scanMode.currentText() == "step scan":
+        if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
             self.channelsOpenStep()
         else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
@@ -1151,7 +1156,7 @@ class ScanWidget(QtGui.QFrame):
             self.APD1task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(COchans[0]),
                                 name_to_assign_to_channel=u'conter_RED',
                                 initial_count=0)
-            if self.scanMode.currentText() == "step scan":
+            if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
                 totalcinumber = self.Napd + 1
             else:
                 totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
@@ -1689,7 +1694,7 @@ class ScanWidget(QtGui.QFrame):
             startX = float(self.initialPosition[0])
             startY = float(self.initialPosition[1])
             startZ = float(self.initialPosition[2])
-            if self.scanMode.currentText() == "step scan":
+            if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
                 maximox = self.allstepsx[-1,self.dy]
                 maximoy = self.allstepsy[-1,self.dy]
                 maximoz = self.allstepsz[-1,self.dy]
@@ -1720,7 +1725,7 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.stop()
             self.aotask.close()
 
-            if self.scanMode.currentText() == "step scan":
+            if self.scanMode.currentText() == self.scanModes[1]:  # "step scan":
                 self.channelsOpenStep()
             else:
 #            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
@@ -1761,24 +1766,24 @@ class ScanWidget(QtGui.QFrame):
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
         if self.PSFMode.currentText() == 'XY normal psf':
-            scanmode = "XY"
+            psfmode = "XY"
         elif self.PSFMode.currentText() == 'XZ':
-            scanmode = "XZ"
+            psfmode = "XZ"
         elif self.PSFMode.currentText() == 'YZ':
-            scanmode = "YZ"
+            psfmode = "YZ"
 #        filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
 
         if self.detectMode .currentText() == detectModes[-2]:
-            name = str(self.file_path + "/" + detectModes[0] + "-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
-            name = str(self.file_path + "/" + detectModes[1] + "-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
             guardado.save(name)
 
         else:
-            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
 
@@ -1865,16 +1870,16 @@ class ScanWidget(QtGui.QFrame):
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
-# %% Point profile ---+--- Se puede elegir APD
+# %% Point scan ---+--- Se puede elegir APD
     def PointStart(self):
         if self.PointButton.isChecked():
-            self.PointProfile()
+            self.PointScan()
             print("midiendo")
         else:
             self.pointtimer.stop()
             print("fin")
 
-    def PointProfile(self):
+    def PointScan(self):
         if self.detectMode .currentText() == detectModes[0]:
 #        if self.APDred.isChecked():
             c = COchans[0]
@@ -1965,13 +1970,15 @@ class ScanWidget(QtGui.QFrame):
         newRange_µm = self.pxSize * newRange_px
         newRange_µm = np.around(newRange_µm, 2)
 
-        print("cambio el rango de", self.scanRange)
+        print("cambió el rango, de", self.scanRange)
         self.scanRangeEdit.setText('{}'.format(newRange_µm))
         print("hasta :", self.scanRange, "/n")
         self.paramChanged()
 
 # %% Presets copiados del inspector
     def Presets(self):
+        """ Elige convinaciones de parametros como los que usa el inspectora
+        para algunos de sus barridos"""
         if self.presetsMode .currentText() == self.presetsModes[0]:
             self.scanRangeEdit.setText('10')
             self.pixelTimeEdit.setText('0.01')
