@@ -241,6 +241,12 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode.addItems(self.scanModes)
         self.scanMode.currentIndexChanged.connect(self.paramChanged)
 
+    # Presets simil inspector
+        self.presetsMode = QtGui.QComboBox()
+        self.presetsModes = ['Manual', '500x0.01', '128x0.1']
+        self.presetsMode.addItems(self.presetsModes)
+        self.presetsMode.activated.connect(self.Presets)
+
         # no lo quiero cuadrado
 
 #        self.squareRadio = QtGui.QRadioButton('Cuadrado')
@@ -301,13 +307,13 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
 
-
-
         self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
         self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
+
+
 
 #        label_save = QtGui.QLabel('Nombre del archivo (archivo.tiff)')
 #        label_save.resize(label_save.sizeHint())
@@ -388,7 +394,7 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.stepcheck, 12, 1)
 #        subgrid.addWidget(self.squareRadio, 12, 2)
-
+        subgrid.addWidget(self.presetsMode, 15, 3)
 
 
         group1 = QtGui.QButtonGroup(self.paramWidget)
@@ -1313,6 +1319,33 @@ y guarde la imagen"""
     #        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
         else:
             print("nada")
+
+# %% Presets copiados del inspector
+    def Presets(self):
+        if self.presetsMode .currentText() == self.presetsModes[0]:
+            self.scanRangeEdit.setText('5')
+            self.pixelTimeEdit.setText('0.01')
+            self.numberofPixels.setText('100')
+
+
+        elif self.presetsMode .currentText() == self.presetsModes[1]:
+            self.scanRangeEdit.setText('100')
+            self.pixelTimeEdit.setText('0.2')
+            self.numberofPixels.setText('128')
+
+
+        elif self.presetsMode .currentText() == self.presetsModes[2]:
+            self.scanRangeEdit.setText('50')
+            self.pixelTimeEdit.setText('0.05')
+            self.numberofPixels.setText('250')
+
+        else:
+            print("nunca tiene que entrar aca")
+
+        self.paramChanged()
+#        self.preseteado = True    creo que no lo voy a usar
+
+#%%  FIN
 
 if __name__ == '__main__':
 

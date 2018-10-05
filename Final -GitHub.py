@@ -128,6 +128,11 @@ class ScanWidget(QtGui.QFrame):
         self.PSFModes = ['XY normal psf', 'XZ', 'YZ']
         self.PSFMode.addItems(self.PSFModes)
 
+    # Presets simil inspector
+        self.presetsMode = QtGui.QComboBox()
+        self.presetsModes = ['Manual', '10', '5']
+        self.presetsMode.addItems(self.presetsModes)
+
     # To save all images until stops
         self.Alancheck = QtGui.QCheckBox('"video" save')
         self.Alancheck.setChecked(False)
@@ -187,6 +192,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.working = False
         self.shuttering = False
         self.shuttersignal = [False, False, False]
+        self.preseteado = False
 
     # Shutters buttons
         self.shutterredbutton = QtGui.QCheckBox('shutter Red')
@@ -274,6 +280,9 @@ class ScanWidget(QtGui.QFrame):
         self.PSFMode.activated.connect(self.done)
         self.PSFMode.activated.connect(self.paramChanged)
 
+        self.presetsMode.activated.connect(self.done)
+        self.presetsMode.activated.connect(self.Presets)
+
         self.paramWidget = QtGui.QWidget()
 
         grid = QtGui.QGridLayout()
@@ -331,7 +340,7 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid.addWidget(self.XZcheck, 15, 2)
 #        subgrid.addWidget(self.YZcheck, 16, 2)
         subgrid.addWidget(self.PSFMode, 15, 2)
-
+        subgrid.addWidget(self.presetsMode, 15, 3)
 
         subgrid.addWidget(self.ROIButton, 2, 3)
         subgrid.addWidget(self.selectROIButton, 3, 3)
@@ -1960,6 +1969,34 @@ class ScanWidget(QtGui.QFrame):
         self.scanRangeEdit.setText('{}'.format(newRange_µm))
         print("hasta :", self.scanRange, "/n")
         self.paramChanged()
+
+# %% Presets copiados del inspector
+    def Presets(self):
+        if self.presetsMode .currentText() == self.presetsModes[0]:
+            self.scanRangeEdit.setText('10')
+            self.pixelTimeEdit.setText('0.01')
+            self.numberofPixels.setText('500')
+            self.acelerationEdit.setText('120')
+            self.vueltaEdit.setText('15')
+
+
+        elif self.presetsMode .currentText() == self.presetsModes[1]:
+            self.scanRangeEdit.setText('10')
+            self.pixelTimeEdit.setText('0.2')
+            self.numberofPixels.setText('128')
+            self.acelerationEdit.setText('0.1')
+            self.vueltaEdit.setText('1')
+
+        elif self.presetsMode .currentText() == self.presetsModes[2]:
+            self.scanRangeEdit.setText('5')
+            self.pixelTimeEdit.setText('0.05')
+            self.numberofPixels.setText('250')
+            self.acelerationEdit.setText('12')
+            self.vueltaEdit.setText('10')
+
+        self.paramChanged()
+#        self.preseteado = True    creo que no lo voy a usar
+
 # %% FIN
 app = QtGui.QApplication([])
 win = ScanWidget(device)
