@@ -131,7 +131,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
-        self.presetsModes = ['Manual', '10', '5']
+        self.presetsModes = ['Manual', '10', '5','4', 'slgo']
         self.presetsMode.addItems(self.presetsModes)
 
     # To save all images until stops
@@ -203,8 +203,8 @@ class ScanWidget(QtGui.QFrame):
         self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
         self.shutterSTEDbutton.clicked.connect(self.shutterSTED)
 
-        self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
-        self.shutterSTEDbutton.clicked.connect(self.checkShutters)
+#        self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
+#        self.shutterSTEDbutton.clicked.connect(self.checkShutters)
 
     # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
@@ -339,7 +339,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.selectROIButton, 3, 3)
         subgrid.addWidget(self.PointButton,      6, 3)
         subgrid.addWidget(self.PointLabel,      7, 3)
-        subgrid.addWidget(self.plotLivebutton,  10, 3)
+        subgrid.addWidget(self.plotLivebutton,  12, 3)
         subgrid.addWidget(self.presetsMode,    15, 3)
 
 # ---  Positioner part ---------------------------------
@@ -1610,20 +1610,21 @@ class ScanWidget(QtGui.QFrame):
 # %% ---  Shutters zone ---------------------------------
     def shutterred(self):
         if self.shutterredbutton.isChecked():
-            self.openShutter("red")
+            self.openShutter(shutters[0])
         else:
-            self.closeShutter("red")
+            self.closeShutter(shutters[0])
     def shutteryellow(self):
         if self.shutteryellowbutton.isChecked():
-            self.openShutter("yellow")
+            self.openShutter(shutters[2])
         else:
-            self.closeShutter("yellow")
+            self.closeShutter(shutters[2])
     def shutterSTED(self):
         if self.shutterSTEDbutton.isChecked():
-            self.openShutter("STED")
+            self.openShutter(shutters[1])
         else:
-            self.closeShutter("STED")
+            self.closeShutter(shutters[1])
 
+            
     def openShutter(self, p):
         self.shuttersnidaq()
 #        self.opendo()
@@ -2018,13 +2019,6 @@ class ScanWidget(QtGui.QFrame):
             self.vueltaEdit.setText('100')
 
         elif self.presetsMode .currentText() == self.presetsModes[4]:
-            self.scanRangeEdit.setText('3')
-            self.pixelTimeEdit.setText('0.1')
-            self.numberofPixelsEdit.setText('300')
-            self.acelerationEdit.setText('120')
-            self.vueltaEdit.setText('100')
-
-        elif self.presetsMode .currentText() == self.presetsModes[5]:
             self.scanRangeEdit.setText('3')
             self.pixelTimeEdit.setText('0.1')
             self.numberofPixelsEdit.setText('300')
