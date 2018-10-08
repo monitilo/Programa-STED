@@ -656,7 +656,7 @@ class ScanWidget(QtGui.QFrame):
             self.saveimageButton.setText('Scan and save')
             self.save = False
             self.MovetoStart()
-
+        print("liveStop")
         self.liveviewButton.setChecked(False)
         self.viewtimer.stop()
         self.steptimer.stop()
@@ -677,9 +677,10 @@ class ScanWidget(QtGui.QFrame):
 #        self.inStart = False
         print("ya arranca...")
 
-        if not self.detectMode.currentText() == "PMT":
+#        if not self.detectMode.currentText() == "PMT":
     # Starting the trigger. It have a controllable 'delay'
-            self.triggertask.write(self.trigger, auto_start=True)
+        self.triggertask.write(self.trigger, auto_start=True)
+
 
 # %% runing Ramp loop (APD)
     def APDupdateView(self):
@@ -693,10 +694,13 @@ class ScanWidget(QtGui.QFrame):
             self.APD[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
         elif self.detectMode .currentText() == detectModes[-2]:
+            print("apd1")
             self.APD[:] = self.APD1task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+            print("apd2")
             self.APD2[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+            print("los dos apds")
         elif self.detectMode .currentText() == detectModes[-1]:
             print("algo salio muy mal. entro a APDupdate, con la opcion PMT")
 
@@ -759,7 +763,8 @@ class ScanWidget(QtGui.QFrame):
                   self.liveviewStart()
               else:
                   self.MovetoStart()
-                  self.done()
+                  self.liveviewStop()
+
 
     def APDstop(self):
         try:
@@ -1179,7 +1184,7 @@ class ScanWidget(QtGui.QFrame):
 #            else:
 #                totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
 
-            self.ADP2task.timing.cfg_samp_clk_timing(
+            self.APD2task.timing.cfg_samp_clk_timing(
               rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
               source=r'100kHzTimebase',  # 1000k
               samps_per_chan = totalcinumber)
@@ -1207,6 +1212,7 @@ class ScanWidget(QtGui.QFrame):
             if self.triggerAPD:
                 self.triggertask.stop()
                 self.triggertask.close()
+                self.triggerAPD = False
 
             self.triggertask = nidaqmx.Task('TriggerPMTtask')
         # Create the signal trigger
@@ -1244,6 +1250,7 @@ class ScanWidget(QtGui.QFrame):
             if self.triggerPMT:
                 self.triggertask.stop()
                 self.triggertask.close()
+                self.triggerPMT = False
 
             self.triggertask = nidaqmx.Task('TriggerAPDtask')
         # Create the signal trigger
@@ -1330,6 +1337,8 @@ class ScanWidget(QtGui.QFrame):
         self.PMTon = False
         self.APDson = False
         self.triggeron = False # separo los canales en partes
+        self.triggerAPD = False
+        self.triggerPMT = False
 #        else:
 #            print("llego hasta el done pero no tenia nada que cerrar")
 #            # Esto no tendria que pasar
@@ -1597,7 +1606,7 @@ class ScanWidget(QtGui.QFrame):
             self.paramChanged()
 
             self.done()
-            self.channelsOpen()
+#            self.channelsOpen()
 
         else:
             print("¡YA ESTOY EN ESAS COORDENADAS!")
@@ -1615,7 +1624,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.closeShutter("yellow")
     def shutterSTED(self):
-        if self.shutterotrobutton.isChecked():
+        if self.shutterSTEDbutton.isChecked():
             self.openShutter("STED")
         else:
             self.closeShutter("STED")
@@ -1654,9 +1663,9 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.shutteryellowbutton.setChecked(False)
         if self.shuttersignal[2]:
-            self.shutterotrobutton.setChecked(True)
+            self.shutterSTEDbutton.setChecked(True)
         else:
-            self.shutterotrobutton.setChecked(False)
+            self.shutterSTEDbutton.setChecked(False)
 
     def shuttersnidaq(self):
         if self.shuttering == False:
@@ -1878,8 +1887,13 @@ class ScanWidget(QtGui.QFrame):
             self.PointScan()
             print("midiendo")
         else:
-            self.pointtimer.stop()
+            self.PointScanStop()
             print("fin")
+
+    def PointScanStop(self):
+        self.pointtimer.stop()
+        self.pointtask.stop()
+        self.pointtask.close()
 
     def PointScan(self):
         if self.detectMode .currentText() == detectModes[0]:
@@ -1974,7 +1988,7 @@ class ScanWidget(QtGui.QFrame):
 
         print("cambió el rango, de", self.scanRange)
         self.scanRangeEdit.setText('{}'.format(newRange_µm))
-        print("hasta :", self.scanRange, "/n")
+        print("hasta :", self.scanRange, "\n")
         self.paramChanged()
 
 # %% Presets copiados del inspector
@@ -1984,7 +1998,7 @@ class ScanWidget(QtGui.QFrame):
         if self.presetsMode .currentText() == self.presetsModes[0]:
             self.scanRangeEdit.setText('10')
             self.pixelTimeEdit.setText('0.01')
-            self.numberofPixels.setText('500')
+            self.numberofPixelsEdit.setText('500')
             self.acelerationEdit.setText('120')
             self.vueltaEdit.setText('15')
 
@@ -1992,14 +2006,14 @@ class ScanWidget(QtGui.QFrame):
         elif self.presetsMode .currentText() == self.presetsModes[1]:
             self.scanRangeEdit.setText('10')
             self.pixelTimeEdit.setText('0.2')
-            self.numberofPixels.setText('128')
+            self.numberofPixelsEdit.setText('128')
             self.acelerationEdit.setText('0.1')
             self.vueltaEdit.setText('1')
 
         elif self.presetsMode .currentText() == self.presetsModes[2]:
             self.scanRangeEdit.setText('5')
             self.pixelTimeEdit.setText('0.05')
-            self.numberofPixels.setText('250')
+            self.numberofPixelsEdit.setText('250')
             self.acelerationEdit.setText('12')
             self.vueltaEdit.setText('10')
 
