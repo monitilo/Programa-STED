@@ -243,8 +243,8 @@ class ScanWidget(QtGui.QFrame):
         self.numberofPixelsEdit = QtGui.QLineEdit('500')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
         self.pixelSizeValue = QtGui.QLabel('')
-        self.acelerationLabel = QtGui.QLabel('Acceleration (µm/ms^2)')
-        self.acelerationEdit = QtGui.QLineEdit('120')
+        self.accelerationLabel = QtGui.QLabel('Acceleration (µm/ms^2)')
+        self.accelerationEdit = QtGui.QLineEdit('120')
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
         self.vueltaEdit = QtGui.QLineEdit('15')
 
@@ -265,11 +265,11 @@ class ScanWidget(QtGui.QFrame):
 
 #        self.scanRangeEdit.textChanged.connect(self.paramChanged)
 #        self.pixelTimeEdit.textChanged.connect(self.paramChanged)
-#        self.acelerationEdit.textChanged.connect(self.paramChanged)
+#        self.accelerationEdit.textChanged.connect(self.paramChanged)
 #        self.vueltaEdit.textChanged.connect(self.paramChanged)
 
 #        self.scanMode.activated.connect(self.done)
-#        self.scanMode.activated.connect(self.paramChangedCASI)
+        self.scanMode.activated.connect(self.SlalomMode)
 #
 #        self.detectMode.activated.connect(self.done)
 #        self.detectMode.activated.connect(self.paramChanged)
@@ -323,8 +323,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.OpenButton,       2, 2)
         subgrid.addWidget(self.triggerLabel,      4, 2)
         subgrid.addWidget(self.triggerEdit,      5, 2)
-        subgrid.addWidget(self.acelerationLabel, 6, 2)
-        subgrid.addWidget(self.acelerationEdit,  7, 2)
+        subgrid.addWidget(self.accelerationLabel, 6, 2)
+        subgrid.addWidget(self.accelerationEdit,  7, 2)
         subgrid.addWidget(self.vueltaLabel,      8, 2)
         subgrid.addWidget(self.vueltaEdit,       9, 2)
         subgrid.addWidget(self.VideoCheck,      10, 2)
@@ -510,7 +510,7 @@ class ScanWidget(QtGui.QFrame):
 #    def startRutine(self):
 #        read algo
 
-    def paramChangedCASI(self):
+    def SlalomMode(self):
         if self.scanMode.currentText() == "slalom":
             self.vueltaEdit.setText("1")
             self.vueltaEdit.setStyleSheet(" background-color: red; ")
@@ -518,9 +518,33 @@ class ScanWidget(QtGui.QFrame):
             self.vueltaEdit.setStyleSheet("{ background-color: }")
 
 
-# %%--- paramChanged
+# %%--- paramChanged / PARAMCHANGEDinitialize
+    def paramChangedInitialize(self):
+        a = [self.scanRange, self.numberofPixels, self.pixelTime,
+             self.initialPosition, self.scanModeSet,self.PSFModeSet]
+        b = [float(self.scanRangeEdit.text()), int(self.numberofPixelsEdit.text()),
+             float(self.pixelTimeEdit.text()) / 10**3, (float(self.xLabel.text()),
+                  float(self.yLabel.text()), float(self.zLabel.text())),
+                  self.scanMode.currentText(), self.PSFMode.currentText()]
+        print("\n",a)
+        if a == b:
+            print("no cambió ningun parametro\n")
+        else:
+            print("pasaron cosas\n")
+            self.paramChanged()
+
+#a = [10,500,0.01,[1,2,3],'Step','XY']
+#ini=[1,2,3]
+#algo='Step'
+#PSF='XY'
+#b = [10,500,0.01,ini,algo,PSF]
+#a==b
+
     def paramChanged(self):
         """ Update the parameters when the user edit them """
+
+        self.scanModeSet = self.scanMode.currentText()
+        self.PSFModeSet = self.PSFMode.currentText()
 
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
@@ -551,31 +575,38 @@ class ScanWidget(QtGui.QFrame):
         if self.scanMode.currentText() == scanModes[1]:  # "step scan":
         # en el caso step no hay frecuencias
             print("Step time, very slow")
-
-        elif self.scanMode.currentText() == scanModes[2]:  # "full frec ramp":
-            self.sampleRate = (self.scanRange /resolucionDAQ) / (self.linetime)
-            self.nSamplesrampa = int(np.ceil(self.scanRange /resolucionDAQ))
-            print("a full resolucion\n",
-                  self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
-
-        else: #self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
-            self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
-            self.sampleRate = np.round(1 / self.pixelTime,9)  # self.apdrate
-            print("los Nsamples = Npix y 1/tpix la frecuencia\n",
-                  self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
-
-#        print(self.linetime, "linetime\n")
-
-        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
             self.Steps()
-            print(self.linetime, "linetime\n")
+#            print(self.linetime, "linetime\n")
+
         else:
-#        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
+            if self.scanMode.currentText() == scanModes[2]:  # "full frec ramp":
+                self.sampleRate = (self.scanRange /resolucionDAQ) / (self.linetime)
+                self.nSamplesrampa = int(np.ceil(self.scanRange /resolucionDAQ))
+                print("a full resolucion\n",
+                      self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
+
+            else: #self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "slalom":
+                self.nSamplesrampa = self.numberofPixels  # self.apdrate*self.linetime
+                self.sampleRate = np.round(1 / self.pixelTime,9)  # self.apdrate
+                print("los Nsamples = Npix y 1/tpix la frecuencia\n",
+                      self.nSamplesrampa, "Nsamples", self.sampleRate, "sampleRate")
             self.Ramps()
             self.reallinetime = len(self.onerampx) * self.pixelTime  # seconds
             print(self.linetime, "linetime")
             print(self.reallinetime, "reallinetime\n")
             self.PMT = np.zeros(len(self.onerampx))
+        print(self.linetime, "linetime\n")
+
+#        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
+##            self.Steps()
+#            print(self.linetime, "linetime\n")
+#        else:
+##        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
+#            self.Ramps()
+#            self.reallinetime = len(self.onerampx) * self.pixelTime  # seconds
+#            print(self.linetime, "linetime")
+#            print(self.reallinetime, "reallinetime\n")
+#            self.PMT = np.zeros(len(self.onerampx))
 
 
         self.zeroImage()
@@ -610,13 +641,14 @@ class ScanWidget(QtGui.QFrame):
         """
         if self.liveviewButton.isChecked():
             self.save = False
+            self.paramChangedInitialize()
             self.liveviewStart()
         else:
             self.liveviewStop()
 
     def liveviewStart(self):
 #        self.working = True
-        self.paramChanged()
+#        self.paramChangedInitialize()
         self.openShutter("red")
         if self.scanMode.currentText() == scanModes[1]:  # "step scan":
             self.channelsOpenStep()
@@ -938,7 +970,7 @@ class ScanWidget(QtGui.QFrame):
             evf = (-(self.pixelsoffR + self.pixelsoffB) + (i+1)) * Napd
             self.backcounts[i] = self.APD[evf] - self.APD[evi]
 
-##### puede fallar en la primer y/o ultima fila. YA NO FALLA, ANDA TODO bien
+#  puede fallar en la primer y/o ultima fila. YA NO FALLA, ANDA TODO bien
         try:
             if self.pixelsoffL == 0:
                 self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
@@ -950,7 +982,7 @@ class ScanWidget(QtGui.QFrame):
                 ef = ((self.pixelsoffL+i+1) * Napd)-1
                 self.counts2[i] = self.APD2[ef] - self.APD2[ei]
 
-            # Lo que sigue esta en creacion, para la imagen de vuelta
+    # Lo que sigue esta en creacion, para la imagen de vuelta
 
             for i in range(len(self.backcounts2)):  # len(back...)= pixelsoffB
     #            evi = ((self.pixelsoffR + i + 1) * Napd)
@@ -960,12 +992,13 @@ class ScanWidget(QtGui.QFrame):
                 self.backcounts2[i] = self.APD2[evf] - self.APD2[evi]
         except:
             pass
+
 # %%-------Aceleracion----------------------------------------------
     def acceleration(self):
         """ it creates the smooths-edge signals to send to the piezo
         It´s just an u.a.r.m. movement equation"""  # MRUV
     #        aceleracion = 120  # µm/ms^2  segun inspector
-        aceleration = float(self.acelerationEdit.text())  # editable
+        acceleration = float(self.accelerationEdit.text())  # editable
         T = self.numberofPixels * self.pixelTime * 10**3  # all in ms
         velocity = (self.scanRange / T)
         rate = self.sampleRate*10**-3
@@ -975,13 +1008,13 @@ class ScanWidget(QtGui.QFrame):
 #        R=5
 #        T=50*0.01
 #        velocity=R/T
-        ti = velocity / aceleration
+        ti = velocity / acceleration
         xipuntos = int(np.ceil(ti * rate))
 
         xini = np.zeros(xipuntos)
         tiempoi = np.linspace(0,ti,xipuntos)
         for i in range(xipuntos):
-            xini[i] = 0.5*aceleration*((tiempoi[i])**2) + startX
+            xini[i] = 0.5*acceleration*((tiempoi[i])**2) + startX
 
 #        xr = xini[-1] + R
 
@@ -997,15 +1030,15 @@ class ScanWidget(QtGui.QFrame):
         Vback = float(self.vueltaEdit.text())
 
     # impongo una velocidad de vuelta Vback veces mayor a la de ida
-        tcasi = ((1+Vback) * velocity) / aceleration  # -a*t + V = -Vback*V
+        tcasi = ((1+Vback) * velocity) / acceleration  # -a*t + V = -Vback*V
         xchangepuntos = int(np.ceil(tcasi * rate))
         tiempofin = np.linspace(0, tcasi, xchangepuntos)
         xchange = np.zeros(xchangepuntos)
         for i in range(xchangepuntos):
-            xchange[i] = (-0.5*aceleration*((tiempofin[i])**2) + velocity * (tiempofin[i]) ) + xr
+            xchange[i] = (-0.5*acceleration*((tiempofin[i])**2) + velocity * (tiempofin[i]) ) + xr
 
     # After the wanted ramp, it get a negative acceleration:
-        av = aceleration
+        av = acceleration
         tlow = Vback*velocity/av
         xlow = 0.5*av*(tlow**2) + startX
         Nvuelta = abs(int(np.round(((xchange[-1]-xlow)/(Vback*velocity)) * (rate))))
@@ -1993,7 +2026,7 @@ class ScanWidget(QtGui.QFrame):
             self.scanRangeEdit.setText('10')
             self.pixelTimeEdit.setText('0.01')
             self.numberofPixelsEdit.setText('500')
-            self.acelerationEdit.setText('120')
+            self.accelerationEdit.setText('120')
             self.vueltaEdit.setText('15')
 
 
@@ -2001,28 +2034,28 @@ class ScanWidget(QtGui.QFrame):
             self.scanRangeEdit.setText('10')
             self.pixelTimeEdit.setText('0.2')
             self.numberofPixelsEdit.setText('128')
-            self.acelerationEdit.setText('0.1')
+            self.accelerationEdit.setText('0.1')
             self.vueltaEdit.setText('1')
 
         elif self.presetsMode .currentText() == self.presetsModes[2]:
             self.scanRangeEdit.setText('5')
             self.pixelTimeEdit.setText('0.05')
             self.numberofPixelsEdit.setText('250')
-            self.acelerationEdit.setText('12')
+            self.accelerationEdit.setText('12')
             self.vueltaEdit.setText('10')
 
         elif self.presetsMode .currentText() == self.presetsModes[3]:
             self.scanRangeEdit.setText('0.6')
             self.pixelTimeEdit.setText('0.2')
             self.numberofPixelsEdit.setText('30')
-            self.acelerationEdit.setText('120')
+            self.accelerationEdit.setText('120')
             self.vueltaEdit.setText('100')
 
         elif self.presetsMode .currentText() == self.presetsModes[4]:
             self.scanRangeEdit.setText('3')
             self.pixelTimeEdit.setText('0.1')
             self.numberofPixelsEdit.setText('300')
-            self.acelerationEdit.setText('120')
+            self.accelerationEdit.setText('120')
             self.vueltaEdit.setText('100')
 
 #        self.paramChanged()

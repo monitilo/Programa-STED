@@ -239,13 +239,17 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['step scan', 'ramp scan', 'otro scan']
         self.scanMode.addItems(self.scanModes)
-        self.scanMode.currentIndexChanged.connect(self.paramChanged)
+#        self.scanMode.currentIndexChanged.connect(self.paramChanged)
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
         self.presetsModes = ['Manual', '500x0.01', '128x0.1']
         self.presetsMode.addItems(self.presetsModes)
         self.presetsMode.activated.connect(self.Presets)
+
+    # to run continuously
+        self.Continouscheck = QtGui.QCheckBox('Continous')
+        self.Continouscheck.setChecked(False)
 
         # no lo quiero cuadrado
 
@@ -320,13 +324,13 @@ class ScanWidget(QtGui.QFrame):
 #        self.edit_save = QtGui.QLineEdit('imagenScan.tiff')
 #        self.edit_save.resize(self.edit_save.sizeHint())
 
-        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
-#        self.scanRangexEdit.textChanged.connect(self.squarex)
-#        self.scanRangeyEdit.textChanged.connect(self.squarey)
-        self.scanRangeEdit.textChanged.connect(self.paramChanged)
-#        self.scanRangeyEdit.textChanged.connect(self.paramChanged)
-        self.pixelTimeEdit.textChanged.connect(self.paramChanged)
-#        self.initialPositionEdit.textChanged.connect(self.paramChanged)
+#        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
+##        self.scanRangexEdit.textChanged.connect(self.squarex)
+##        self.scanRangeyEdit.textChanged.connect(self.squarey)
+#        self.scanRangeEdit.textChanged.connect(self.paramChanged)
+##        self.scanRangeyEdit.textChanged.connect(self.paramChanged)
+#        self.pixelTimeEdit.textChanged.connect(self.paramChanged)
+##        self.initialPositionEdit.textChanged.connect(self.paramChanged)
 
 #        initialPosition = np.array(
 #                self.initialPositionEdit.text().split(' '))
@@ -347,8 +351,8 @@ class ScanWidget(QtGui.QFrame):
         self.CMyValue = QtGui.QLabel('NaN')
         self.a = QtGui.QLineEdit('-1.5')
         self.b = QtGui.QLineEdit('-1.5')
-        self.a.textChanged.connect(self.paramChanged)
-        self.b.textChanged.connect(self.paramChanged)
+#        self.a.textChanged.connect(self.paramChanged)
+#        self.b.textChanged.connect(self.paramChanged)
 
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
         self.plotLivebutton.setChecked(False)
@@ -396,6 +400,7 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid.addWidget(self.squareRadio, 12, 2)
         subgrid.addWidget(self.presetsMode, 15, 3)
 
+        subgrid.addWidget(self.Continouscheck,  11, 2)
 
         group1 = QtGui.QButtonGroup(self.paramWidget)
         group1.addButton(self.XYcheck)
@@ -611,7 +616,23 @@ class ScanWidget(QtGui.QFrame):
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
 
-# %% paramChanged
+# %%--- paramChanged / PARAMCHANGEDinitialize
+    def paramChangedInitialize(self):
+        a = [self.scanRange, self.numberofPixels, self.pixelTime,
+             self.initialPosition, self.scanModeSet,self.a,self.b]
+        b = [float(self.scanRangeEdit.text()), int(self.numberofPixelsEdit.text()),
+             float(self.pixelTimeEdit.text()) / 10**3, (float(self.xLabel.text()),
+                  float(self.yLabel.text()), float(self.zLabel.text())),
+                  self.scanMode.currentText(),float(self.a.text()),
+                  float(self.b.text())]
+        print("\n",a)
+        print(b,"\n")
+        if a == b:
+            print("\n no cambió ningun parametro\n")
+        else:
+            print("\n pasaron cosas\n")
+            self.paramChanged()
+
     def paramChanged(self):
 #        if self.detectMode.currentText() == "APD red":
 #            self.COchan = 0
@@ -621,6 +642,10 @@ class ScanWidget(QtGui.QFrame):
 #            self.COchan = 0
 #        elif self.APDgreen.isChecked():
 #            self.COchan = 1
+
+        self.scanModeSet = self.scanMode.currentText()
+#        self.PSFModeSet = self.PSFMode.currentText()
+
         self.scanRange = float(self.scanRangeEdit.text())
 #        self.scanRangey = self.scanRangex  # float(self.scanRangeyEdit.text())
 
@@ -669,7 +694,7 @@ y guarde la imagen"""
             self.save = True
             self.liveviewButton.setChecked(False)
 #            self.channelsOpen()
-            self.movetoStart()
+            self.MovetoStart()
             self.saveimageButton.setText('Abort')
             self.guarda = np.zeros((self.numberofPixels, self.numberofPixels))
             self.liveviewStart()
@@ -695,6 +720,7 @@ y guarde la imagen"""
         """ Image live view when not recording"""
         if self.liveviewButton.isChecked():
             self.save = False
+            self.paramChangedInitialize()
             self.openShutter("red")
             self.liveviewStart()
 
@@ -763,27 +789,32 @@ y guarde la imagen"""
                 # no es necesario crear guarda. self.image es lo mismo
                 self.i = self.i + self.step
             else:
-                print(self.i,"i")
+#                print(self.i,"i")
                 self.guardarimagen()
                 if self.CMcheck.isChecked():
                   self.CMmeasure()
 
                 self.saveimageButton.setText('Fin')  # ni se ve
                 self.liveviewStop()
-                self.movetoStart()
+                self.MovetoStart()
 
         else:
             if self.i < self.numberofPixels-self.step:
                 self.i = self.i + self.step
             else:
-                print(self.i,"i")
+#                print(self.i,"i")
 #                self.i = 0
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
                 if self.CMcheck.isChecked():
                     self.CMmeasure()
-                self.movetoStart()
-                self.viewtimer.start(self.linetime)
+#                self.viewtimer.stop()
+                self.MovetoStart()
+                if self.Continouscheck.isChecked():
+                    self.liveviewStart()
+                else:
+                    self.liveviewStop()
+
 
 # %% Barridos
     def barridos(self):
@@ -821,7 +852,7 @@ y guarde la imagen"""
     #        print("linea")
 
 # %% MovetoStart
-    def movetoStart(self):
+    def MovetoStart(self):
 #        self.inputImage = 1 * np.random.normal(
 #                    size=(self.numberofPixels, self.numberofPixels))
         t = self.moveTime
@@ -1201,7 +1232,8 @@ y guarde la imagen"""
         
         else:
             self.liveviewButton.setChecked(True)
-            self.liveviewStart()
+            self.liveview()
+#            self.liveviewStart()
 
 ## %% selectfolder
 #    def openFolder(self):
