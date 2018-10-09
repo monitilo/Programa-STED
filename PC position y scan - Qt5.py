@@ -24,6 +24,8 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 
+from scipy import ndimage
+from scipy import optimize
 
 device = 9
 convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
@@ -39,6 +41,38 @@ def makeRamp(start, end, samples):
 #from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
 #from PyQt5.QtCore import QSize
 #from PyQt5.QtGui import QIcon
+# %% Otras Funciones
+def gaussian(height, center_x, center_y, width_x, width_y):
+    """Returns a gaussian function with the given parameters"""
+    width_x = float(width_x)
+    width_y = float(width_y)
+    return lambda x,y: height*np.exp(
+                -(((center_x-x)/width_x)**2+((center_y-y)/width_y)**2)/2)
+
+def moments(data):
+    """Returns (height, x, y, width_x, width_y)
+    the gaussian parameters of a 2D distribution by calculating its
+    moments """
+    total = data.sum()
+    X, Y = np.indices(data.shape)
+    x = (X*data).sum()/total
+    y = (Y*data).sum()/total
+    col = data[:, int(y)]
+    width_x = np.sqrt(np.abs((np.arange(col.size)-y)**2*col).sum()/col.sum())
+    row = data[int(x), :]
+    width_y = np.sqrt(np.abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
+    height = data.max()
+    return height, x, y, width_x, width_y
+
+def fitgaussian(data):
+    """Returns (height, x, y, width_x, width_y)
+    the gaussian parameters of a 2D distribution found by a fit"""
+    params = moments(data)
+    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) -
+                                 data)
+    p, success = optimize.leastsq(errorfunction, params)
+    return p
+
 # %% Main Window
 class MainWindow(QtWidgets.QMainWindow):
     def newCall(self):
@@ -271,9 +305,14 @@ class ScanWidget(QtGui.QFrame):
         self.Alancheck = QtGui.QCheckBox('Alan continous save')
         self.Alancheck.setChecked(False)
 
+    # Calcula el centro de la particula
         self.CMcheck = QtGui.QCheckBox('calcula CM')
         self.CMcheck.setChecked(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
+
+        self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
+        self.Gausscheck.setChecked(False)
+        self.Gausscheck.clicked.connect(self.GaussMeasure)
     # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
 
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
@@ -354,9 +393,17 @@ class ScanWidget(QtGui.QFrame):
 #        self.a.textChanged.connect(self.paramChanged)
 #        self.b.textChanged.connect(self.paramChanged)
 
+        self.GaussxLabel = QtGui.QLabel('Gauss fit X')
+        self.GaussxValue = QtGui.QLabel('NaN G')
+        self.GaussyLabel = QtGui.QLabel('Gauss fit Y')
+        self.GaussyValue = QtGui.QLabel('NaN G')
+
+
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
+#        self.plotLivebutton.clicked.connect(self.otroPlot)
+
 
         self.paramChanged()
 
@@ -441,6 +488,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.plotLivebutton, 6, 2)
 
         subgrid.addWidget(self.CMcheck, 8, 2)
+        subgrid.addWidget(self.Gausscheck, 8, 3)
+
 # --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -507,6 +556,11 @@ class ScanWidget(QtGui.QFrame):
         self.ygotoLabel.setValidator(self.onlypos)
         self.zgotoLabel.setValidator(self.onlypos)
 
+
+        layout2.addWidget(self.GaussxLabel, 4, 10)
+        layout2.addWidget(self.GaussxValue, 5, 10)
+        layout2.addWidget(self.GaussyLabel, 4, 11)
+        layout2.addWidget(self.GaussyValue, 5, 11)
 
 
         # Nueva interface mas comoda!
@@ -619,12 +673,11 @@ class ScanWidget(QtGui.QFrame):
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
         a = [self.scanRange, self.numberofPixels, self.pixelTime,
-             self.initialPosition, self.scanModeSet,self.a,self.b]
+             self.initialPosition, self.scanModeSet]
         b = [float(self.scanRangeEdit.text()), int(self.numberofPixelsEdit.text()),
              float(self.pixelTimeEdit.text()) / 10**3, (float(self.xLabel.text()),
                   float(self.yLabel.text()), float(self.zLabel.text())),
-                  self.scanMode.currentText(),float(self.a.text()),
-                  float(self.b.text())]
+                  self.scanMode.currentText()]
         print("\n",a)
         print(b,"\n")
         if a == b:
@@ -767,7 +820,7 @@ y guarde la imagen"""
 
         if self.step == 1:
             self.lineData = self.cuentas # self.inputImage[:, self.dy] 
-            self.image[:, -1-self.i] = np.flip(self.lineData,0)
+            self.image[:, -1-self.i] = self.lineData  # f
         else:
             cuentas2 = np.split(self.cuentas, 2)
             self.lineData = cuentas2[0] # self.inputImage[:, self.dy] 
@@ -775,8 +828,8 @@ y guarde la imagen"""
 
     #        self.lineData = self.inputImage[:, self.i]  # + 2.5*self.i
     #        lineData2 = self.inputImage[:, self.i + 1]
-            self.image[:, self.numberofPixels-1-self.i] = np.flip(self.lineData,0)
-            self.image[:, self.numberofPixels-2-self.i] = np.flip(lineData2,0)
+            self.image[:, self.numberofPixels-1-self.i] = self.lineData  # f
+            self.image[:, self.numberofPixels-2-self.i] = lineData2  # f
 
 #        self.image[25, self.i] = 333
 #        self.image[9, -self.i] = 333
@@ -802,13 +855,15 @@ y guarde la imagen"""
             if self.i < self.numberofPixels-self.step:
                 self.i = self.i + self.step
             else:
-#                print(self.i,"i")
+                print(self.i==self.numberofPixels-1,"i")
 #                self.i = 0
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
                 if self.CMcheck.isChecked():
                     self.CMmeasure()
-#                self.viewtimer.stop()
+                if self.Gausscheck.isChecked():
+                    self.GaussMeasure()
+                self.viewtimer.stop()
                 self.MovetoStart()
                 if self.Continouscheck.isChecked():
                     self.liveviewStart()
@@ -830,14 +885,14 @@ y guarde la imagen"""
         for i in range(N):
             for j in range(N):
                 if Z[i,j]<0:
-                    Z[i,j]=0
+                    Z[i,j]=0.1
         self.Z = Z
         print("barridos")
 
     def linea(self):
         Z=self.Z
         if self.step == 1:
-            self.cuentas = Z[self.i,:] * np.random.normal(size=(1, self.numberofPixels))[0]
+            self.cuentas = Z[self.i,:] * abs(np.random.normal(size=(1, self.numberofPixels))[0])
             for i in range(self.numberofPixels):
                 borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
@@ -1198,9 +1253,9 @@ y guarde la imagen"""
     def plotLive(self):
         texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-        x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
-        y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
-        X, Y = np.meshgrid(x, y)
+        xv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+        yv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(xv, yv)
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
         cb = fig.colorbar(p)
@@ -1220,8 +1275,48 @@ y guarde la imagen"""
                                          self.ycm*Normal+float(initPos[1])))
         except:
             pass
+        try:
+
+            (height, x, y, width_x, width_y) = self.params
+            resol = 2
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(xv[int(x)+i],yv[int(y)+j],"◘",color='m')
+
+            plt.text(0.95, 0.05, """
+            x : %.1f
+            y : %.1f """ %(xv[int(x)], yv[int(y)]),
+                    fontsize=16, horizontalalignment='right',
+                    verticalalignment='bottom', transform=ax.transAxes)
+
+        except:
+            pass
         plt.show()
 
+    def otroPlot(self):
+        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+        xv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+        yv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(xv, yv)
+        try:
+            plt.matshow(self.data, cmap=plt.cm.gist_earth_r)
+            plt.colorbar()
+    
+            plt.contour(self.fit(*np.indices(self.data.shape)), cmap=plt.cm.copper)
+            ax = plt.gca()
+            (height, x, y, width_x, width_y) = self.params
+
+            plt.text(0.95, 0.05, """
+            x : %.1f
+            y : %.1f
+            width_x : %.1f
+            width_y : %.1f""" %(xv[int(x)], yv[int(y)], width_x, width_y),
+                    fontsize=16, horizontalalignment='right',
+                    verticalalignment='bottom', transform=ax.transAxes)
+            print("x",xv[int(x)])
+        except:
+            pass
 
     def liveviewKey(self):
         '''Triggered by the liveview shortcut.'''
@@ -1262,95 +1357,45 @@ y guarde la imagen"""
 #            elif sys.platform == 'win32':
 #                os.startfile(self.dataDir)
 
+# %% GaussMeasure 
+    def GaussMeasure(self):
+        tic = ptime.time()
+        self.data = self.image
+        params = fitgaussian(self.data)
+        self.fit = gaussian(*params)
+        self.params = params
+        (height, x, y, width_x, width_y) = params
+
+        tac = ptime.time()
+        print(np.round((tac-tic)*10**3,3), "(ms)solo Gauss\n")
+#        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+#        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+#        xv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+#        yv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+
+        Normal = self.scanRange / self.numberofPixels  # Normalizo
+        xx = x*Normal
+        yy = y*Normal
+        self.GaussxValue.setText(str(xx))
+        self.GaussyValue.setText(str(yy))
+
 # %%--- CM measure
     def CMmeasure(self):
-        if self.i  == self.numberofPixels-1:
-            self.viewtimer.stop()
-            from scipy import ndimage
-            I = self.image
-            N = len(I)
-    #        xcm = 0
-    #        ycm = 0
-    #        for i in range(N):
-    #            for j in range(N):
-    ##                if Z[i,j]<0:
-    ##                    Z[i,j]=0
-    #                xcm = xcm + (Z[i,j]*i)
-    #                ycm = ycm + (Z[i,j]*j)
-    #        M = np.sum(Z)
-    #        xcm = xcm/M
-    #        ycm = ycm/M
-            xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
-            print("Xcm=", xcm,"\nYcm=", ycm)
-            self.xcm = xcm
-            self.ycm = ycm
-    #        if self.shuttergreenbutton.isChecked():
-    #            xc = int(np.round(self.xcm,2))
-    #            yc = int(np.round(self.ycm,2))
-    #            texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
-    #            initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-    #            x = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
-    #            y = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
-    #            X, Y = np.meshgrid(x, y)
-    #            fig, ax = plt.subplots()
-    #            p = ax.pcolor(X, Y, Z, cmap=plt.cm.jet)
-    #            cb = fig.colorbar(p)
-    #            ax.set_xlabel('x [um]')
-    #            ax.set_ylabel('y [um]')
-    
-    ##            xcm = 0
-    ##            ycm = 0
-    ##            for i in range(N):
-    ##                for j in range(N):
-    ##                    xcm = xcm + (Z[i,j]*i)
-    ##                    ycm = ycm + (Z[i,j]*j)
-    ##            xcm = xcm/np.sum(Z)
-    ##            ycm = ycm/np.sum(Z)
-    ##            
-    ##            print("Xcm=", xcm,"\nYcm=", ycm)
-    ##            xc2 = int(np.round(xcm,2))
-    ##            yc2 = int(np.round(ycm,2))
-    
-    #            resol = 2
-    #            X2=X#np.transpose(np.flip(X,1))
-    #            Y2=Y#np.transpose(np.flip(Y,1))
-    #            for i in range(resol):
-    #                for j in range(resol):
-    #                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='w')
-    ##                    ax.text(X2[xc2+i,yc2+j],Y2[xc2+i,yc2+j],"☼",color='w')
-    #            plt.show()
-    
-    #        xc = int(np.round(xcm,2))
-    #        yc = int(np.round(ycm,2))
-    
-            Normal = self.scanRange / self.numberofPixels  # Normalizo
-            self.CMxValue.setText(str(xcm*Normal))
-            self.CMyValue.setText(str(ycm*Normal))
-    
-    ##        resol = 2
-    ##        for i in range(resol):
-    ##            for j in range(resol):
-    ##                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
-    
-    #        lomas = np.max(Z)
-    #        Npasos = 4
-    #        paso = lomas/Npasos
-    #        tec=time.time()
-    #        SZ = Z.ravel()
-    #        mapa = np.zeros((N,N))
-    #        Smapa = mapa.ravel()
-    #        for i in range(len(SZ)):
-    #            if SZ[i] > paso:
-    #                Smapa[i] = 0.33
-    #            if SZ[i] > paso*2:
-    #                Smapa[i] = 0.66
-    #            if SZ[i] > paso*3:
-    #                Smapa[i] = 0.99
-    #        mapa = np.array(np.split(Smapa,N))
-    #        print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
-    #        self.img.setImage(np.flip(np.flip(mapa,0),1), autoLevels=False)
-        else:
-            print("nada")
+
+        self.viewtimer.stop()
+
+        I = self.image
+        xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
+        print("Xcm=", xcm,"\nYcm=", ycm)
+        self.xcm = xcm
+        self.ycm = ycm
+
+
+        Normal = self.scanRange / self.numberofPixels  # Normalizo
+        self.CMxValue.setText(str(xcm*Normal))
+        self.CMyValue.setText(str(ycm*Normal))
+
+
 
 # %% Presets copiados del inspector
     def Presets(self):

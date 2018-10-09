@@ -527,6 +527,8 @@ class ScanWidget(QtGui.QFrame):
                   float(self.yLabel.text()), float(self.zLabel.text())),
                   self.scanMode.currentText(), self.PSFMode.currentText()]
         print("\n",a)
+        print(b, "\n")
+
         if a == b:
             print("no cambió ningun parametro\n")
         else:
@@ -1839,8 +1841,35 @@ class ScanWidget(QtGui.QFrame):
     def openFolder(self):
         os.startfile(self.file_path)
 
+# %% GaussMeasure 
+    def GaussMeasure(self):
+        if self.dy  == self.numberofPixels-1:
+            tic = ptime.time()
 
-# %%--- CMmeasure que tambien arma los datos para modular.(mapa)
+            Z = self.image
+    #        N = len(Z)  # numberfoPixels
+    #        xcm = 0
+    #        ycm = 0
+    #        for i in range(N):
+    #            for j in range(N):
+    #                xcm = xcm + (Z[i,j]*i)
+    #                ycm = ycm + (Z[i,j]*j)
+    #        M = np.sum(Z)
+    #        xcm = xcm/M
+    #        ycm = ycm/M
+            xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+            self.xcm = xcm
+            self.ycm = ycm
+    #        xc = int(np.round(xcm,2))
+    #        yc = int(np.round(ycm,2))
+            Normal = self.scanRange / self.numberofPixels
+            self.CMxValue.setText(str(xcm*Normal))
+            self.CMyValue.setText(str(ycm*Normal))
+            tac = ptime.time()
+
+            print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
+
+# %% CMmeasure que tambien arma los datos para modular.(mapa)
     def CMmeasure(self):
 #        if self.scanMode.currentText() == "step scan":
 #            self.steptimer.stop()
