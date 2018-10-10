@@ -356,33 +356,31 @@ class ScanWidget(QtGui.QFrame):
         grid.addWidget(self.positioner, 1, 0)
         layout = QtGui.QGridLayout()
         self.positioner.setLayout(layout)
-        layout.addWidget(self.xname, 1, 0)
-        layout.addWidget(self.xLabel, 1, 1)
-        layout.addWidget(self.xUpButton, 2, 4,2,1)
+        layout.addWidget(self.xname,       1, 0)
+        layout.addWidget(self.xLabel,      1, 1)
+        layout.addWidget(self.xUpButton,   2, 4,2,1)
         layout.addWidget(self.xDownButton, 2, 2,2,1)
 #        layout.addWidget(QtGui.QLabel("Step x"), 1, 6)
 #        layout.addWidget(self.xStepEdit, 1, 7)
 #        layout.addWidget(self.xStepUnit, 1, 8)
 
-        layout.addWidget(self.yname, 2, 0)
-        layout.addWidget(self.yLabel, 2, 1)
-        layout.addWidget(self.yUpButton, 1, 3,2,1)
+        layout.addWidget(self.yname,       2, 0)
+        layout.addWidget(self.yLabel,      2, 1)
+        layout.addWidget(self.yUpButton,   1, 3,2,1)
         layout.addWidget(self.yDownButton, 3, 3,2,1)
         layout.addWidget(QtGui.QLabel("Length of step xy"), 1, 7)
-        layout.addWidget(self.yStepEdit, 2, 7)
-        layout.addWidget(self.yStepUnit, 2, 8)
+        layout.addWidget(self.yStepEdit,   2, 7)
+        layout.addWidget(self.yStepUnit,   2, 8)
 
-        layout.addWidget(self.zname, 4, 0)
-        layout.addWidget(self.zLabel, 4, 1)
-        layout.addWidget(self.zUpButton, 1, 5,2,1)
+        layout.addWidget(self.zname,       4, 0)
+        layout.addWidget(self.zLabel,      4, 1)
+        layout.addWidget(self.zUpButton,   1, 5,2,1)
         layout.addWidget(self.zDownButton, 3, 5,2,1)
         layout.addWidget(QtGui.QLabel("Length of step z"), 3, 7)
-        layout.addWidget(self.zStepEdit, 4, 7)
-        layout.addWidget(self.zStepUnit, 4, 8)
-#        layout.addWidget(QtGui.QLabel("||"), 1, 7)
-#        layout.addWidget(QtGui.QLabel("||"), 2, 7)
-#        layout.addWidget(QtGui.QLabel("||"), 4, 7)
+        layout.addWidget(self.zStepEdit,   4, 7)
+        layout.addWidget(self.zStepUnit,   4, 8)
         layout.addWidget(self.NameDirValue, 8, 0, 1, 8)
+        
 #        self.yStepEdit.setValidator(self.onlypos)
 #        self.zStepEdit.setValidator(self.onlypos)
 
@@ -1434,13 +1432,14 @@ class ScanWidget(QtGui.QFrame):
 #        try
 #            self.viewtimer.stop()
 
-        self.channelsOpenStep()  # cambiar a movimiento por puntos
+        self.PiezoOpenStep()  # cambiar a movimiento por puntos
 #        t = self.moveTime
-        N = self.moveSamples
+        N = int(dist*5000)  # self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+
     # Habia una version con rampas, y la borre. buscar en archivos viejos si se quiere
         toc = ptime.time()
         rampx = np.linspace(float(initPos[0]), float(initPos[0]), N)
@@ -1461,15 +1460,14 @@ class ScanWidget(QtGui.QFrame):
 
         print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
 
-# update position text
-
+    # update position text
         self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
         self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
         self.paramChanged()
 
         self.done()
-        self.channelsOpen()
+#        self.channelsOpen()
 #        if self.dy != 0:
 #            if self.scanMode.currentText() == "step scan":
 #                self.channelsOpenStep()
@@ -1543,7 +1541,7 @@ class ScanWidget(QtGui.QFrame):
 ## ---moveto ---
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
-        self.channelsOpenStep()  # se mueve de a puntos, no rampas.
+        self.PiezoOpenStep()  # se mueve de a puntos, no rampas.
         t = self.moveTime
         N = self.moveSamples
 

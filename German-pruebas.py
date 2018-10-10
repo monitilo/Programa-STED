@@ -11,7 +11,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 pp = pprint.PrettyPrinter(indent=4)
+# %% probando streams
 
+#https://github.com/ni/nidaqmx-python/blob/master/nidaqmx_examples/ai_multi_task_pxie_ref_clk.py
+#https://github.com/ni/nidaqmx-python/blob/master/nidaqmx/tests/test_stream_analog_readers_writers.py
+
+with nidaqmx.Task() as task:
+    task.in_stream.channerls_to_read
+    
 # %% Voltaje fijo analogo
 c = 0
 for i in range(3):
