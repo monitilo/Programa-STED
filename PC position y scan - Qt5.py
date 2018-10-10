@@ -321,7 +321,7 @@ class ScanWidget(QtGui.QFrame):
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
         self.stepcheck.clicked.connect(self.steptype)
         # botones para shutters (por ahora no hacen nada)
-
+        self.shuttersignal = [0, 0, 0]
         self.shutterredbutton = QtGui.QCheckBox('shutter 640')
 #        self.shutterredbutton.setChecked(False)
         self.shutterredbutton.clicked.connect(self.shutterred)
@@ -331,7 +331,7 @@ class ScanWidget(QtGui.QFrame):
         self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
 #        self.shutterotrobutton.setChecked(False)
         self.shutterotrobutton.clicked.connect(self.shutterotro)
-        self.shuttersignal = [0, 0, 0]
+
 
 #       This boolean is set to True when open the nidaq channels
         self.ischannelopen = False

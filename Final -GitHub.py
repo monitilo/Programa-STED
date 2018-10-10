@@ -183,11 +183,11 @@ class ScanWidget(QtGui.QFrame):
 
     # Shutters buttons
         self.shutter0button = QtGui.QCheckBox('shutter Red')
-        self.shutter0button.clicked.connect(self.shutterred)
-        self.shutter1button = QtGui.QCheckBox('shutter Yellow')
-        self.shutter1button.clicked.connect(self.shutteryellow)
-        self.shutter2button = QtGui.QCheckBox('shutter STED')
-        self.shutter2button.clicked.connect(self.shutterSTED)
+        self.shutter0button.clicked.connect(self.shutter0)
+        self.shutter1button = QtGui.QCheckBox('shutter STED')
+        self.shutter1button.clicked.connect(self.shutter1)
+        self.shutter2button = QtGui.QCheckBox('shutter Yellow')
+        self.shutter2button.clicked.connect(self.shutter2)
 
     # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
@@ -275,9 +275,9 @@ class ScanWidget(QtGui.QFrame):
 
 
     # Columna 1
-        subgrid.addWidget(self.shutter0button,    0, 1)
-        subgrid.addWidget(self.shutter1button, 1, 1)
-        subgrid.addWidget(self.shutter2button,   2, 1)
+        subgrid.addWidget(self.shutter0button,      0, 1)
+        subgrid.addWidget(self.shutter2button,      1, 1)
+        subgrid.addWidget(self.shutter1button,      2, 1)
         subgrid.addWidget(self.scanRangeLabel,      3, 1)
         subgrid.addWidget(self.scanRangeEdit,       4, 1)
         subgrid.addWidget(self.pixelTimeLabel,      5, 1)
@@ -293,20 +293,20 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.saveimageButton,    16, 1)
     # Columna 2
 
-        subgrid.addWidget(self.detectMode,       0, 2)
-        subgrid.addWidget(self.NameDirButton,    1, 2)
-        subgrid.addWidget(self.OpenButton,       2, 2)
-        subgrid.addWidget(self.triggerLabel,      4, 2)
-        subgrid.addWidget(self.triggerEdit,      5, 2)
+        subgrid.addWidget(self.detectMode,        0, 2)
+        subgrid.addWidget(self.NameDirButton,     1, 2)
+        subgrid.addWidget(self.OpenButton,        2, 2)
+        subgrid.addWidget(self.triggerLabel,       4, 2)
+        subgrid.addWidget(self.triggerEdit,       5, 2)
         subgrid.addWidget(self.accelerationLabel, 6, 2)
         subgrid.addWidget(self.accelerationEdit,  7, 2)
-        subgrid.addWidget(self.vueltaLabel,      8, 2)
-        subgrid.addWidget(self.vueltaEdit,       9, 2)
-        subgrid.addWidget(self.VideoCheck,      10, 2)
-        subgrid.addWidget(self.Continouscheck,  11, 2)
-        subgrid.addWidget(self.graphcheck,      12, 2)
-        subgrid.addWidget(self.CMcheck,         13, 2)
-        subgrid.addWidget(self.PSFMode,          15, 2)
+        subgrid.addWidget(self.vueltaLabel,       8, 2)
+        subgrid.addWidget(self.vueltaEdit,        9, 2)
+        subgrid.addWidget(self.VideoCheck,       10, 2)
+        subgrid.addWidget(self.Continouscheck,   11, 2)
+        subgrid.addWidget(self.graphcheck,       12, 2)
+        subgrid.addWidget(self.CMcheck,          13, 2)
+        subgrid.addWidget(self.PSFMode,           15, 2)
 
     # Columna 3
 #        subgrid.addWidget(self.algobutton,     0, 3)
@@ -1604,21 +1604,21 @@ class ScanWidget(QtGui.QFrame):
 
 
 # %% ---  Shutters zone ---------------------------------
-    def shutterred(self):
+    def shutter0(self):
         if self.shutter0button.isChecked():
             self.openShutter(shutters[0])
         else:
             self.closeShutter(shutters[0])
-    def shutteryellow(self):
+    def shutter1(self):
         if self.shutter1button.isChecked():
-            self.openShutter(shutters[2])
-        else:
-            self.closeShutter(shutters[2])
-    def shutterSTED(self):
-        if self.shutter2button.isChecked():
             self.openShutter(shutters[1])
         else:
             self.closeShutter(shutters[1])
+    def shutter2(self):
+        if self.shutter2button.isChecked():
+            self.openShutter(shutters[2])
+        else:
+            self.closeShutter(shutters[2])
 
             
     def openShutter(self, p):
