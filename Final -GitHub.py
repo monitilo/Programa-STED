@@ -33,8 +33,8 @@ convFactors = {'x': 25, 'y': 25, 'z': 1.683}
 minVolt = {'x': -10, 'y': -10, 'z': 0}
 maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no errarle
-activeChannels = ["x", "y", "z"]
-AOchans = [0, 1, 2]  # x,y,z
+activeChannels = ["x", "y"]  # , "z"]
+AOchans = [0, 1]  # , 2]  # x,y,z
 detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
 COchans = [0,1]  # apd rojo y verde
@@ -700,8 +700,8 @@ class ScanWidget(QtGui.QFrame):
     # Send the signals to the NiDaq, but only start when the trigger is on
         self.aotask.write(np.array(
             [self.totalrampx / convFactors['x'],
-             self.totalrampy / convFactors['y'],
-             self.totalrampz / convFactors['z']]), auto_start=True)
+             self.totalrampy / convFactors['y']]), auto_start=True)
+#             self.totalrampz / convFactors['z']]), auto_start=True)
 #        self.inStart = False
         print("ya arranca...")
 
@@ -1384,9 +1384,9 @@ class ScanWidget(QtGui.QFrame):
 
             self.aotask.write(
              [self.allstepsx[i, self.dy] / convFactors['x'],
-              self.allstepsy[i, self.dy] / convFactors['y'],
-              self.allstepsz[i, self.dy] / convFactors['z']],
-                             auto_start=True)
+              self.allstepsy[i, self.dy] / convFactors['y']], auto_start=True)
+#              self.allstepsz[i, self.dy] / convFactors['z']],
+#                             auto_start=True)
 
 #                self.aotask.start()
             self.aotask.wait_until_done()
@@ -1517,8 +1517,8 @@ class ScanWidget(QtGui.QFrame):
 
         for i in range(N):
             self.aotask.write([rampx[i] / convFactors['x'],
-                               rampy[i] / convFactors['y'],
-                               rampz[i] / convFactors['z']], auto_start=True)
+                               rampy[i] / convFactors['y']], auto_start=True)
+#                               rampz[i] / convFactors['z']], auto_start=True)
 #            time.sleep(t / N)
 
         print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
@@ -1624,8 +1624,8 @@ class ScanWidget(QtGui.QFrame):
             tuc = ptime.time()
             for i in range(N):
                 self.aotask.write([rampx[i] / convFactors['x'],
-                                   rampy[i] / convFactors['y'],
-                                   rampz[i] / convFactors['z']], auto_start=True)
+                                   rampy[i] / convFactors['y']], auto_start=True)
+#                                   rampz[i] / convFactors['z']], auto_start=True)
                 time.sleep(t / N)
 
             print("se mueve todo en", np.round(ptime.time()-tuc, 4), "segs\n")
@@ -1756,8 +1756,8 @@ class ScanWidget(QtGui.QFrame):
 
             self.aotask.write(np.array(
                 [volviendox / convFactors['x'],
-                 volviendoy / convFactors['y'],
-                 volviendoz / convFactors['z']]), auto_start=True)
+                 volviendoy / convFactors['y']]), auto_start=True)
+#                 volviendoz / convFactors['z']]), auto_start=True)
             self.aotask.wait_until_done()
     #        print(np.round(ptime.time() - tic, 5)*10**3, "MovetoStart (ms)")
 

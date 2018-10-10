@@ -24,6 +24,8 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 
+
+
 from scipy import ndimage
 from scipy import optimize
 
@@ -41,6 +43,7 @@ def makeRamp(start, end, samples):
 #from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
 #from PyQt5.QtCore import QSize
 #from PyQt5.QtGui import QIcon
+
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
