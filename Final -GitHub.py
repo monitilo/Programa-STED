@@ -78,7 +78,7 @@ class ScanWidget(QtGui.QFrame):
         plt.plot(verxback,'.-c')
         plt.plot(verxstops,'*-y')
         plt.plot(self.onerampy[0,:],'k')
-#            plt.plot(self.onerampy[1,:],'k')
+#        plt.plot(self.onerampy[1,:],'k')
         plt.show()
 
     def zeroImage(self):
@@ -101,12 +101,6 @@ class ScanWidget(QtGui.QFrame):
         self.moveSamples = 1000  # samples to move
         self.moveRate = self.moveSamples / self.moveTime  # 10**5
 
-#    # APD's detectors;                      los cambie por un desplegable
-#        self.APDred=QtGui.QRadioButton("APD red")
-#        self.APDred.setChecked(True)
-#        self.APDgreen=QtGui.QRadioButton("APD green")
-#        self.APDgreen.setChecked(False)
-
     # LiveView Button
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
@@ -114,16 +108,6 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewButton.setStyleSheet(
                 "QPushButton { background-color: green; }"
                 "QPushButton:pressed { background-color: blue; }")
-
-    # XZ PSF scan (or XY or YZ)
-#        self.XYcheck = QtGui.QRadioButton('XY normal scan')
-#        self.XYcheck.setChecked(True)
-#
-#        self.XZcheck = QtGui.QRadioButton('XZ psf scan')
-#        self.XZcheck.setChecked(False)
-#
-#        self.YZcheck = QtGui.QRadioButton('YZ psf scan')
-#        self.YZcheck.setChecked(False)
 
         self.PSFMode = QtGui.QComboBox()
         self.PSFModes = ['XY normal psf', 'XZ', 'YZ']
@@ -193,18 +177,17 @@ class ScanWidget(QtGui.QFrame):
 #        self.working = False
         self.shuttering = False
         self.shuttersignal = [False, False, False]
-#        self.preseteado = False  Era por si fijaba los valores, pero no
+#        self.preseteado = False  # Era por si fijaba los valores, pero no
+
+        self.shuttersChannelsNidaq()  # los pongo al principio y me olvido
 
     # Shutters buttons
-        self.shutterredbutton = QtGui.QCheckBox('shutter Red')
-        self.shutterredbutton.clicked.connect(self.shutterred)
-        self.shutteryellowbutton = QtGui.QCheckBox('shutter Yellow')
-        self.shutteryellowbutton.clicked.connect(self.shutteryellow)
-        self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
-        self.shutterSTEDbutton.clicked.connect(self.shutterSTED)
-
-#        self.shutterSTEDbutton = QtGui.QCheckBox('shutter STED')
-#        self.shutterSTEDbutton.clicked.connect(self.checkShutters)
+        self.shutter0button = QtGui.QCheckBox('shutter Red')
+        self.shutter0button.clicked.connect(self.shutterred)
+        self.shutter1button = QtGui.QCheckBox('shutter Yellow')
+        self.shutter1button.clicked.connect(self.shutteryellow)
+        self.shutter2button = QtGui.QCheckBox('shutter STED')
+        self.shutter2button.clicked.connect(self.shutterSTED)
 
     # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
@@ -290,19 +273,11 @@ class ScanWidget(QtGui.QFrame):
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
 
-#        group1 = QtGui.QButtonGroup(self.paramWidget)
-#        group1.addButton(self.XYcheck)
-#        group1.addButton(self.XZcheck)
-#        group1.addButton(self.YZcheck)
-
-#        group2 = QtGui.QButtonGroup(self.paramWidget)
-#        group2.addButton(self.APDred)
-#        group2.addButton(self.APDgreen)
 
     # Columna 1
-        subgrid.addWidget(self.shutterredbutton,    0, 1)
-        subgrid.addWidget(self.shutteryellowbutton, 1, 1)
-        subgrid.addWidget(self.shutterSTEDbutton,   2, 1)
+        subgrid.addWidget(self.shutter0button,    0, 1)
+        subgrid.addWidget(self.shutter1button, 1, 1)
+        subgrid.addWidget(self.shutter2button,   2, 1)
         subgrid.addWidget(self.scanRangeLabel,      3, 1)
         subgrid.addWidget(self.scanRangeEdit,       4, 1)
         subgrid.addWidget(self.pixelTimeLabel,      5, 1)
@@ -535,13 +510,6 @@ class ScanWidget(QtGui.QFrame):
             print("pasaron cosas\n")
             self.paramChanged()
 
-#a = [10,500,0.01,[1,2,3],'Step','XY']
-#ini=[1,2,3]
-#algo='Step'
-#PSF='XY'
-#b = [10,500,0.01,ini,algo,PSF]
-#a==b
-
     def paramChanged(self):
         tic = ptime.time()
         """ Update the parameters when the user edit them """
@@ -599,18 +567,6 @@ class ScanWidget(QtGui.QFrame):
             print(self.reallinetime, "reallinetime\n")
             self.PMT = np.zeros(len(self.onerampx))
         print(self.linetime, "linetime\n")
-
-#        if self.scanMode.currentText() == scanModes[1]:  # "step scan":
-##            self.Steps()
-#            print(self.linetime, "linetime\n")
-#        else:
-##        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-#            self.Ramps()
-#            self.reallinetime = len(self.onerampx) * self.pixelTime  # seconds
-#            print(self.linetime, "linetime")
-#            print(self.reallinetime, "reallinetime\n")
-#            self.PMT = np.zeros(len(self.onerampx))
-
 
         self.zeroImage()
       # numberofpixels is the relevant part of the total ramp.
@@ -916,31 +872,24 @@ class ScanWidget(QtGui.QFrame):
             fast=2
         else:
             fast=1
+
         p = len(self.xini[:-1]) + len(wantedrampx)
         for i in range(self.numberofPixels):
             j = fast*i
             self.onerampy[i, :p] = muchasrampasy[i, :p] + (j)  *stepy
             self.onerampy[i, p:] = muchasrampasy[i, p:] + (j+1)*stepy
-#        else:
-#            p = len(self.xini[:-1]) + len(wantedrampx) + int(len(self.xchange[1:])) + int(len(self.xback[1:-1]))
-#            for i in range(self.numberofPixels):
-#                self.onerampy[i, :p] = muchasrampasy[i, :p] + (i)  *stepy
-#                self.onerampy[i, p:] = muchasrampasy[i, p:] + (i+1)*stepy
 
         self.totalrampy = (self.onerampy.ravel())
 
         if self.PSFMode.currentText() == 'XY normal psf':
-#        if self.XYcheck.isChecked():
             print("escaneo x y normal R")
 
         elif self.PSFMode.currentText() == 'XZ':
-#        if self.XZcheck.isChecked():
             print("intercambio y por z R")
             self.totalrampz = self.totalrampy - startY + startZ
             self.totalrampy = np.ones(len(self.totalrampx)) * startY
 
         elif self.PSFMode.currentText() == 'YZ':
-#        if self.YZcheck.isChecked():
             print("intercambio x por z R")
             self.totalrampz = self.totalrampy - startY + startZ
             self.totalrampy = self.totalrampx - startX + startY
@@ -1208,10 +1157,6 @@ class ScanWidget(QtGui.QFrame):
             self.APD2task.ci_channels.add_ci_count_edges_chan(counter='Dev1/ctr{}'.format(COchans[1]),
                                 name_to_assign_to_channel=u'conter_GREEN',
                                 initial_count=0)
-#            if self.scanMode.currentText() == "step scan":
-#                totalcinumber = self.Napd + 1
-#            else:
-#                totalcinumber = ((self.numberofPixels+self.pixelsofftotal)*self.Napd)*self.numberofPixels
 
             self.APD2task.timing.cfg_samp_clk_timing(
               rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
@@ -1306,6 +1251,7 @@ class ScanWidget(QtGui.QFrame):
     #                         source='100kHzTimebase',
                          active_edge = nidaqmx.constants.Edge.RISING,
                          samps_per_chan=len(self.trigger))
+
         # Configure a start trigger to synchronizate the measure and movement
             triggerchannelname = "PFI4"
             self.aotask.triggers.start_trigger.cfg_dig_edge_start_trig(
@@ -1362,6 +1308,9 @@ class ScanWidget(QtGui.QFrame):
         except:
             print("d")
 
+#        self.shuttertask.stop()
+#        self.shuttertask.close()
+#        self.shuttering = False
         self.channelramp = False
         self.channelsteps = False
         self.piezoramp = False
@@ -1464,18 +1413,15 @@ class ScanWidget(QtGui.QFrame):
         self.allstepsz = np.tile(goz,(self.numberofPixels,1))
 
         if self.PSFMode.currentText() == 'XY normal psf':
-#        if self.XYcheck.isChecked():
             print("escaneo x y normal S")
 
         elif self.PSFMode.currentText() == 'XZ':
-#        if self.XZcheck.isChecked():
             print("intercambio y por z S")
             self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
             goy= np.ones(len(self.allstepsx)) * startY
             self.allstepsy = np.tile(goy,(self.numberofPixels,1))
 
         elif self.PSFMode.currentText() == 'YZ':
-#        if self.YZcheck.isChecked():
             print("intercambio x por y S")
             self.allstepsz = self.allstepsy - startY + startZ  # -(sizeX/2)
             self.allstepsy = self.allstepsx - startX + startY
@@ -1486,7 +1432,7 @@ class ScanWidget(QtGui.QFrame):
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
 #        try
-#            self.viewtimer.stop()  # imput in ms
+#            self.viewtimer.stop()
 
         self.channelsOpenStep()  # cambiar a movimiento por puntos
 #        t = self.moveTime
@@ -1495,16 +1441,7 @@ class ScanWidget(QtGui.QFrame):
         texts = [getattr(self, ax + "Label").text()
                  for ax in activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-#        initPos = np.array(initPos, dtype=float)[:, np.newaxis]
-#        fullPos = np.repeat(initPos, N, axis=1)
-
-        # make position ramp for moving axis
-#        ramp = np.linspace(0, dist, N)
-#        fullPos[activeChannels.index(axis)] += ramp
-
-#        factors = np.array([convFactors['x'], convFactors['y'],
-#                           convFactors['z']])[:, np.newaxis]
-#        fullSignal = fullPos/factors
+    # Habia una version con rampas, y la borre. buscar en archivos viejos si se quiere
         toc = ptime.time()
         rampx = np.linspace(float(initPos[0]), float(initPos[0]), N)
         rampy = np.linspace(float(initPos[1]), float(initPos[1]), N)
@@ -1521,14 +1458,11 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.write([rampx[i] / convFactors['x'],
                                rampy[i] / convFactors['y']], auto_start=True)
 #                               rampz[i] / convFactors['z']], auto_start=True)
-#            time.sleep(t / N)
 
         print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
 
-        # update position text
-#        newPos = fullPos[activeChannels.index(axis)][-1]
-#        newText = "{}".format(newPos)
-#        getattr(self, axis + "Label").setText(newText)
+# update position text
+
         self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
         self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
@@ -1646,24 +1580,24 @@ class ScanWidget(QtGui.QFrame):
 
 # %% ---  Shutters zone ---------------------------------
     def shutterred(self):
-        if self.shutterredbutton.isChecked():
+        if self.shutter0button.isChecked():
             self.openShutter(shutters[0])
         else:
             self.closeShutter(shutters[0])
     def shutteryellow(self):
-        if self.shutteryellowbutton.isChecked():
+        if self.shutter1button.isChecked():
             self.openShutter(shutters[2])
         else:
             self.closeShutter(shutters[2])
     def shutterSTED(self):
-        if self.shutterSTEDbutton.isChecked():
+        if self.shutter2button.isChecked():
             self.openShutter(shutters[1])
         else:
             self.closeShutter(shutters[1])
 
             
     def openShutter(self, p):
-        self.shuttersnidaq()
+#        self.shuttersChannelsNidaq()
 #        self.opendo()
         print("abre shutter", p)
         for i in range(3):
@@ -1674,7 +1608,7 @@ class ScanWidget(QtGui.QFrame):
         self.checkShutters()
 
     def closeShutter(self, p):
-        self.shuttersnidaq()
+#        self.shuttersChannelsNidaq()
 #        self.closedo()
         print("cierra shutter", p)
         for i in range(3):
@@ -1686,27 +1620,27 @@ class ScanWidget(QtGui.QFrame):
 
     def checkShutters(self):
         if self.shuttersignal[0]:
-            self.shutterredbutton.setChecked(True)
+            self.shutter0button.setChecked(True)
         else:
-            self.shutterredbutton.setChecked(False)
+            self.shutter0button.setChecked(False)
         if self.shuttersignal[1]:
-            self.shutterSTEDbutton.setChecked(True)
+            self.shutter2button.setChecked(True)
         else:
-            self.shutterSTEDbutton.setChecked(False)
+            self.shutter2button.setChecked(False)
         if self.shuttersignal[2]:
-            self.shutteryellowbutton.setChecked(True)
+            self.shutter1button.setChecked(True)
         else:
-            self.shutteryellowbutton.setChecked(False)
+            self.shutter1button.setChecked(False)
 
-    def shuttersnidaq(self):
+    def shuttersChannelsNidaq(self):
         if self.shuttering == False:
             self.shuttering = True
             self.shuttertask = nidaqmx.Task("shutter")
             self.shuttertask.do_channels.add_do_chan(
                 lines="Dev1/port0/line0:2", name_to_assign_to_lines='shutters',
                 line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
-        else:
-            print("ya estaban abiertos los canales shutters")
+#        else:
+#            print("ya estaban abiertos los canales shutters")
 
 # %%--- MovetoStart ---
     def MovetoStart(self):
