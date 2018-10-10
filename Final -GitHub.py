@@ -33,7 +33,7 @@ convFactors = {'x': 25, 'y': 25, 'z': 1.683}
 minVolt = {'x': -10, 'y': -10, 'z': 0}
 maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no errarle
-activeChannels = ["x", "y"]  # , "z"]
+activeChannels = ["x", "y", "z"]
 AOchans = [0, 1]  # , 2]  # x,y,z
 detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
@@ -131,7 +131,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
-        self.presetsModes = ['Manual', '10', '5','4', 'slgo']
+        self.presetsModes = ['normal', '10 lento', '5 rapido','0.6 rapido', '3 medio']
         self.presetsMode.addItems(self.presetsModes)
 
     # To save all images until stops
@@ -543,6 +543,7 @@ class ScanWidget(QtGui.QFrame):
 #a==b
 
     def paramChanged(self):
+        tic = ptime.time()
         """ Update the parameters when the user edit them """
 
         self.scanModeSet = self.scanMode.currentText()
@@ -617,7 +618,8 @@ class ScanWidget(QtGui.QFrame):
         self.APD2 = self.APD
         self.APDstep = np.zeros((self.Napd+1))
 
-
+        toc = ptime.time()
+        print("\n tiempo paramCahnged", toc-tic,"\n")
 #        self.PMT = np.zeros((self.numberofPixels + self.pixelsofftotal, self.numberofPixels))
 
 # %% cosas para el save image
@@ -724,12 +726,12 @@ class ScanWidget(QtGui.QFrame):
             print("apd1")
             self.APD[:] = self.APD1task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-            print("apd2")
+            print("apd2...")
             self.APD2[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
             print("los dos apds")
         elif self.detectMode .currentText() == detectModes[-1]:
-            print("algo salio muy mal. entro a APDupdate, con la opcion PMT")
+            print("algo salio muy mal. entró a APDupdate, con la opcion PMT")
 
         # have to analize the signal from the counter
         self.apdpostprocessing()
@@ -1287,7 +1289,7 @@ class ScanWidget(QtGui.QFrame):
 
 #            trigger[:] = True
 #            trigger1 = np.concatenate((trigger, np.zeros(100,dtype="bool")))  # 2ms de apagado, hace cosas raras
-            trigger2 = [False,True, True, False]  # np.tile(trigger, self.numberofPixels)
+            trigger2 = [True,False,True, True, False]  # np.tile(trigger, self.numberofPixels)
 
             self.trigger = np.concatenate((np.zeros(num,dtype="bool"), trigger2))
 
@@ -1313,7 +1315,7 @@ class ScanWidget(QtGui.QFrame):
             self.APD1task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
             self.APD1task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 
-            self.APD2task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
+            self.APD2task.triggers.arm_start_trigger.dig_edge_src = "PFI5"#triggerchannelname
             self.APD2task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 
             self.triggerAPD = True
