@@ -1388,6 +1388,8 @@ y guarde la imagen"""
         self.viewtimer.stop()
 
         I = self.image
+        N = len(I)  # numberfoPixels
+
         xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
         self.xcm = xcm

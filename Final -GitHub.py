@@ -368,18 +368,19 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(self.yLabel,      2, 1)
         layout.addWidget(self.yUpButton,   1, 3,2,1)
         layout.addWidget(self.yDownButton, 3, 3,2,1)
-        layout.addWidget(QtGui.QLabel("Length of step xy"), 1, 7)
-        layout.addWidget(self.yStepEdit,   2, 7)
-        layout.addWidget(self.yStepUnit,   2, 8)
+        layout.addWidget(QtGui.QLabel("Length of step xy"), 1, 6)
+        layout.addWidget(self.yStepEdit,   2, 6)
+        layout.addWidget(self.yStepUnit,   2, 7)
 
         layout.addWidget(self.zname,       4, 0)
         layout.addWidget(self.zLabel,      4, 1)
         layout.addWidget(self.zUpButton,   1, 5,2,1)
         layout.addWidget(self.zDownButton, 3, 5,2,1)
-        layout.addWidget(QtGui.QLabel("Length of step z"), 3, 7)
-        layout.addWidget(self.zStepEdit,   4, 7)
-        layout.addWidget(self.zStepUnit,   4, 8)
-        layout.addWidget(self.NameDirValue, 8, 0, 1, 8)
+        layout.addWidget(QtGui.QLabel("Length of step z"), 3, 6)
+        layout.addWidget(self.zStepEdit,   4, 6)
+        layout.addWidget(self.zStepUnit,   4, 7)
+
+        layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
         
 #        self.yStepEdit.setValidator(self.onlypos)
 #        self.zStepEdit.setValidator(self.onlypos)
@@ -1488,7 +1489,7 @@ class ScanWidget(QtGui.QFrame):
         self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
 
     def zMoveUp(self):
-        self.move('z', float(getattr(self, 'z' + "StepEdit").text()))
+        self.moveZ('z', float(getattr(self, 'z' + "StepEdit").text()))
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
@@ -1500,13 +1501,39 @@ class ScanWidget(QtGui.QFrame):
             self.zStepEdit.setStyleSheet(" background-color: red; ")
 #            setStyleSheet("color: rgb(255, 0, 255);")
         else:
-            self.move('z', -float(getattr(self, 'z' + "StepEdit").text()))
+            self.moveZ('z', -float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet("{ background-color: }")
         if self.initialPosition[2] == 0:  # para no ira z negativo
             self.zDownButton.setStyleSheet(
                 "QPushButton { background-color: red; }"
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
+
+    def moveZ(self, axis, dist):
+        """moves the position along the Z axis a distance dist."""
+
+        self.Ztask = nidaqmx.Task('Ztask')
+    # Following loop creates the voltage channels
+
+        self.Ztask.ao_channels.add_ao_voltage_chan(
+            physical_channel='Dev1/ao2',
+            name_to_assign_to_channel='chan_Z',
+            min_val=minVolt[activeChannels[2]],
+            max_val=maxVolt[activeChannels[2]])
+
+        N = int(dist*5000)
+    # read initial position for all channels
+        toc = ptime.time()
+        rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
+        for i in range(N):
+            self.Ztask.write([rampz[i] / convFactors['z']], auto_start=True)
+
+        print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+    # update position text
+        self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+        self.paramChanged()
+
+        self.done()
 
 # %% Go Cm y go to
     def goCM(self):
@@ -1926,16 +1953,15 @@ class ScanWidget(QtGui.QFrame):
                                          translateSnap=True)
 
         else:
-
             self.vb.removeItem(self.roi)
             self.roi.hide()
-
-            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
-            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
-                                         handlePos=(1, 0),
-                                         handleCenter=(0, 1),
-                                         scaleSnap=True,
-                                         translateSnap=True)
+            if self.ROIButton.isChecked():
+                ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
+                self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                                             handlePos=(1, 0),
+                                             handleCenter=(0, 1),
+                                             scaleSnap=True,
+                                             translateSnap=True)
 
     def selectROI(self):
         self.liveviewStop()

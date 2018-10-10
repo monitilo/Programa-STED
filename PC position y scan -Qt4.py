@@ -199,6 +199,7 @@ class ScanWidget(QtGui.QFrame):
         self.ROIButton.setCheckable(True)
         self.ROIButton.clicked.connect(self.ROImethod)
 
+
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
 
@@ -640,7 +641,7 @@ y guarde la imagen"""
 
         if self.step == 1:
             self.lineData = self.cuentas # self.inputImage[:, self.dy] 
-            self.image[:, -1-self.i] = np.flip(self.lineData,0)
+            self.image[:, -1-self.i] = self.lineData  # f
         else:
             cuentas2 = np.split(self.cuentas, 2)
             self.lineData = cuentas2[0] # self.inputImage[:, self.dy] 
@@ -648,8 +649,8 @@ y guarde la imagen"""
 
     #        self.lineData = self.inputImage[:, self.i]  # + 2.5*self.i
     #        lineData2 = self.inputImage[:, self.i + 1]
-            self.image[:, self.numberofPixels-1-self.i] = np.flip(self.lineData,0)
-            self.image[:, self.numberofPixels-2-self.i] = np.flip(lineData2,0)
+            self.image[:, self.numberofPixels-1-self.i] = self.lineData  # f
+            self.image[:, self.numberofPixels-2-self.i] = lineData2  # f
 
 #        self.image[25, self.i] = 333
 #        self.image[9, -self.i] = 333
@@ -1175,16 +1176,15 @@ y guarde la imagen"""
                                          translateSnap=True)
 
         else:
-
             self.vb.removeItem(self.roi)
             self.roi.hide()
-
-            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
-            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
-                                         handlePos=(1, 0),
-                                         handleCenter=(0, 1),
-                                         scaleSnap=True,
-                                         translateSnap=True)
+            if self.ROIButton.isChecked():
+                ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
+                self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                                             handlePos=(1, 0),
+                                             handleCenter=(0, 1),
+                                             scaleSnap=True,
+                                             translateSnap=True)
 
 
     def selectROI(self):
@@ -1224,7 +1224,9 @@ y guarde la imagen"""
 
 
         self.paramChanged()
+#        self.ROIButton.setChecked(False)
 
+#        self.roi.hide()
 
 if __name__ == '__main__':
 
