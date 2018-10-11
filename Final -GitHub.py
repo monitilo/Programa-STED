@@ -81,11 +81,6 @@ class ScanWidget(QtGui.QFrame):
 #        plt.plot(self.onerampy[1,:],'k')
         plt.show()
 
-    def zeroImage(self):
-        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.image = self.blankImage
-        self.image2 = self.blankImage
-
     def __init__(self, device, *args, **kwargs):  # agregue device
 
         super().__init__(*args, **kwargs)
@@ -178,8 +173,9 @@ class ScanWidget(QtGui.QFrame):
         self.shuttering = False
         self.shuttersignal = [False, False, False]
 #        self.preseteado = False  # Era por si fijaba los valores, pero no
+        self.autoLevels = True
 
-        self.shuttersChannelsNidaq()  # los pongo al principio y me olvido
+        self.shuttersChannelsNidaq()  # los prendo al principio y me olvido
 
     # Shutters buttons
         self.shutter0button = QtGui.QCheckBox('shutter Red')
@@ -190,7 +186,7 @@ class ScanWidget(QtGui.QFrame):
         self.shutter2button.clicked.connect(self.shutter2)
 
     # ploting image with matplotlib (slow). if Npix>500 is very slow
-        self.plotLivebutton = QtGui.QPushButton('Plot this image')
+        self.plotLivebutton = QtGui.QPushButton('Plot this frame')
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
 
@@ -212,7 +208,7 @@ class ScanWidget(QtGui.QFrame):
         self.PointButton = QtGui.QPushButton('Point scan')
         self.PointButton.setCheckable(True)
         self.PointButton.clicked.connect(self.PointStart)
-        self.PointLabel = QtGui.QLabel('0.0')
+        self.PointLabel = QtGui.QLabel('<strong>0.0')
 
     # Scanning parameters
 
@@ -491,6 +487,10 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vueltaEdit.setStyleSheet("{ background-color: }")
 
+    def zeroImage(self):
+        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
+        self.image = self.blankImage
+        self.image2 = self.blankImage
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
@@ -567,6 +567,7 @@ class ScanWidget(QtGui.QFrame):
             self.PMT = np.zeros(len(self.onerampx))
         print(self.linetime, "linetime\n")
 
+        self.autoLevels = True
         self.zeroImage()
       # numberofpixels is the relevant part of the total ramp.
         self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
@@ -719,13 +720,14 @@ class ScanWidget(QtGui.QFrame):
 
         if self.dy in multi5:
             if self.graphcheck.isChecked():
-                self.img.setImage(self.image2, autoLevels=True)
+                self.img.setImage(self.image2, autoLevels=self.autoLevels)
             else:
-                self.img.setImage(self.image, autoLevels=True)
+                self.img.setImage(self.image, autoLevels=self.autoLevels)
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
         else:
+            self.autoLevels = False
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
@@ -791,13 +793,14 @@ class ScanWidget(QtGui.QFrame):
 
         if self.dy in multi5:
             if self.graphcheck.isChecked():
-                self.img.setImage(self.backimage, autoLevels=True)
+                self.img.setImage(self.backimage, autoLevels=self.autoLevels)
             else:
-                self.img.setImage(self.image, autoLevels=True)
+                self.img.setImage(self.image, autoLevels=self.autoLevels)
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
         else:
+            self.autoLevels = False
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
@@ -1357,12 +1360,13 @@ class ScanWidget(QtGui.QFrame):
         self.stepLine()
 
 #        self.image[:, self.numberofPixels-1-(self.dy)] = self.cuentas
-        self.img.setImage(self.image, autoLevels=True)
+        self.img.setImage(self.image, autoLevels=self.autoLevels)
 
 
         if self.dy < self.numberofPixels-1:
             self.dy = self.dy + 1
         else:
+            self.autoLevels = False
             if self.save:
                 self.saveFrame()
                 if self.CMcheck.isChecked():
