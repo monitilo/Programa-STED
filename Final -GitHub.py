@@ -126,6 +126,11 @@ class ScanWidget(QtGui.QFrame):
         self.CMcheck.setChecked(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
 
+    # 2D Gaussian fit to estimate the center of a NP
+        self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
+        self.Gausscheck.setChecked(False)
+        self.Gausscheck.clicked.connect(self.GaussMeasure)
+
     # save image Button
         self.saveimageButton = QtGui.QPushButton('Scan and Save')
         self.saveimageButton.setCheckable(True)
@@ -284,34 +289,35 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.pixelSizeValue,     10, 1)
         subgrid.addWidget(self.liveviewButton,     11, 1)
         subgrid.addWidget(self.scanMode,            13, 1)
-        subgrid.addWidget(self.timeTotalLabel,     14, 1)
-        subgrid.addWidget(self.timeTotalValue,     15, 1)
-        subgrid.addWidget(self.saveimageButton,    16, 1)
+        subgrid.addWidget(self.timeTotalLabel,      14, 1)
+        subgrid.addWidget(self.timeTotalValue,      15, 1)
+        subgrid.addWidget(self.saveimageButton,     16, 1)
     # Columna 2
 
         subgrid.addWidget(self.detectMode,        0, 2)
         subgrid.addWidget(self.NameDirButton,     1, 2)
         subgrid.addWidget(self.OpenButton,        2, 2)
         subgrid.addWidget(self.triggerLabel,       4, 2)
-        subgrid.addWidget(self.triggerEdit,       5, 2)
-        subgrid.addWidget(self.accelerationLabel, 6, 2)
-        subgrid.addWidget(self.accelerationEdit,  7, 2)
-        subgrid.addWidget(self.vueltaLabel,       8, 2)
-        subgrid.addWidget(self.vueltaEdit,        9, 2)
-        subgrid.addWidget(self.VideoCheck,       10, 2)
-        subgrid.addWidget(self.Continouscheck,   11, 2)
-        subgrid.addWidget(self.graphcheck,       12, 2)
-        subgrid.addWidget(self.CMcheck,          13, 2)
-        subgrid.addWidget(self.PSFMode,           15, 2)
+        subgrid.addWidget(self.triggerEdit,        5, 2)
+        subgrid.addWidget(self.accelerationLabel,  6, 2)
+        subgrid.addWidget(self.accelerationEdit,   7, 2)
+        subgrid.addWidget(self.vueltaLabel,        8, 2)
+        subgrid.addWidget(self.vueltaEdit,         9, 2)
+        subgrid.addWidget(self.VideoCheck,        10, 2)
+        subgrid.addWidget(self.Continouscheck,    11, 2)
+        subgrid.addWidget(self.graphcheck,        12, 2)
+        subgrid.addWidget(self.CMcheck,           13, 2)
+        subgrid.addWidget(self.PSFMode,            15, 2)
 
     # Columna 3
 #        subgrid.addWidget(self.algobutton,     0, 3)
         subgrid.addWidget(self.ROIButton,       2, 3)
         subgrid.addWidget(self.selectROIButton, 3, 3)
         subgrid.addWidget(self.PointButton,      6, 3)
-        subgrid.addWidget(self.PointLabel,      7, 3)
-        subgrid.addWidget(self.plotLivebutton,  12, 3)
-        subgrid.addWidget(self.presetsMode,    15, 3)
+        subgrid.addWidget(self.PointLabel,       7, 3)
+        subgrid.addWidget(self.Gausscheck,        11, 3)
+        subgrid.addWidget(self.plotLivebutton,    12, 3)
+        subgrid.addWidget(self.presetsMode,        15, 3)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -609,7 +615,6 @@ class ScanWidget(QtGui.QFrame):
     def liveviewStart(self):
 #        self.working = True
 #        self.paramChangedInitialize()
-        self.openShutter("red")
         if self.scanMode.currentText() == scanModes[1]:  # "step scan":
             self.channelsOpenStep()
 #            self.inStart = False
@@ -653,7 +658,7 @@ class ScanWidget(QtGui.QFrame):
 #    def startingSteps(self):
 # %%
     def startingRamps(self):
-
+        self.openShutter("red")
 #        self.working = True
     # Send the signals to the NiDaq, but only start when the trigger is on
         self.aotask.write(np.array(
@@ -745,10 +750,12 @@ class ScanWidget(QtGui.QFrame):
               self.APDstop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
+              if self.Gausscheck.isChecked():
+                  self.GaussMeasure()
+              self.MovetoStart()
               if self.Continouscheck.isChecked():
                   self.liveviewStart()
               else:
-                  self.MovetoStart()
                   self.liveviewStop()
 
 
@@ -1808,77 +1815,55 @@ class ScanWidget(QtGui.QFrame):
 
 # %% GaussMeasure 
     def GaussMeasure(self):
-        if self.dy  == self.numberofPixels-1:
-            tic = ptime.time()
+        tic = ptime.time()
+        self.data = self.image
+        params = fitgaussian(self.data)
+        self.fit = gaussian(*params)
+        self.params = params
+        (height, x, y, width_x, width_y) = params
 
-            Z = self.image
-    #        N = len(Z)  # numberfoPixels
-    #        xcm = 0
-    #        ycm = 0
-    #        for i in range(N):
-    #            for j in range(N):
-    #                xcm = xcm + (Z[i,j]*i)
-    #                ycm = ycm + (Z[i,j]*j)
-    #        M = np.sum(Z)
-    #        xcm = xcm/M
-    #        ycm = ycm/M
-            xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
-            self.xcm = xcm
-            self.ycm = ycm
-    #        xc = int(np.round(xcm,2))
-    #        yc = int(np.round(ycm,2))
-            Normal = self.scanRange / self.numberofPixels
-            self.CMxValue.setText(str(xcm*Normal))
-            self.CMyValue.setText(str(ycm*Normal))
-            tac = ptime.time()
+#        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+#        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+#        xv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
+#        yv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
 
-            print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
+        Normal = self.scanRange / self.numberofPixels  # Normalizo
+        xx = x*Normal
+        yy = y*Normal
+        self.GaussxValue.setText(str(xx))
+        self.GaussyValue.setText(str(yy))
+        tac = ptime.time()
+        print(np.round((tac-tic)*10**3,3), "(ms)Gauss fit\n")
 
-# %% CMmeasure que tambien arma los datos para modular.(mapa)
+# %% CMmeasure
     def CMmeasure(self):
-#        if self.scanMode.currentText() == "step scan":
-#            self.steptimer.stop()
-#        else:
-#            self.viewtimer.stop()
-        if self.dy  == self.numberofPixels-1:
-            tic = ptime.time()
 
-            Z = self.image
-    #        N = len(Z)  # numberfoPixels
-    #        xcm = 0
-    #        ycm = 0
-    #        for i in range(N):
-    #            for j in range(N):
-    #                xcm = xcm + (Z[i,j]*i)
-    #                ycm = ycm + (Z[i,j]*j)
-    #        M = np.sum(Z)
-    #        xcm = xcm/M
-    #        ycm = ycm/M
-            xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
-            self.xcm = xcm
-            self.ycm = ycm
-    #        xc = int(np.round(xcm,2))
-    #        yc = int(np.round(ycm,2))
-            Normal = self.scanRange / self.numberofPixels
-            self.CMxValue.setText(str(xcm*Normal))
-            self.CMyValue.setText(str(ycm*Normal))
-            tac = ptime.time()
+        tic = ptime.time()
 
-    #        resol = 2  # NO SE DIBUJAR ARRIBA DE LA IMAGEN en vivo
-    #        for i in range(resol):
-    #            for j in range(resol):
-    #                ax.text(X[xc+i,yc+j],Y[xc+i,yc+j],"☻",color='w')
+        Z = self.image
+#        N = len(Z)  # numberfoPixels
+#        xcm = 0
+#        ycm = 0
+#        for i in range(N):
+#            for j in range(N):
+#                xcm = xcm + (Z[i,j]*i)
+#                ycm = ycm + (Z[i,j]*j)
+#        M = np.sum(Z)
+#        xcm = xcm/M
+#        ycm = ycm/M
+        xcm, ycm = ndimage.measurements.center_of_mass(Z)  # Los calculo y da lo mismo
+        self.xcm = xcm
+        self.ycm = ycm
+#        xc = int(np.round(xcm,2))
+#        yc = int(np.round(ycm,2))
+        Normal = self.scanRange / self.numberofPixels
+        self.CMxValue.setText(str(xcm*Normal))
+        self.CMyValue.setText(str(ycm*Normal))
+        tac = ptime.time()
 
-            toc = ptime.time()
-            print(np.round((tac-tic)*10**3,3), "(ms)solo CM\n")
+        print(np.round((tac-tic)*10**3,3), "(ms) CM\n")
 
-    #        if self.scanMode.currentText() == "step scan":
-    #            self.steptimer.start(5)
-    #        else:
-    #            self.viewtimer.start((self.reallinetime)*10**3)
-
-    #        self.viewtimer.start((((toc-tic)+self.reallinetime)*10**3))  # imput in ms
-    #        print(((toc-tic)+self.reallinetime)*10**3)
+# %% arma los datos para modular.(mapa)
 
     def mapa(self):
         Z = self.image
@@ -2053,6 +2038,40 @@ class ScanWidget(QtGui.QFrame):
 
 #        self.paramChanged()
 #        self.preseteado = True    creo que no lo voy a usar
+
+
+# %% Otras Funciones
+def gaussian(height, center_x, center_y, width_x, width_y):
+    """Returns a gaussian function with the given parameters"""
+    width_x = float(width_x)
+    width_y = float(width_y)
+    return lambda x,y: height*np.exp(
+                -(((center_x-x)/width_x)**2+((center_y-y)/width_y)**2)/2)
+
+def moments(data):
+    """Returns (height, x, y, width_x, width_y)
+    the gaussian parameters of a 2D distribution by calculating its
+    moments """
+    total = data.sum()
+    X, Y = np.indices(data.shape)
+    x = (X*data).sum()/total
+    y = (Y*data).sum()/total
+    col = data[:, int(y)]
+    width_x = np.sqrt(np.abs((np.arange(col.size)-y)**2*col).sum()/col.sum())
+    row = data[int(x), :]
+    width_y = np.sqrt(np.abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
+    height = data.max()
+    return height, x, y, width_x, width_y
+
+def fitgaussian(data):
+    from scipy import optimize
+    """Returns (height, x, y, width_x, width_y)
+    the gaussian parameters of a 2D distribution found by a fit"""
+    params = moments(data)
+    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) -
+                                 data)
+    p, success = optimize.leastsq(errorfunction, params)
+    return p
 
 # %% FIN
 app = QtGui.QApplication([])
