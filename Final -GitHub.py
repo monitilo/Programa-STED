@@ -667,7 +667,8 @@ class ScanWidget(QtGui.QFrame):
 #             self.totalrampz / convFactors['z']]), auto_start=True)
 #        self.inStart = False
         print("ya arranca...")
-
+        self.APD1task.start()
+        self.APD2task.start()
     # Starting the trigger. It have a controllable 'delay'
         self.triggertask.write(self.trigger, auto_start=True)
 
@@ -684,16 +685,17 @@ class ScanWidget(QtGui.QFrame):
             self.APD[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
         elif self.detectMode .currentText() == detectModes[-2]:
-            print("apd1")
-            self.APD[:] = self.APD1task.read(
-                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-            print("apd2...")
-            self.APD2[:] = self.APD2task.read(
-                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-            print("los dos apds")
+#            print("se viene!")
+            (self.APD[:], self.APD2[:]) = (self.APD1task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)),
+                self.APD2task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)))
+#            print(" apd 1 y 2")
+#            self.APD2[:] = self.APD2task.read(
+#                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
+#            print("los dos apds")
         elif self.detectMode .currentText() == detectModes[-1]:
             print("algo salio muy mal. entró a APDupdate, con la opcion PMT")
 
+        self.triggertask.wait_until_done()
         # have to analize the signal from the counter
         self.apdpostprocessing()
         self.image[:, -1-self.dy] = self.counts[:]  # f
@@ -1169,8 +1171,9 @@ class ScanWidget(QtGui.QFrame):
 
             self.APD2task.timing.cfg_samp_clk_timing(
               rate=self.apdrate, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-              source=r'100kHzTimebase',  # 1000k
+              source=r'100kHzTimebase',
               samps_per_chan = totalcinumber)
+            self.totalcinumber = totalcinumber
 
     def PMTOpen(self):
         if self.PMTon:
@@ -1243,7 +1246,7 @@ class ScanWidget(QtGui.QFrame):
 
 #            trigger[:] = True
 #            trigger1 = np.concatenate((trigger, np.zeros(100,dtype="bool")))  # 2ms de apagado, hace cosas raras
-            trigger2 = [True,False,True, True, False]  # np.tile(trigger, self.numberofPixels)
+            trigger2 = np.ones(self.totalcinumber,dtype='bool') # [True,False,True, True, False]  # np.tile(trigger, self.numberofPixels)
 
             self.trigger = np.concatenate((np.zeros(num,dtype="bool"), trigger2))
 
@@ -1270,9 +1273,11 @@ class ScanWidget(QtGui.QFrame):
             self.APD1task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
             self.APD1task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 
-            self.APD2task.triggers.arm_start_trigger.dig_edge_src = "PFI5"#triggerchannelname
+            self.APD2task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
             self.APD2task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 
+            self.APD2task.triggers.sync_type.MASTER = True
+            self.APD1task.triggers.sync_type.SLAVE = True
             self.triggerAPD = True
 #            self.citask.triggers.arm_start_trigger.dig_edge_edge = nidaqmx.constants.Edge.RISING
 
@@ -1451,7 +1456,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.PiezoOpenStep()  # cambiar a movimiento por puntos
 #        t = self.moveTime
-        N = int(dist*5000)  # self.moveSamples
+        N = int(abs(dist*5000))  # self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in activeChannels]

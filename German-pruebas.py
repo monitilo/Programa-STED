@@ -16,6 +16,7 @@ pp = pprint.PrettyPrinter(indent=4)
 #https://github.com/ni/nidaqmx-python/blob/master/nidaqmx_examples/ai_multi_task_pxie_ref_clk.py
 #https://github.com/ni/nidaqmx-python/blob/master/nidaqmx/tests/test_stream_analog_readers_writers.py
 
+#https://nidaqmx-python.readthedocs.io/en/latest/stream_readers.html
 # %%
 
 # %% progando con los dos contadores al mismo tiempo
@@ -30,7 +31,7 @@ Range = 10
 
 Nsamples = int(np.ceil(Range/resolucionDAQ))
 signal = np.ones((Nsamples*Napd),dtype="bool")
-signalAnalog= np.ones(len(signal)*2) * 5*np.random.rand(len(signal)*2)
+signalAnalog= np.ones(len(signal)) * 5*np.random.rand(len(signal))
 #
 otro = np.zeros(len(signal),dtype='bool')
 for i in range(10,len(signal)):
@@ -41,27 +42,30 @@ for i in range(10,len(signal)):
         otro[i] = False
 #for i in range(int(2*len(signal)/3)):
 #    signal[i] = True
-for i in range(350):
+for i in range(550):
     signal[i] = False
 #for i in range(500):
 #    otro[i] = False
 #otro[-10:-1] = True
 #otro[-1] = False
-trigger = np.append(signal,otro)
+trigger = signal  # np.append(signal,otro)
 rate = np.round(1 / tpix,9)
 #rate = apdrate
 
 #citask = nidaqmx.Task('citask')    
 
-
+#nidaqmx.stream_readers
 #    add_global_channels(["Dev1/ctr0"])
-
+data = np.zeros(len(signal))
+#nidaqmx.stream_readers.CounterReader.read_many_sample_double(data,
+#                                                             len(signal))
 cuentas = np.zeros(Npix)
 with nidaqmx.Task("read") as citask:
     with nidaqmx.Task("dotask") as dotask:
         with nidaqmx.Task("aotask") as aotask:
             with nidaqmx.Task("apdtask") as apdtask:
-
+#                citask.stream_readers.CounterReader.read_many_sample_double(data,
+#                                                             len(signal))
                 tic = time.time()
                 dotask.do_channels.add_do_chan(
                        "Dev1/port0/line6",
@@ -74,7 +78,8 @@ with nidaqmx.Task("read") as citask:
                              samps_per_chan=len(trigger))
         
                 citask.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr0')
+                            counter='Dev1/ctr0',
+                            initial_count=0)
         
                 citask.timing.cfg_samp_clk_timing(
                           rate=apdrate,
@@ -84,8 +89,8 @@ with nidaqmx.Task("read") as citask:
 
                 apdtask.ci_channels.add_ci_count_edges_chan(
                             counter='Dev1/ctr1',
-                            name_to_assign_to_channel='counter')
-
+                            name_to_assign_to_channel='counter',
+                            initial_count=0)
 
                 apdtask.timing.cfg_samp_clk_timing(
                           rate=apdrate,
@@ -111,23 +116,29 @@ with nidaqmx.Task("read") as citask:
                 apdtask.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
                 apdtask.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 
-                citask.triggers.sync_type.MASTER = True
-                apdtask.triggers.sync_type.SLAVE = True
+                apdtask.triggers.sync_type.MASTER = True
+                citask.triggers.sync_type.SLAVE = True
 
-                with nidaqmx.Task("stream") as streamtask:
-                    streamtask.in_stream.
-#                    in_stream.channels_to_read('counter')
+#                with nidaqmx.Task("stream") as streamtask:
+#                    streamtask.in_stream.
+#                    in_stream.channels_to_read1('counter')
 
-                
                 dotask.write(trigger,auto_start=False)
                 aotask.write(signalAnalog,auto_start=False)
                 tuc=time.time()
                 aotask.start()
                 dotask.start()
-                APDtodo = citask.read(number_of_samples_per_channel=len(signal))
-                print("paso un conter")
-                APD2 = apdtask.read(number_of_samples_per_channel=len(signal))
-                print("paso el otro")
+#stream_readers.CounterReader
+#read_many_sample_double(data, number_of_samples_per_channel=-1, timeout=10.0)
+                citask.start()
+                apdtask.start()
+
+#                APDtodo = citask.read(number_of_samples_per_channel=len(signal))
+#                print("paso un conter")
+#                APD2 = apdtask.read(number_of_samples_per_channel=len(signal))
+#                print("paso el otro")
+                (APDtodo,APD2) = (citask.read(number_of_samples_per_channel=len(signal)),
+                                 apdtask.read(number_of_samples_per_channel=len(signal)))
 
 #                citask.wait_until_done()
 #                apdtask.wait_until_done()
