@@ -16,9 +16,139 @@ pp = pprint.PrettyPrinter(indent=4)
 #https://github.com/ni/nidaqmx-python/blob/master/nidaqmx_examples/ai_multi_task_pxie_ref_clk.py
 #https://github.com/ni/nidaqmx-python/blob/master/nidaqmx/tests/test_stream_analog_readers_writers.py
 
-with nidaqmx.Task() as task:
-    task.in_stream.channerls_to_read
+# %%
+
+# %% progando con los dos contadores al mismo tiempo
+
+from nidaqmx.types import CtrTime
+resolucionDAQ = 0.0003 * 2 * 25 # V => µm; uso el doble para no errarle
+Npix=500
+apdrate= 10**5
+tpix = 0.01 *10**-3 # en milisegundos
+Napd=int(apdrate*tpix)
+Range = 10
+
+Nsamples = int(np.ceil(Range/resolucionDAQ))
+signal = np.ones((Nsamples*Napd),dtype="bool")
+signalAnalog= np.ones(len(signal)*2) * 5*np.random.rand(len(signal)*2)
+#
+otro = np.zeros(len(signal),dtype='bool')
+for i in range(10,len(signal)):
+    r = np.random.rand(1)[0]
+    if r > 0.5:
+        otro[i] = True
+    else:
+        otro[i] = False
+#for i in range(int(2*len(signal)/3)):
+#    signal[i] = True
+for i in range(350):
+    signal[i] = False
+#for i in range(500):
+#    otro[i] = False
+#otro[-10:-1] = True
+#otro[-1] = False
+trigger = np.append(signal,otro)
+rate = np.round(1 / tpix,9)
+#rate = apdrate
+
+#citask = nidaqmx.Task('citask')    
+
+
+#    add_global_channels(["Dev1/ctr0"])
+
+cuentas = np.zeros(Npix)
+with nidaqmx.Task("read") as citask:
+    with nidaqmx.Task("dotask") as dotask:
+        with nidaqmx.Task("aotask") as aotask:
+            with nidaqmx.Task("apdtask") as apdtask:
+
+                tic = time.time()
+                dotask.do_channels.add_do_chan(
+                       "Dev1/port0/line6",
+                       line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        
+                dotask.timing.cfg_samp_clk_timing(
+                             rate=rate,  # muestras por segundo
+                             sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+        #                     source='',
+                             samps_per_chan=len(trigger))
+        
+                citask.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr0')
+        
+                citask.timing.cfg_samp_clk_timing(
+                          rate=apdrate,
+                          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                          source=r'100kHzTimebase',
+                          samps_per_chan = len(signal))
+
+                apdtask.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr1',
+                            name_to_assign_to_channel='counter')
+
+
+                apdtask.timing.cfg_samp_clk_timing(
+                          rate=apdrate,
+                          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                          source=r'100kHzTimebase',
+                          samps_per_chan = len(signal))
+
+                triggerchannelname = "PFI4"
+                aotask.ao_channels.add_ao_voltage_chan(
+                           physical_channel='Dev1/ao0')
+                aotask.timing.cfg_samp_clk_timing(
+                    rate=rate,
+    #                source=r'100kHzTimeBase',
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=len(signalAnalog))
     
+                aotask.triggers.start_trigger.cfg_dig_edge_start_trig(
+                                    trigger_source = triggerchannelname)#,
+        #                                trigger_edge = nidaqmx.constants.Edge.RISING)
+    
+                citask.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
+                citask.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
+                apdtask.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
+                apdtask.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
+
+                citask.triggers.sync_type.MASTER = True
+                apdtask.triggers.sync_type.SLAVE = True
+
+                with nidaqmx.Task("stream") as streamtask:
+                    streamtask.in_stream.
+#                    in_stream.channels_to_read('counter')
+
+                
+                dotask.write(trigger,auto_start=False)
+                aotask.write(signalAnalog,auto_start=False)
+                tuc=time.time()
+                aotask.start()
+                dotask.start()
+                APDtodo = citask.read(number_of_samples_per_channel=len(signal))
+                print("paso un conter")
+                APD2 = apdtask.read(number_of_samples_per_channel=len(signal))
+                print("paso el otro")
+
+#                citask.wait_until_done()
+#                apdtask.wait_until_done()
+                tec = time.time()
+                dotask.wait_until_done()
+
+#        pp.pprint(cdata)
+toc = time.time()
+#cuentas = np.zeros(len(APDtodo))
+#for i in range(len(APDtodo)-1):
+#    cuentas[i] = APDtodo[i+1] - APDtodo[i]
+#print((toc-tic)*10**3, "milisegundos", tpix*Npix*10**3,"\ncitask solo = ", (tec-tac)*10**3, "\n ditask")#, (tuc-tupac)*10**3)
+plt.plot(trigger, '-')
+plt.plot(signalAnalog, '-')
+plt.plot(APDtodo, '--r')
+plt.plot(APD2, '--m')
+#plt.plot(cuentas, '*-m')
+#plt.axis([0, len(signal)/50+1, -0.1, 1.1])
+plt.show()
+
+
 # %% Voltaje fijo analogo
 c = 0
 for i in range(3):

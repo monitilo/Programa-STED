@@ -1316,6 +1316,11 @@ class ScanWidget(QtGui.QFrame):
             self.triggertask.close()
         except:
             print("d")
+        try:
+            self.pointtask.stop()
+            self.pointtask.close()
+        except:
+            print("d")
 
 #        self.shuttertask.stop()
 #        self.shuttertask.close()
@@ -1660,13 +1665,13 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.shutter0button.setChecked(False)
         if self.shuttersignal[1]:
-            self.shutter2button.setChecked(True)
-        else:
-            self.shutter2button.setChecked(False)
-        if self.shuttersignal[2]:
             self.shutter1button.setChecked(True)
         else:
             self.shutter1button.setChecked(False)
+        if self.shuttersignal[2]:
+            self.shutter2button.setChecked(True)
+        else:
+            self.shutter2button.setChecked(False)
 
     def shuttersChannelsNidaq(self):
         if self.shuttering == False:
@@ -1908,6 +1913,8 @@ class ScanWidget(QtGui.QFrame):
         elif self.detectMode .currentText() == detectModes[1]:
 #        elif self.APDgreen.isChecked():
             c = COchans[1]
+        else:
+            print("seleccionar algun apd")
 
         tiempo = 400 # ms
         self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
