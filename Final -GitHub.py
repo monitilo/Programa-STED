@@ -48,6 +48,14 @@ shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 class ScanWidget(QtGui.QFrame):
 
     def graphplot(self):
+#        if self.dy==0:
+#            self.paramChanged()
+
+        if self.graphcheck.isChecked():
+            self.img.setImage(self.image2, autoLevels=self.autoLevels)
+        else:
+            self.img.setImage(self.image, autoLevels=self.autoLevels)
+
         verxi = np.concatenate((self.xini[:-1],
                                np.zeros(len(self.wantedrampx)),
                                np.zeros(len(self.xchange[1:-1])),
@@ -417,6 +425,14 @@ class ScanWidget(QtGui.QFrame):
         self.goCMButton.pressed.connect(self.goCM)
         layout2.addWidget(self.goCMButton, 2, 9, 2, 2)
 
+        self.GaussxLabel = QtGui.QLabel('Gauss X')
+        self.GaussxValue = QtGui.QLabel('NaN')
+        self.GaussyLabel = QtGui.QLabel('Gauss Y')
+        self.GaussyValue = QtGui.QLabel('NaN')
+        layout2.addWidget(self.GaussxLabel, 6, 8)
+        layout2.addWidget(self.GaussxValue, 7, 8)
+        layout2.addWidget(self.GaussyLabel, 6, 9)
+        layout2.addWidget(self.GaussyValue, 7, 9)
 
         # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
@@ -477,8 +493,8 @@ class ScanWidget(QtGui.QFrame):
         self.steptimer.timeout.connect(self.stepScan)
 
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.image = self.blankImage
-        self.image2 = self.blankImage
+        self.image = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
+        self.image2 = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
         self.dy = 0
 
         #self.startRutine()  # que lea de algun lado la posicion y la setee como start x,y,z
@@ -495,8 +511,8 @@ class ScanWidget(QtGui.QFrame):
 
     def zeroImage(self):
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.image = self.blankImage
-        self.image2 = self.blankImage
+        self.image = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
+        self.image2 = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
@@ -686,7 +702,7 @@ class ScanWidget(QtGui.QFrame):
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
         elif self.detectMode .currentText() == detectModes[-2]:
 #            print("se viene!")
-            (self.APD[:], self.APD2[:]) = (self.APD1task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)),
+            (self.APD, self.APD2) = (self.APD1task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)),
                 self.APD2task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)))
 #            print(" apd 1 y 2")
 #            self.APD2[:] = self.APD2task.read(
@@ -696,9 +712,10 @@ class ScanWidget(QtGui.QFrame):
             print("algo salio muy mal. entró a APDupdate, con la opcion PMT")
 
         self.triggertask.wait_until_done()
+
         # have to analize the signal from the counter
         self.apdpostprocessing()
-        self.image[:, -1-self.dy] = self.counts[:]  # f
+        self.image[:, -1-self.dy] = self.counts[:] #+ np.random.rand(self.numberofPixels)[:] # f
 
         if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.backcounts[:])  # f
@@ -706,19 +723,17 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.backimage[:, -1-self.dy] = self.backcounts[:]  # np.flip(,0)
 
-        try:
-            self.image2[:, -1-self.dy] = self.counts2[:]  # f
-            self.backimage2[:, -1-self.dy] = self.backcounts2[:]  # f
-        except:
-            pass
+        self.image2[:, -1-self.dy] = self.counts2[:]  #+ 50*np.random.rand(self.numberofPixels)[:] # f
+        self.backimage2[:, -1-self.dy] = self.backcounts2[:]  # f
+
 
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
     #, so I´m plotting in packages. It's looks like realtime
-        if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
-            multi5 = np.arange(0, self.numberofPixels, 20)
+        if self.numberofPixels >= 500:  # (self.pixelTime*10**3) <= 0.5:
+            multi5 = np.arange(0, self.numberofPixels, 14)
         elif self.numberofPixels >= 200:
-            multi5 = np.arange(0, self.numberofPixels, 10)
+            multi5 = np.arange(0, self.numberofPixels, 9)
         else:
             multi5 = np.arange(0, self.numberofPixels, 2)
 
@@ -735,6 +750,7 @@ class ScanWidget(QtGui.QFrame):
             self.dy = self.dy + paso
         else:
             self.autoLevels = False
+#            self.img.setImage(self.image, autoLevels=self.autoLevels)
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
@@ -782,7 +798,8 @@ class ScanWidget(QtGui.QFrame):
 
     # limpio la parte acelerada.
         pixelsEnd = len(self.xini[:-1]) + self.numberofPixels
-        self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]
+        self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]  # f
+
         pixelsIniB = pixelsEnd+len(self.xchange[1:-1])
         if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.PMT[pixelsIniB : -len(self.xstops[1:])])
@@ -838,13 +855,13 @@ class ScanWidget(QtGui.QFrame):
     def Ramps(self):
     # arma los barridos con los parametros dados
         self.counts = np.zeros((self.numberofPixels))
-        self.counts2 = self.counts
+        self.counts2 = np.zeros((self.numberofPixels))#self.counts
 
         self.acceleration()
         self.backcounts = np.zeros((self.pixelsoffB))
-        self.backcounts2 = self.backcounts
+        self.backcounts2 = np.zeros((self.pixelsoffB)) # self.backcounts
         self.backimage = np.zeros((self.pixelsoffB, self.numberofPixels))  # para la vuelta (poner back Velocity=1)
-
+        self.backimage2 = np.zeros((self.pixelsoffB, self.numberofPixels)) # self.backimage
 #    Barrido x
         startX = float(self.initialPosition[0])
         sizeX = self.scanRange
@@ -918,10 +935,10 @@ class ScanWidget(QtGui.QFrame):
         if self.pixelsoffL == 0:
             self.counts[0] = self.APD[Napd-1] - self.APD[0]
         else:
-            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(1+self.pixelsoffL-1))-1]
+            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(self.pixelsoffL))-1]
 
         for i in range(1, self.numberofPixels):
-            ei = ((self.pixelsoffL+i) * Napd)-1
+            ei = ((self.pixelsoffL+i)   * Napd)-1
             ef = ((self.pixelsoffL+i+1) * Napd)-1
             self.counts[i] = self.APD[ef] - self.APD[ei]
 
@@ -942,11 +959,11 @@ class ScanWidget(QtGui.QFrame):
                 self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
 
             for i in range(1, self.numberofPixels):
-                ei = ((self.pixelsoffL+i) * Napd)-1
+                ei = ((self.pixelsoffL+i)   * Napd)-1
                 ef = ((self.pixelsoffL+i+1) * Napd)-1
                 self.counts2[i] = self.APD2[ef] - self.APD2[ei]
 
-    # Lo que sigue esta en creacion, para la imagen de vuelta
+#     Lo que sigue esta en creacion, para la imagen de vuelta
 
             for i in range(len(self.backcounts2)):  # len(back...)= pixelsoffB
     #            evi = ((self.pixelsoffR + i + 1) * Napd)
@@ -1276,8 +1293,8 @@ class ScanWidget(QtGui.QFrame):
             self.APD2task.triggers.arm_start_trigger.dig_edge_src = triggerchannelname
             self.APD2task.triggers.arm_start_trigger.trig_type = nidaqmx.constants.TriggerType.DIGITAL_EDGE
 
-            self.APD2task.triggers.sync_type.MASTER = True
-            self.APD1task.triggers.sync_type.SLAVE = True
+#            self.APD2task.triggers.sync_type.MASTER = True
+#            self.APD1task.triggers.sync_type.SLAVE = True
             self.triggerAPD = True
 #            self.citask.triggers.arm_start_trigger.dig_edge_edge = nidaqmx.constants.Edge.RISING
 
@@ -1456,7 +1473,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.PiezoOpenStep()  # cambiar a movimiento por puntos
 #        t = self.moveTime
-        N = int(abs(dist*5000))  # self.moveSamples
+        N = int(abs(dist*2000))  # self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in activeChannels]
@@ -1542,7 +1559,7 @@ class ScanWidget(QtGui.QFrame):
             min_val=minVolt[activeChannels[2]],
             max_val=maxVolt[activeChannels[2]])
 
-        N = int(dist*5000)
+        N = abs(int(dist*2000))
     # read initial position for all channels
         toc = ptime.time()
         rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
@@ -1552,9 +1569,11 @@ class ScanWidget(QtGui.QFrame):
         print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
     # update position text
         self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-        self.paramChanged()
 
-        self.done()
+        self.Ztask.stop()
+        self.Ztask.close()
+
+        self.paramChanged()
 
 # %% Go Cm y go to
     def goCM(self):
@@ -1584,7 +1603,7 @@ class ScanWidget(QtGui.QFrame):
         print("termino en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
-        self.paramChanged()
+#        self.paramChanged()
 
 ## ---moveto ---
     def moveto(self, x, y, z):
@@ -1747,11 +1766,11 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.stop()
             self.aotask.close()
 
-            if self.scanMode.currentText() == scanModes[1]:  # "step scan":
-                self.channelsOpenStep()
-            else:
-#            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
-                self.channelsOpenRamp()
+#            if self.scanMode.currentText() == scanModes[1]:  # "step scan":
+#                self.channelsOpenStep()
+#            else:
+##            if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
+#                self.channelsOpenRamp()
 
         self.dy = 0
 
