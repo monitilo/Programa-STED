@@ -175,7 +175,7 @@ for i in range(3):
             task.ao_channels.add_ao_voltage_chan(
                             physical_channel='Dev1/ao%s' % i,
                             min_val=-5, max_val=7)
-            task.write([0.0], auto_start=True)
+            task.write([0.1], auto_start=True)
     else:
         with nidaqmx.Task() as task:
             task.ao_channels.add_ao_voltage_chan(
@@ -190,6 +190,7 @@ with nidaqmx.Task("ai7") as task:
 
 #    task.ai_channels.add_ai_voltage_chan("Dev1/ai7")
 #    task.wait_until_done()
+
     data = task.read(number_of_samples_per_channel=5)
 
     pp.pprint(data)

@@ -624,6 +624,7 @@ class ScanWidget(QtGui.QFrame):
         if self.liveviewButton.isChecked():
             self.save = False
             self.paramChangedInitialize()
+            self.MovetoStart()
             self.liveviewStart()
         else:
             self.liveviewStop()
@@ -645,13 +646,13 @@ class ScanWidget(QtGui.QFrame):
                 self.rampScanAPD()
 
     def rampScanPMT(self):
-        self.MovetoStart()
+#        self.MovetoStart()
         self.startingRamps()
         self.tic = ptime.time()
         self.PMTtimer.start(self.reallinetime*10**3)  # imput in ms
 
     def rampScanAPD(self):
-        self.MovetoStart()
+#        self.MovetoStart()
         self.startingRamps()
         self.tic = ptime.time()
         self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
@@ -662,7 +663,7 @@ class ScanWidget(QtGui.QFrame):
             self.saveimageButton.setChecked(False)
             self.saveimageButton.setText('Scan and save')
             self.save = False
-            self.MovetoStart()
+        self.MovetoStart()
         print("liveStop")
         self.liveviewButton.setChecked(False)
         self.viewtimer.stop()
@@ -844,6 +845,7 @@ class ScanWidget(QtGui.QFrame):
               self.PMTtask.stop()
               if self.CMcheck.isChecked():
                   self.CMmeasure()
+              self.MovetoStart()
               if self.Continouscheck.isChecked():
                   self.liveviewStart()
               else:
