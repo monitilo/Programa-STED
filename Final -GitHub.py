@@ -47,7 +47,7 @@ shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 # %% ScanWidget
 class ScanWidget(QtGui.QFrame):
     def imageplot(self):
-        if self.graphcheck.isChecked():
+        if self.imagecheck.isChecked():
             self.img.setImage(self.image2, autoLevels=self.autoLevels)
         else:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
@@ -55,12 +55,15 @@ class ScanWidget(QtGui.QFrame):
     def graphplot(self):
 #        if self.dy==0:
 #            self.paramChanged()
-        self.getInitPos()
-
+#        self.getInitPos()
+        self.paramChangedInitialize()
         if self.graphcheck.isChecked():
-            self.img.setImage(self.backimage2, autoLevels=self.autoLevels)
+            if self.imagecheck.isChecked():
+                self.img.setImage(self.backimage2, autoLevels=self.autoLevels)
+            else:
+                self.img.setImage(self.backimage, autoLevels=self.autoLevels)
         else:
-            self.img.setImage(self.backimage, autoLevels=self.autoLevels)
+            self.img.setImage(self.image, autoLevels=self.autoLevels)
 
         verxi = np.concatenate((self.xini[:-1],
                                np.zeros(len(self.wantedrampx)),
@@ -179,7 +182,7 @@ class ScanWidget(QtGui.QFrame):
         self.step = False
 
     # Plot ramps scan button
-        self.imagecheck = QtGui.QCheckBox('Image chage')
+        self.imagecheck = QtGui.QCheckBox('Image change')
         self.imagecheck.clicked.connect(self.imageplot)
 
     # useful Booleans
@@ -238,7 +241,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0 z0] (µm)')
 #        self.initialPositionEdit = QtGui.QLineEdit('0 0 1')
         self.scanRangeLabel = QtGui.QLabel('Scan range (µm)')
-        self.scanRangeEdit = QtGui.QLineEdit('5')
+        self.scanRangeEdit = QtGui.QLineEdit('10')
         self.pixelTimeLabel = QtGui.QLabel('Pixel time (ms)')
         self.pixelTimeEdit = QtGui.QLineEdit('0.01')
         self.numberofPixelsLabel = QtGui.QLabel('Number of pixels')
@@ -248,10 +251,10 @@ class ScanWidget(QtGui.QFrame):
         self.accelerationLabel = QtGui.QLabel('Acceleration (µm/ms^2)')
         self.accelerationEdit = QtGui.QLineEdit('120')
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
-        self.vueltaEdit = QtGui.QLineEdit('15')
+        self.vueltaEdit = QtGui.QLineEdit('25')
 
         self.triggerLabel = QtGui.QLabel('Trigger ')
-        self.triggerEdit = QtGui.QLineEdit('10')
+        self.triggerEdit = QtGui.QLineEdit('1')
 
         self.timeTotalLabel = QtGui.QLabel('total scan time (s)')
         self.timeTotalValue = QtGui.QLabel('')
@@ -340,7 +343,7 @@ class ScanWidget(QtGui.QFrame):
 
 # ---  Positioner part ---------------------------------
         # Axes control
-        self.xLabel = QtGui.QLabel('0.0')
+        self.xLabel = QtGui.QLabel('-5.0')
         self.xLabel.setTextFormat(QtCore.Qt.RichText)
         self.xname =  QtGui.QLabel("<strong>x =")
         self.xname.setTextFormat(QtCore.Qt.RichText)
@@ -351,7 +354,7 @@ class ScanWidget(QtGui.QFrame):
         self.xStepEdit = QtGui.QLineEdit("1")
         self.xStepUnit = QtGui.QLabel(" µm")
 
-        self.yLabel = QtGui.QLabel('0.0')
+        self.yLabel = QtGui.QLabel('-5.0')
         self.yLabel.setTextFormat(QtCore.Qt.RichText)
         self.yname =  QtGui.QLabel("<strong>y =")
         self.yname.setTextFormat(QtCore.Qt.RichText)
@@ -891,11 +894,11 @@ class ScanWidget(QtGui.QFrame):
                                              self.xstops[1:]))
         self.wantedrampx = wantedrampx
 
-        #print(len(self.xini[:-1]), "xipuntos\n",
-#              len(wantedrampx), "Npuntos\n",
-#              len(self.xchange[1:-1]), "xchangepuntos\n",
-#              len(self.xback[:]), "xbackpuntos\n",
-#              len(self.xstops[1:]), "xstopspuntos\n")
+        print(len(self.xini[:-1]), "xipuntos\n",
+              len(wantedrampx), "Npuntos\n",
+              len(self.xchange[1:-1]), "xchangepuntos\n",
+              len(self.xback[:]), "xbackpuntos\n",
+              len(self.xstops[1:]), "xstopspuntos\n")
 
         self.totalrampx = np.tile(self.onerampx, self.numberofPixels)
 
@@ -951,13 +954,15 @@ class ScanWidget(QtGui.QFrame):
 
 #        j = self.dy
 
-        if self.pixelsoffL == 0:
-            self.counts[0] = self.APD[Napd-1] - self.APD[0]
-            self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
+#        if self.pixelsoffL == 0:
+#            self.counts[0] = self.APD[Napd-1] - self.APD[0]
+#            self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
+#
+#        else:
+#            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(self.pixelsoffL))-1]
+#            self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
 
-        else:
-            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(self.pixelsoffL))-1]
-            self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
+        self.counts[0] = 0
 
         for i in range(1, self.numberofPixels):
             ei = ((self.pixelsoffL+i)   * Napd)-1
@@ -1022,7 +1027,7 @@ class ScanWidget(QtGui.QFrame):
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
 
-        Vback = float(self.vueltaEdit.text())
+        Vback = float(self.vueltaEdit.text())/velocity
 
     # impongo una velocidad de vuelta Vback veces mayor a la de ida
         tcasi = ((1+Vback) * velocity) / acceleration  # -a*t + V = -Vback*V
@@ -1043,15 +1048,15 @@ class ScanWidget(QtGui.QFrame):
             if xchange[-1] < startX:
                 q = np.where(xchange<=startX)[0][0]
                 xchange = xchange[:q]
-                #print("! xchange < 0")
+                print("! xchange < 0")
                 self.xback = np.linspace(0,0,4)  #e lo creo para que no tire error nomas
 
             else:
                 q = np.where(xchange <= xlow)[0][0]
                 xchange = xchange[:q]
-                self.xback = np.linspace(xlow, 0, Nvuelta) + startX
-                #print("! xchange < xlow")
-            xstops = np.linspace(0,0,2)
+                self.xback = np.linspace(xlow, startX, 10)
+                print("! xchange < xlow")
+            xstops = np.linspace(0,0,2) + startX
         else:
 
             self.xback = np.linspace(xchange[-1], xlow, Nvuelta)
@@ -1503,7 +1508,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.PiezoOpenStep()  # cambiar a movimiento por puntos
 #        t = self.moveTime
-        N = int(abs(dist*2000))  # self.moveSamples
+        N = int(abs(dist*200))  # self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in activeChannels]
@@ -1658,7 +1663,7 @@ class ScanWidget(QtGui.QFrame):
                 self.aotask.write([rampx[i] / convFactors['x'],
                                    rampy[i] / convFactors['y']], auto_start=True)
 #                                   rampz[i] / convFactors['z']], auto_start=True)
-                time.sleep(t / N)
+#                time.sleep(t / N)
 
             print("se mueve todo en", np.round(ptime.time()-tuc, 4), "segs\n")
 
@@ -1958,7 +1963,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             #print("seleccionar algun apd")
             p=0
-
+        print(c)
         tiempo = 400 # ms  # refresca el numero cada este tiempo
         self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
         self.pointtask = nidaqmx.Task('pointtask')
