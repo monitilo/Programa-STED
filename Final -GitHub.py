@@ -124,6 +124,7 @@ class ScanWidget(QtGui.QFrame):
         self.PSFMode = QtGui.QComboBox()
         self.PSFModes = ['XY normal psf', 'XZ', 'YZ']
         self.PSFMode.addItems(self.PSFModes)
+        self.PSFMode.activated.connect(self.PSFYZ)
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
@@ -200,6 +201,7 @@ class ScanWidget(QtGui.QFrame):
         self.shuttersignal = [False, False, False]
 #        self.preseteado = False  # Era por si fijaba los valores, pero no
         self.autoLevels = True
+        self.YZ = False
 
         self.shuttersChannelsNidaq()  # los prendo al principio y me olvido
 
@@ -235,6 +237,10 @@ class ScanWidget(QtGui.QFrame):
         self.PointButton.setCheckable(True)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.0')
+
+    # Max counts
+        self.maxcountsLabel = QtGui.QLabel('Max Counts')
+        self.maxcountsEdit = QtGui.QLabel('<strong>0.0')
 
     # Scanning parameters
 
@@ -313,8 +319,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.timeTotalLabel,      14, 1)
         subgrid.addWidget(self.timeTotalValue,      15, 1)
         subgrid.addWidget(self.saveimageButton,     16, 1)
+        subgrid.addWidget(self.maxcountsLabel,      17, 1)
+        subgrid.addWidget(self.maxcountsEdit,       18, 1)
     # Columna 2
-
         subgrid.addWidget(self.detectMode,        0, 2)
         subgrid.addWidget(self.NameDirButton,     1, 2)
         subgrid.addWidget(self.OpenButton,        2, 2)
@@ -516,6 +523,12 @@ class ScanWidget(QtGui.QFrame):
 #    def startRutine(self):
 #        read algo
 
+    def PSFYZ(self):
+        if self.PSFMode.currentText() == self.PSFMode[0]:
+            self.YZ = False
+        else:
+            self.YZ = True
+
     def SlalomMode(self):
         if self.scanMode.currentText() == "slalom":
             self.vueltaEdit.setText("1")
@@ -696,10 +709,16 @@ class ScanWidget(QtGui.QFrame):
         self.openShutter("red")
 #        self.working = True
     # Send the signals to the NiDaq, but only start when the trigger is on
-        self.aotask.write(np.array(
-            [self.totalrampx / convFactors['x'],
-             self.totalrampy / convFactors['y']]), auto_start=True)
-#             self.totalrampz / convFactors['z']]), auto_start=True)
+        if self.YZ:
+            self.aotask.write(np.array(
+                [self.totalrampx / convFactors['x'],
+                 self.totalrampy / convFactors['y'],
+                 self.totalrampz / convFactors['z']]), auto_start=True)
+        else:
+            self.aotask.write(np.array(
+                [self.totalrampx / convFactors['x'],
+                 self.totalrampy / convFactors['y']]), auto_start=True)
+    #             self.totalrampz / convFactors['z']]), auto_start=True)
 #        self.inStart = False
         print("ya arranca...")
         self.APD1task.start()
@@ -723,19 +742,14 @@ class ScanWidget(QtGui.QFrame):
 #            #print("se viene!")
             (self.APD, self.APD2) = (self.APD1task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)),
                 self.APD2task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)))
-#            #print(" apd 1 y 2")
-#            self.APD2[:] = self.APD2task.read(
-#                      ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-#            #print("los dos apds")
-        elif self.detectMode .currentText() == detectModes[-1]:
-            #print("algo salio muy mal. entró a APDupdate, con la opcion PMT")
-            p=0
-#        self.triggertask.wait_until_done()
+#        elif self.detectMode .currentText() == detectModes[-1]:
+#            print("algo salio muy mal. entró a APDupdate, con la opcion PMT")
 
         # have to analize the signal from the counter
         self.apdpostprocessing()
-        self.image[:, -1-self.dy] = self.counts[:] #+ np.random.rand(self.numberofPixels)[:] # f
 
+        self.image[:, -1-self.dy] = self.counts[:] #+ np.random.rand(self.numberofPixels)[:] # f
+        """ verificar si Slalom es mas rapido que normal"""
         if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.backcounts[:])  # f
             paso = 2
@@ -745,11 +759,10 @@ class ScanWidget(QtGui.QFrame):
         self.image2[:, -1-self.dy] = self.counts2[:]  #+ 50*np.random.rand(self.numberofPixels)[:] # f
         self.backimage2[:, -1-self.dy] = self.backcounts2[:]  # f
 
-
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
     #, so I´m plotting in packages. It's looks like realtime
-        if self.numberofPixels >= 500:  # (self.pixelTime*10**3) <= 0.5:
+        if self.numberofPixels >= 500:
             multi5 = np.arange(0, self.numberofPixels, 14)
         elif self.numberofPixels >= 200:
             multi5 = np.arange(0, self.numberofPixels, 9)
@@ -757,11 +770,11 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels, 2)
 
         if self.dy in multi5:
-
             if self.imagecheck.isChecked():
                 self.img.setImage(self.image2, autoLevels=self.autoLevels)
             else:
                 self.img.setImage(self.image, autoLevels=self.autoLevels)
+            self.MaxCounts()
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
@@ -803,8 +816,15 @@ class ScanWidget(QtGui.QFrame):
             self.APD2task.stop()
         except:
             pass
-#    def fastupdateView(self):
-#
+
+    def MaxCounts(self):
+        m = np.max(self.image)
+        if m >= (5000 * self.pixelTime):
+            self.maxcountsEdit.setText("<strong>{}".format(float(m)))
+            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
+        else:
+            self.maxcountsEdit.setText("<strong>{}".format(float(m)))
+            self.maxcountsEdit.setStyleSheet("{ background-color: }")
 # %% runing Ramp loop (PMT)
     def PMTupdate(self):
         paso = 1
@@ -963,6 +983,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
 
         self.counts[0] = 0
+        self.counts[0:5] = 5  # probando cosas
 
         for i in range(1, self.numberofPixels):
             ei = ((self.pixelsoffL+i)   * Napd)-1
@@ -979,7 +1000,7 @@ class ScanWidget(QtGui.QFrame):
             self.backcounts[i] = self.APD[evf] - self.APD[evi]
             self.backcounts2[i] = self.APD2[evf] - self.APD2[evi]
 
-#  puede fallar en la primer y/o ultima fila. YA NO FALLA, ANDA TODO bien
+#  puede fallar en la primer y/o ultima fila.
 
 #        try:  No necesito hacer el try, como mucho hace las cuentas con una matriz de ceros
 #            if self.pixelsoffL == 0:
@@ -1085,12 +1106,14 @@ class ScanWidget(QtGui.QFrame):
         toffM = NoffM/self.sampleRate
         toffB = NoffB/self.sampleRate
 #        toff = toffL + toffR
-        self.pixelsoffL = int(np.round(toffL*self.apdrate)/self.Napd)
-        self.pixelsoffM = int(np.round(toffM*self.apdrate)/self.Napd)
-        self.pixelsoffB = int(np.round(toffB*self.apdrate)/self.Napd)
-        self.pixelsoffR = int(np.round(toffR*self.apdrate)/self.Napd)
+        self.pixelsoffL = int(np.round(toffL*self.apdrate/self.Napd))
+        self.pixelsoffM = int(np.round(toffM*self.apdrate/self.Napd))
+        self.pixelsoffB = int(np.round(toffB*self.apdrate/self.Napd))
+        self.pixelsoffR = int(np.round(toffR*self.apdrate/self.Napd))
         tofftotal = toffL+toffM+toffB+toffR
-        self.pixelsofftotal = int(np.round((tofftotal)*self.apdrate)/self.Napd)
+        self.pixelsofftotal = int(np.round((tofftotal)*self.apdrate/self.Napd))
+        print("pixelsofftotal", self.pixelsofftotal,  # Si no dan lo mismo, puedo tener problemas
+              "\n pixels off Suma", self.pixelsoffL+self.pixelsoffM+self.pixelsoffB+self.pixelsoffR)
 
 
 # %% --- ChannelsOpen (todos)
@@ -1105,7 +1128,6 @@ class ScanWidget(QtGui.QFrame):
         """ Open and Config of all the channels for use"""
         if self.channelramp:
             print("ya esta abierto ramp")
-            p=0
         else:
             if self.channelsteps:
                 self.done()
@@ -1122,7 +1144,6 @@ class ScanWidget(QtGui.QFrame):
         """ Open and Config of all the channels for use"""
         if self.channelsteps:
             print("ya esta abierto step")
-            p=0
         else:
             if self.channelramp:
                 self.done()
@@ -1133,7 +1154,6 @@ class ScanWidget(QtGui.QFrame):
     def PiezoOpenRamp(self):
         if self.piezoramp:
             print("Ya estaban abiertos los canales rampa")  # to dont open again
-            p=0
         else:
             if self.piezosteps:
                 self.aotask.stop()
@@ -1141,6 +1161,8 @@ class ScanWidget(QtGui.QFrame):
                 #print("cierro auque no es necesario")
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
+            if self.YZ:
+                AOchans = [0,1,2]
         # Following loop creates the voltage channels
             for n in range(len(AOchans)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
@@ -1159,7 +1181,6 @@ class ScanWidget(QtGui.QFrame):
     def PiezoOpenStep(self):
         if self.piezosteps:
             print("Ya estaban abiertos los canales steps")  # to dont open again
-            p=0
         else:
             if self.piezoramp:
                 self.aotask.stop()
@@ -1588,12 +1609,12 @@ class ScanWidget(QtGui.QFrame):
         with nidaqmx.Task("Ztask") as Ztask:
 #        self.Ztask = nidaqmx.Task('Ztask')
     # Following loop creates the voltage channels
-
+            n=2
             Ztask.ao_channels.add_ao_voltage_chan(
-                physical_channel='Dev1/ao2',
-                name_to_assign_to_channel='chan_Z',
-                min_val=minVolt[activeChannels[2]],
-                max_val=maxVolt[activeChannels[2]])
+                physical_channel='Dev1/ao{}'.format(n),
+                name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                min_val=minVolt[activeChannels[n]],
+                max_val=maxVolt[activeChannels[n]])
 
             N = abs(int(dist*2000))
         # read initial position for all channels
@@ -1939,7 +1960,7 @@ class ScanWidget(QtGui.QFrame):
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
-# %% Point scan ---+--- Se puede elegir APD
+# %% Point scan ---+--- Hay que elegir APD
     def PointStart(self):
         if self.PointButton.isChecked():
             self.PointScan()
@@ -1961,8 +1982,7 @@ class ScanWidget(QtGui.QFrame):
 #        elif self.APDgreen.isChecked():
             c = COchans[1]
         else:
-            #print("seleccionar algun apd")
-            p=0
+            print("seleccionar algun apd")
         print(c)
         tiempo = 400 # ms  # refresca el numero cada este tiempo
         self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
@@ -2092,7 +2112,7 @@ class ScanWidget(QtGui.QFrame):
             self.accelerationEdit.setText('120')
             self.vueltaEdit.setText('100')
 
-        self.paramChanged()
+#        self.paramChanged()
 #        self.preseteado = True    creo que no lo voy a usar
 
 # %% getInitPos  Posiciones reales, si agrego los cables que faltan
