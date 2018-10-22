@@ -1038,7 +1038,7 @@ class ScanWidget(QtGui.QFrame):
         startX = float(self.initialPosition[0])
 
         ti = velocity / acceleration
-        xipuntos = int(np.ceil(ti * rate))
+        xipuntos = int(np.ceil(ti * rate)) + 10
 
         xini = np.zeros(xipuntos)
         tiempoi = np.linspace(0,ti,xipuntos)
@@ -1070,12 +1070,12 @@ class ScanWidget(QtGui.QFrame):
                 q = np.where(xchange<=startX)[0][0]
                 xchange = xchange[:q]
                 print("! xchange < 0")
-                self.xback = np.linspace(0,0,4)  #e lo creo para que no tire error nomas
+                self.xback = np.linspace(0,0,4) + startX  #e lo creo para que no tire error nomas
 
             else:
                 q = np.where(xchange <= xlow)[0][0]
                 xchange = xchange[:q]
-                self.xback = np.linspace(xlow, startX, 10)
+                self.xback = np.linspace(xlow, startX, Nvuelta)
                 print("! xchange < xlow")
             xstops = np.linspace(0,0,2) + startX
         else:

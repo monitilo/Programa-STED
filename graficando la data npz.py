@@ -17,61 +17,57 @@ bbb=ptime.time()
 # la calibracion es 1 µm = 40 mV; ==> 0.3 mv = 0.0075 um = 7.5 nm
 reDAQ = 0.6*(10**-3)*25
 R = 10  # rango
-Npix = 500  # numerode pixeles
+Npix = 200  # numerode pixeles
 tpix = 0.01  # tiempo de pixel en ms
 T = tpix * Npix  # tiempo total de la linea
 V = (R/T)  # velocidad de la rampa
 #V = 100  # um/ms
-m=25/V
+m=70/V
 #Npuntos= int(R / reDAQ)
 #rate = Npuntos / T
 
-rate = 10*5
+rate = (1/tpix)  # 10**5 * 10**-3
 Npuntos = int(rate*T)
 print((ptime.time()-bbb)*10**3, (time.time()-aaa)*10**3)
 x0 = 0
 V0 = 0  #==> c=0
+startX = 0
 #quiero ver cuando alcanza velocidad V (a*ti =V )
 ti = V / a
 #xi = a*ti**2 + V0*ti  # no lo uso
-Ni = int(np.ceil(ti * rate))
+Ni = int(np.ceil(ti * rate)) +10  # xipuntos
 tiempoi=np.linspace(0,ti,Ni)
 xti=np.zeros(Ni)
 for i in range(Ni):
-    xti[i] = 0.5*a*(tiempoi[i]**2)  # + V0*tiempoi[i]
-
-
+    xti[i] = 0.5*a*(tiempoi[i]**2) + startX  # + V0*tiempoi[i]
 
 rampax = np.linspace(xti[-1],R+xti[-1],int(Npuntos))
 
 #ahora la otra parte. Llega con vel V a xr=R+xi, en tr=T+ti
-xr = R+xti[-1]
+xr = xti[-1] + R
 tr = T +ti
 # ==> tr=0 por comodidad, despues lo corro
 #a*tr + c =V. 0.5*a*tr**2 + c*tr + d = xr
 c=V
 d=xr
 
-
 ##Busco a que tiempo alcanza velocidad -m*V: -a*tcasi +c = -m*V
 
-
 tcasi =-(c+(m*V))/-a
-xcasi = -0.5*a*tcasi**2 + c*tcasi + d  # no lo uso
-Ncasi = 12#int(np.ceil(tcasi * rate))
-tiempocasi=np.linspace(0,tcasi,Ncasi)
-xtcas=np.zeros(Ncasi)
+#xcasi = -0.5*a*tcasi**2 + c*tcasi + d  # no lo uso
+Ncasi = int(np.ceil(tcasi * rate))  # xchangepuntos
+tiempocasi=np.linspace(0,tcasi,Ncasi)  # tiempofin
+xtcas=np.zeros(Ncasi)  # xchange
 for i in range(Ncasi):
     xtcas[i] = -0.5*a*(tiempocasi[i]**2) + c*tiempocasi[i] + d
 
 # por ultimo, quiero que baje con vel = -m*V lineal. tarda t=x/-m*V
 
+tflip = m*V/(av)  # tlow
+xflip = 0.5*(av)*(tflip**2) + startX  # xlow
 
-tflip = m*V/(av)
-xflip = 0.5*(av)*(tflip**2)
-
-tfin=(xflip-xtcas[-1]/(-m*V)) + tr + tcasi
-Nfin = 10#abs(int(np.ceil(((xflip-xtcas[-1])/((-m*V))*rate))))
+#tfin=(xflip-xtcas[-1]/(-m*V)) + tr + tcasi
+Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate))))  # Nvuelta
 #Nfin = Npuntos /m
 
 # Una curva mas para la repeticion de cada señal. 
@@ -83,41 +79,42 @@ Nfin = 10#abs(int(np.ceil(((xflip-xtcas[-1])/((-m*V))*rate))))
 """
 
 if xtcas[-1] < xflip:
-    if xtcas[-1] < 0:
-        q = np.where(xtcas<=0)[0][0]
+    if xtcas[-1] < startX:
+        q = np.where(xtcas<=startX)[0][0]
         xtcas = xtcas[:q]
-        print("xtcas < 0")
-        rfin = np.linspace(0,0,4)
+        print("! xtcas < 0")
+        rfin = np.linspace(0,0,2) + startX  # xback
 
     else:
         q = np.where(xtcas<=xflip)[0][0]
         xtcas = xtcas[:q]
-        rfin = np.linspace(xflip,0,Nfin)
+        rfin = np.linspace(xflip,startX,Nfin)
         print("xtcas < xflip")
-    rflip = np.linspace(0,0,2)
+    rflip = np.linspace(0,0,2) + startX
 else:
 
     rfin= np.linspace(xtcas[-1],xflip,Nfin)
-    
-    Nflip = 11#int(np.ceil(tflip * rate))
-    tiempoflip=np.linspace(0,tflip,Nflip)
+
+    Nflip = int(np.ceil(tflip * rate))  # xlowpuntos
+    tiempoflip=np.linspace(0,tflip,Nflip)  # tiempolow
     print("normal")
     rflip=np.zeros(Nflip)
     for i in range(Nflip):
-        rflip[i] = 0.5*(av)*(tiempoflip[i]**2)
+        rflip[i] = 0.5*(av)*(tiempoflip[i]**2) + startX  # xstops
     
     rflip = np.flip(rflip,axis=0)
-
+    
     #rflip =np.flip(xti,axis=0)
 
-
-barridox = np.concatenate((xti[:-1], rampax[:], xtcas[1:], rfin[1:-1],rflip[:]))
-verxi= np.concatenate((xti[:-1],np.zeros(len(rampax)-1),np.zeros(len(xtcas)),np.zeros(len(rfin)-2), np.zeros(len(rflip))))
-verxcas= np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)-1), xtcas,np.zeros(len(rfin)-2), np.zeros(len(rflip))))
-verfin= np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)-1),np.zeros(len(xtcas)),rfin[1:-1], np.zeros(len(rflip))))
-verflip =np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)-1),np.zeros(len(xtcas)),np.zeros(len(rfin[1:-1])), rflip))
 print(Ni, "Ni\n",Npuntos, "Npuntos\n", Ncasi, "Ncasi\n",
       Nfin, "Nfin\n", Nflip, "Nflip\n")
+
+barridox = np.concatenate((          xti[:-1],            rampax[:],        xtcas[1:-1], rfin[:],rflip[1:]))
+verxi= np.concatenate(  (            xti[:-1],np.zeros(len(rampax)),np.zeros(len(xtcas)-2), np.zeros(len(rfin)), np.zeros(len(rflip)-1)))
+verxcas= np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)),        xtcas[1:-1]   , np.zeros(len(rfin)), np.zeros(len(rflip)-1)))
+verfin= np.concatenate( (np.zeros(len(xti)-1),np.zeros(len(rampax)),np.zeros(len(xtcas)-2),        rfin[:]     , np.zeros(len(rflip)-1)))
+verflip =np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)),np.zeros(len(xtcas)-2), np.zeros(len(rfin)),          rflip[1:]    ))
+
 
 #tvuelta = np.linspace(0, (-xcasi/(-m*V)), Nfin)+tr+tcasi
 
