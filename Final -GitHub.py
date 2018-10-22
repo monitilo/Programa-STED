@@ -55,7 +55,7 @@ class ScanWidget(QtGui.QFrame):
     def graphplot(self):
 #        if self.dy==0:
 #            self.paramChanged()
-#        self.getInitPos()
+        self.getInitPos()
         self.paramChangedInitialize()
         if self.graphcheck.isChecked():
             if self.imagecheck.isChecked():
@@ -205,6 +205,10 @@ class ScanWidget(QtGui.QFrame):
 
         self.shuttersChannelsNidaq()  # los prendo al principio y me olvido
 
+    # autoLevel image
+        self.autoLevelscheck = QtGui.QCheckBox('Image change')
+        self.autoLevelscheck.clicked.connect(self.autoLevelset)
+
     # Shutters buttons
         self.shutter0button = QtGui.QCheckBox('shutter Red')
         self.shutter0button.clicked.connect(self.shutter0)
@@ -319,14 +323,14 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.timeTotalLabel,      14, 1)
         subgrid.addWidget(self.timeTotalValue,      15, 1)
         subgrid.addWidget(self.saveimageButton,     16, 1)
-        subgrid.addWidget(self.maxcountsLabel,      17, 1)
-        subgrid.addWidget(self.maxcountsEdit,       18, 1)
+        subgrid.addWidget(self.autoLevelscheck,     17, 1)
+
     # Columna 2
         subgrid.addWidget(self.detectMode,        0, 2)
         subgrid.addWidget(self.NameDirButton,     1, 2)
         subgrid.addWidget(self.OpenButton,        2, 2)
-        subgrid.addWidget(self.triggerLabel,       4, 2)
-        subgrid.addWidget(self.triggerEdit,        5, 2)
+#        subgrid.addWidget(self.triggerLabel,       4, 2)
+#        subgrid.addWidget(self.triggerEdit,        5, 2)
         subgrid.addWidget(self.accelerationLabel,  6, 2)
         subgrid.addWidget(self.accelerationEdit,   7, 2)
         subgrid.addWidget(self.vueltaLabel,        8, 2)
@@ -336,7 +340,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.graphcheck,        12, 2)
         subgrid.addWidget(self.CMcheck,           13, 2)
         subgrid.addWidget(self.PSFMode,            15, 2)
-
+        subgrid.addWidget(self.maxcountsLabel,      17, 2)
+        subgrid.addWidget(self.maxcountsEdit,       18, 2)
     # Columna 3
 #        subgrid.addWidget(self.algobutton,     0, 3)
         subgrid.addWidget(self.ROIButton,       2, 3)
@@ -522,6 +527,11 @@ class ScanWidget(QtGui.QFrame):
 
 #    def startRutine(self):
 #        read algo
+    def autoLevelset(self):
+        if self.autoLevelscheck.isChecked():
+            self.autoLevels = True
+        else:
+            self.autoLevels = False
 
     def PSFYZ(self):
         if self.PSFMode.currentText() == self.PSFMode[0]:
@@ -654,7 +664,7 @@ class ScanWidget(QtGui.QFrame):
         if self.liveviewButton.isChecked():
             self.save = False
             self.paramChangedInitialize()
-            self.MovetoStart()
+            self.MovetoStart()  # getini: se va
             self.liveviewStart()
         else:
             self.liveviewStop()
@@ -1043,7 +1053,7 @@ class ScanWidget(QtGui.QFrame):
         xini = np.zeros(xipuntos)
         tiempoi = np.linspace(0,ti,xipuntos)
         for i in range(xipuntos):
-            xini[i] = 0.5*acceleration*((tiempoi[i])**2) + startX
+            xini[i] = 0.5*acceleration*(((tiempoi[i])**2-(tiempoi[-1]**2))) + startX
 
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
@@ -2132,10 +2142,16 @@ class ScanWidget(QtGui.QFrame):
             task.wait_until_done()
             data = task.read(number_of_samples_per_channel=5)
         print("Lecturas de las ai 7y6", data[0][-1],data[1][-1])
-        self.startX = data[0][-1]
-        self.startY = data[1][-1]
-        print("Posiciones Actuales", self.startX * convFactors['x'],
-                                     self.startY * convFactors['y'])
+        self.realposX = data[0][-1] * convFactors['x']
+        self.realposY = data[1][-1] * convFactors['y']
+        print("Posiciones Actuales", self.realposX, self.realposY)
+        valorX = find_nearest(self.totalrampx, self.realposX)
+        valorY = find_nearest(self.totalrampy, self.realposY)
+        self.indiceX = np.where(self.totalrampx == valorX)
+        self.indiceY = np.where(self.totalrampy == valorY)
+        print("En la rampa X:",self.totalrampx[self.indiceX][0])
+        print("En la rampa Y:",self.totalrampy[self.indiceY][0])
+#def find_nearest(array,value):
 
 #    # update position text
 #        self.xLabel.setText("{}".format(np.around(float(data[-1,0]), 2)))  # X
@@ -2180,6 +2196,9 @@ def fitgaussian(data):
     p, success = optimize.leastsq(errorfunction, params)
     return p
 
+def find_nearest(array,value):
+    idx = (np.abs(array-value)).argmin()
+    return array[idx]
 # %% FIN
 app = QtGui.QApplication([])
 win = ScanWidget(device)

@@ -16,8 +16,8 @@ aaa=time.time()
 bbb=ptime.time()
 # la calibracion es 1 µm = 40 mV; ==> 0.3 mv = 0.0075 um = 7.5 nm
 reDAQ = 0.6*(10**-3)*25
-R = 10  # rango
-Npix = 200  # numerode pixeles
+R = 3  # rango
+Npix =100  # numerode pixeles
 tpix = 0.01  # tiempo de pixel en ms
 T = tpix * Npix  # tiempo total de la linea
 V = (R/T)  # velocidad de la rampa
@@ -39,7 +39,7 @@ Ni = int(np.ceil(ti * rate)) +10  # xipuntos
 tiempoi=np.linspace(0,ti,Ni)
 xti=np.zeros(Ni)
 for i in range(Ni):
-    xti[i] = 0.5*a*(tiempoi[i]**2) + startX  # + V0*tiempoi[i]
+    xti[i] = 0.5*a*((tiempoi[i])**2-tiempoi[-1]**2) + startX  # + V0*tiempoi[i]
 
 rampax = np.linspace(xti[-1],R+xti[-1],int(Npuntos))
 
