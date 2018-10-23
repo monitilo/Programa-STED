@@ -16,13 +16,13 @@ aaa=time.time()
 bbb=ptime.time()
 # la calibracion es 1 µm = 40 mV; ==> 0.3 mv = 0.0075 um = 7.5 nm
 reDAQ = 0.6*(10**-3)*25
-R = 3  # rango
-Npix =100  # numerode pixeles
+R = 10  # rango
+Npix = 500  # numerode pixeles
 tpix = 0.01  # tiempo de pixel en ms
 T = tpix * Npix  # tiempo total de la linea
 V = (R/T)  # velocidad de la rampa
 #V = 100  # um/ms
-m=70/V
+m=25/V
 #Npuntos= int(R / reDAQ)
 #rate = Npuntos / T
 
@@ -55,7 +55,7 @@ d=xr
 
 tcasi =-(c+(m*V))/-a
 #xcasi = -0.5*a*tcasi**2 + c*tcasi + d  # no lo uso
-Ncasi = int(np.ceil(tcasi * rate))  # xchangepuntos
+Ncasi = int(np.ceil(tcasi * rate)) +10 # xchangepuntos
 tiempocasi=np.linspace(0,tcasi,Ncasi)  # tiempofin
 xtcas=np.zeros(Ncasi)  # xchange
 for i in range(Ncasi):
@@ -67,8 +67,9 @@ tflip = m*V/(av)  # tlow
 xflip = 0.5*(av)*(tflip**2) + startX  # xlow
 
 #tfin=(xflip-xtcas[-1]/(-m*V)) + tr + tcasi
-Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate))))  # Nvuelta
+Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate)))) +10  # Nvuelta
 #Nfin = Npuntos /m
+Nflip = int(np.ceil(tflip * rate)) +10 # xlowpuntos
 
 # Una curva mas para la repeticion de cada señal. 
 #nuevamente salgo de vel = 0 y voy para atras en el tiempo
@@ -95,7 +96,6 @@ else:
 
     rfin= np.linspace(xtcas[-1],xflip,Nfin)
 
-    Nflip = int(np.ceil(tflip * rate))  # xlowpuntos
     tiempoflip=np.linspace(0,tflip,Nflip)  # tiempolow
     print("normal")
     rflip=np.zeros(Nflip)

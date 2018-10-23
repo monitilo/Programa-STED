@@ -261,7 +261,7 @@ class ScanWidget(QtGui.QFrame):
         self.accelerationLabel = QtGui.QLabel('Acceleration (µm/ms^2)')
         self.accelerationEdit = QtGui.QLineEdit('120')
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
-        self.vueltaEdit = QtGui.QLineEdit('25')
+        self.vueltaEdit = QtGui.QLineEdit('10')
 
         self.triggerLabel = QtGui.QLabel('Trigger ')
         self.triggerEdit = QtGui.QLineEdit('1')
@@ -331,8 +331,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.OpenButton,        2, 2)
 #        subgrid.addWidget(self.triggerLabel,       4, 2)
 #        subgrid.addWidget(self.triggerEdit,        5, 2)
-        subgrid.addWidget(self.accelerationLabel,  6, 2)
-        subgrid.addWidget(self.accelerationEdit,   7, 2)
+#        subgrid.addWidget(self.accelerationLabel,  6, 2)
+#        subgrid.addWidget(self.accelerationEdit,   7, 2)
         subgrid.addWidget(self.vueltaLabel,        8, 2)
         subgrid.addWidget(self.vueltaEdit,         9, 2)
         subgrid.addWidget(self.VideoCheck,        10, 2)
@@ -1040,10 +1040,11 @@ class ScanWidget(QtGui.QFrame):
         """ it creates the smooths-edge signals to send to the piezo
         It´s just an u.a.r.m. movement equation"""  # MRUV
     #        aceleracion = 120  # µm/ms^2  segun inspector
-        acceleration = float(self.accelerationEdit.text())  # editable
+#        acceleration = float(self.accelerationEdit.text())  # editable
         T = self.numberofPixels * self.pixelTime * 10**3  # all in ms
         velocity = (self.scanRange / T)
         rate = self.sampleRate*10**-3
+        acceleration = (200*self.scanRange)/((self.numberofPixels*self.pixelTime)**2)
 
         startX = float(self.initialPosition[0])
 
@@ -1058,11 +1059,11 @@ class ScanWidget(QtGui.QFrame):
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
 
-        Vback = float(self.vueltaEdit.text())/velocity
+        Vback = float(self.vueltaEdit.text())  # /V
 
     # impongo una velocidad de vuelta Vback veces mayor a la de ida
         tcasi = ((1+Vback) * velocity) / acceleration  # -a*t + V = -Vback*V
-        xchangepuntos = int(np.ceil(tcasi * rate))
+        xchangepuntos = int(np.ceil(tcasi * rate)) +10
         tiempofin = np.linspace(0, tcasi, xchangepuntos)
         xchange = np.zeros(xchangepuntos)
         for i in range(xchangepuntos):
@@ -1092,7 +1093,7 @@ class ScanWidget(QtGui.QFrame):
 
             self.xback = np.linspace(xchange[-1], xlow, Nvuelta)
 
-            xlowpuntos = int(np.ceil(tlow * rate))
+            xlowpuntos = int(np.ceil(tlow * rate)) +10
             tiempolow=np.linspace(0,tlow,xlowpuntos)
             #print("acceleration ok")
             xstops=np.zeros(xlowpuntos)
