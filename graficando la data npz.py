@@ -22,7 +22,8 @@ tpix = 0.01  # tiempo de pixel en ms
 T = tpix * Npix  # tiempo total de la linea
 V = (R/T)  # velocidad de la rampa
 #V = 100  # um/ms
-m=25/V
+m=15
+ptsamano=0
 #Npuntos= int(R / reDAQ)
 #rate = Npuntos / T
 
@@ -35,7 +36,7 @@ startX = 0
 #quiero ver cuando alcanza velocidad V (a*ti =V )
 ti = V / a
 #xi = a*ti**2 + V0*ti  # no lo uso
-Ni = int(np.ceil(ti * rate)) +10  # xipuntos
+Ni = int(np.ceil(ti * rate)) +ptsamano  # xipuntos
 tiempoi=np.linspace(0,ti,Ni)
 xti=np.zeros(Ni)
 for i in range(Ni):
@@ -55,7 +56,7 @@ d=xr
 
 tcasi =-(c+(m*V))/-a
 #xcasi = -0.5*a*tcasi**2 + c*tcasi + d  # no lo uso
-Ncasi = int(np.ceil(tcasi * rate)) +10 # xchangepuntos
+Ncasi = int(np.ceil(tcasi * rate)) +ptsamano # xchangepuntos
 tiempocasi=np.linspace(0,tcasi,Ncasi)  # tiempofin
 xtcas=np.zeros(Ncasi)  # xchange
 for i in range(Ncasi):
@@ -67,9 +68,9 @@ tflip = m*V/(av)  # tlow
 xflip = 0.5*(av)*(tflip**2) + startX  # xlow
 
 #tfin=(xflip-xtcas[-1]/(-m*V)) + tr + tcasi
-Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate)))) +10  # Nvuelta
+Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate))))  # Nvuelta
 #Nfin = Npuntos /m
-Nflip = int(np.ceil(tflip * rate)) +10 # xlowpuntos
+Nflip = int(np.ceil(tflip * rate)) +ptsamano # xlowpuntos
 
 # Una curva mas para la repeticion de cada señal. 
 #nuevamente salgo de vel = 0 y voy para atras en el tiempo
@@ -121,9 +122,9 @@ verflip =np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)),np.zeros(len
 #ejex = np.concatenate((tiempoi[:-1],np.linspace(ti,tr,Npuntos)[:] , tiempocasi[:]+tr,
 #                       tvuelta[1:-1], tiempoflip+tvuelta[-1]))
 
-#resta=np.zeros((len(barridox)))
-#for i in range(1,len(barridox)):
-#    resta[i] = barridox[i] - barridox[i-1]
+resta=np.zeros((len(barridox)))
+for i in range(1,len(barridox)):
+    resta[i] = barridox[i] - barridox[i-1]
 
 #p.start()
 plt.figure(1)
@@ -133,7 +134,7 @@ plt.plot(verfin,'.-c')
 plt.plot(verxcas, '.-g')
 plt.plot(verxi, '.-m')
 plt.plot(verflip, '.-y')
-#plt.plot(resta,'r.-')
+plt.plot(resta,'r.-')
 #plt.xlim(-0.5,10)
 #plt.ylim(-0.1,0.1)
 #
@@ -148,31 +149,43 @@ plt.plot(verflip, '.-y')
 #plt.plot(xti)
 #cuantos puntos tengo entre tcasi y tr?
 
-#Ny=3
-#
-#
-#startY = 0
-#stepy = R/Ny
-#rampay = np.ones(len(barridox))*startY
-#
-#muchasrampasy=np.tile(rampay,(Ny,1))
-#barridoychico=np.zeros((Ny,len(rampay)))
-#
-#p = len(xti)-1 + len(rampax)-1 + int(len(xtcas))
-#for i in range(Ny):
-#
-#    barridoychico[i,:p]= muchasrampasy[i,:p] + (i)*stepy
-#    barridoychico[i,p:]= muchasrampasy[i,p:] + (i+1)*stepy
-#
-#
-#todo = np.tile(barridox,Ny)
-#barridoy = barridoychico.ravel()
-###
-#plt.figure(2)
-#plt.plot(todo,'.-')
-#plt.plot(barridoy, 'y')
-#
-#plt.show()
+Ny=4
+
+
+startY = 0
+stepy = R/Ny
+rampay = np.ones(len(barridox))*startY
+
+muchasrampasy=np.tile(rampay,(Ny,1))
+barridoychico=np.zeros((Ny,len(rampay)))
+
+p = len(xti)-1 + len(rampax)-1 + int(len(xtcas))
+for i in range(Ny):
+
+    barridoychico[i,:p]= muchasrampasy[i,:p] + (i)*stepy
+    barridoychico[i,p:]= muchasrampasy[i,p:] + (i+1)*stepy
+
+
+todo = np.tile(barridox,Ny)
+barridoy = barridoychico.ravel()
+
+indicey=np.where(barridoy==5)[0][0] #[-p]
+indicey
+barridoy[indicey]
+indicex=np.where(todo==4.9899799599198396)[0][0]
+indicex
+todo[indicex]
+indicey2 = round(indicey/len(rampay))*len(rampay)
+todo[int(indicex + indicey2)]= 2
+
+##
+plt.figure(2)
+
+plt.plot(todo,'.-')
+plt.plot(barridoy, 'y')
+#plt.plot(todo[int(indicex + indicey)],'.r')
+plt.show()
+
 # %% Con m=1, y este ajuste, tengo rampas escalonadas
 Ny=3
 

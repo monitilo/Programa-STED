@@ -258,8 +258,8 @@ class ScanWidget(QtGui.QFrame):
         self.numberofPixelsEdit = QtGui.QLineEdit('500')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
         self.pixelSizeValue = QtGui.QLabel('')
-        self.accelerationLabel = QtGui.QLabel('Acceleration (µm/ms^2)')
-        self.accelerationEdit = QtGui.QLineEdit('120')
+        self.accelerationLabel = QtGui.QLabel('puntos agregados a mano por las dudas') #Acceleration (µm/ms^2)')
+        self.accelerationEdit = QtGui.QLineEdit('0')
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
         self.vueltaEdit = QtGui.QLineEdit('10')
 
@@ -555,20 +555,28 @@ class ScanWidget(QtGui.QFrame):
     def paramChangedInitialize(self):
         tic = ptime.time()
 
-        a = [self.scanRange, self.numberofPixels, self.pixelTime,
-             self.initialPosition, self.scanModeSet,self.PSFModeSet]
-        b = [float(self.scanRangeEdit.text()), int(self.numberofPixelsEdit.text()),
-             float(self.pixelTimeEdit.text()) / 10**3, (float(self.xLabel.text()),
-                  float(self.yLabel.text()), float(self.zLabel.text())),
-                  self.scanMode.currentText(), self.PSFMode.currentText()]
+        a = [self.scanRange,
+             self.numberofPixels,
+             self.pixelTime,
+             self.initialPosition,
+             self.scanModeSet,
+             self.PSFModeSet,
+             self.ptsamano,
+             self.Vback]
+        
+        b = [float(self.scanRangeEdit.text()),
+             int(self.numberofPixelsEdit.text()),
+             float(self.pixelTimeEdit.text()) / 10**3,
+             (float(self.xLabel.text()),float(self.yLabel.text()),float(self.zLabel.text())),
+             self.scanMode.currentText(),
+             self.PSFMode.currentText(),
+             int(self.accelerationEdit.text()),
+             float(self.vueltaEdit.text())]
+
+
         print("\n",a)
         print(b, "\n")
-
-        if a == b:
-            #print("no cambió ningun parametro\n")
-            p=0
-        else:
-            #print("pasaron cosas\n")
+        if a != b:
             self.paramChanged()
 
         toc = ptime.time()
@@ -579,6 +587,8 @@ class ScanWidget(QtGui.QFrame):
 
         self.scanModeSet = self.scanMode.currentText()
         self.PSFModeSet = self.PSFMode.currentText()
+        self.ptsamano = int(self.accelerationEdit.text())
+        self.Vback = float(self.vueltaEdit.text())
 
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
@@ -659,9 +669,10 @@ class ScanWidget(QtGui.QFrame):
 # %%--- liveview------
 # This is the function triggered by pressing the liveview button
     def liveview(self):
-        """ Image live view when not recording
-        """
         if self.liveviewButton.isChecked():
+            """if dy != 0:  # aca prentendia poner la parte con lectura de ai
+                
+#            """
             self.save = False
             self.paramChangedInitialize()
             self.MovetoStart()  # getini: se va
@@ -951,6 +962,7 @@ class ScanWidget(QtGui.QFrame):
             fast=1
 
         p = len(self.xini[:-1]) + len(wantedrampx)
+        self.p=p
         for i in range(self.numberofPixels):
             j = fast*i
             self.onerampy[i, :p] = muchasrampasy[i, :p] + (j)  *stepy
@@ -1047,9 +1059,10 @@ class ScanWidget(QtGui.QFrame):
         acceleration = (200*self.scanRange)/((self.numberofPixels*self.pixelTime)**2)
 
         startX = float(self.initialPosition[0])
+        ptsamano = self.ptsamano  # int(self.accelerationEdit.text())
 
         ti = velocity / acceleration
-        xipuntos = int(np.ceil(ti * rate)) + 10
+        xipuntos = int(np.ceil(ti * rate)) + ptsamano
 
         xini = np.zeros(xipuntos)
         tiempoi = np.linspace(0,ti,xipuntos)
@@ -1059,11 +1072,11 @@ class ScanWidget(QtGui.QFrame):
         xr = xini[-1] + self.scanRange
 #        tr = T + ti
 
-        Vback = float(self.vueltaEdit.text())  # /V
+        Vback = self.Vback# float(self.vueltaEdit.text())  # /V
 
     # impongo una velocidad de vuelta Vback veces mayor a la de ida
         tcasi = ((1+Vback) * velocity) / acceleration  # -a*t + V = -Vback*V
-        xchangepuntos = int(np.ceil(tcasi * rate)) +10
+        xchangepuntos = int(np.ceil(tcasi * rate)) + ptsamano
         tiempofin = np.linspace(0, tcasi, xchangepuntos)
         xchange = np.zeros(xchangepuntos)
         for i in range(xchangepuntos):
@@ -1093,7 +1106,7 @@ class ScanWidget(QtGui.QFrame):
 
             self.xback = np.linspace(xchange[-1], xlow, Nvuelta)
 
-            xlowpuntos = int(np.ceil(tlow * rate)) +10
+            xlowpuntos = int(np.ceil(tlow * rate)) + ptsamano
             tiempolow=np.linspace(0,tlow,xlowpuntos)
             #print("acceleration ok")
             xstops=np.zeros(xlowpuntos)
@@ -1817,6 +1830,11 @@ class ScanWidget(QtGui.QFrame):
                     maximox = self.totalrampx[stops]
                     maximoy = self.totalrampy[stops]
 #                    maximoz = self.totalrampz[stops]
+                    """
+                    maximox = self.realposX
+                    maximoy = self.realposY
+#                    maximoz = self.realposZ
+#                    """
 
                 volviendox = np.linspace(maximox, startX, self.moveSamples)
                 volviendoy = np.linspace(maximoy, startY, self.moveSamples)
@@ -2142,16 +2160,23 @@ class ScanWidget(QtGui.QFrame):
             task.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
             task.wait_until_done()
             data = task.read(number_of_samples_per_channel=5)
+
         print("Lecturas de las ai 7y6", data[0][-1],data[1][-1])
         self.realposX = data[0][-1] * convFactors['x']
         self.realposY = data[1][-1] * convFactors['y']
         print("Posiciones Actuales", self.realposX, self.realposY)
         valorX = find_nearest(self.totalrampx, self.realposX)
         valorY = find_nearest(self.totalrampy, self.realposY)
-        self.indiceX = np.where(self.totalrampx == valorX)
-        self.indiceY = np.where(self.totalrampy == valorY)
-        print("En la rampa X:",self.totalrampx[self.indiceX][0])
-        print("En la rampa Y:",self.totalrampy[self.indiceY][0])
+        self.indiceX = np.where(self.totalrampx == valorX)[0][0]
+        self.indiceY = np.where(self.totalrampy == valorY)[0][0]#[-self.p]
+        print("En la rampa X:",self.totalrampx[self.indiceX])
+        print("En la rampa Y:",self.totalrampy[self.indiceY])
+        # ojo, el indice en x se repite Npix veces
+        #  y el indice en y es el mismo para len(onerampx) valores
+        nrampa = np.round(self.indiceY / len(self.onerampx))*len(self.onerampx)
+        # tengo que hacer esto porque y cambia antes (recordar el p que puse)
+        print("índice posta", self.totalrampx[int(nrampa+self.indiceX)])
+        
 #def find_nearest(array,value):
 
 #    # update position text

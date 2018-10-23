@@ -47,8 +47,8 @@ class ScanWidget(QtGui.QFrame):
         
         # Scanning parameters
         
-#        self.initialPositionLabel = QtGui.QLabel('acel vback/V [x0, y0] (µm)')
-#        self.initialPositionEdit = QtGui.QLineEdit('120 25')
+        self.initialPositionLabel = QtGui.QLabel('ptsamano [Ni, Ncasi,Nfin,Nflip] (µm)')
+        self.initialPositionEdit = QtGui.QLineEdit('0 10 10 20')
         self.scanRangeLabel = QtGui.QLabel('Scan range (µm)')
         self.scanRangeEdit = QtGui.QLineEdit('10')
         self.pixelTimeLabel = QtGui.QLabel('Pixel time (ms)')
@@ -61,12 +61,14 @@ class ScanWidget(QtGui.QFrame):
         self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
         self.scanRangeEdit.textChanged.connect(self.paramChanged)
         self.pixelTimeEdit.textChanged.connect(self.paramChanged)
-#        self.initialPositionEdit.textChanged.connect(self.paramChanged)
+        self.initialPositionEdit.textChanged.connect(self.paramChanged)
 
-        self.aLabel = QtGui.QLabel('aceleration (µm/ms2)')
-        self.aEdit = QtGui.QLineEdit('120')
+        self.aLabel = QtGui.QLabel('puntos agregados a mano')
+        self.aEdit = QtGui.QLineEdit('10')
         self.mLabel = QtGui.QLabel('Vback (µm/ms)')
         self.mEdit = QtGui.QLineEdit('10')
+        self.mEdit.setStyleSheet(" background-color: red; ")
+
         self.aEdit.textChanged.connect(self.paramChanged)
         self.mEdit.textChanged.connect(self.paramChanged)
 
@@ -87,10 +89,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
         subgrid.addWidget(self.liveviewButton, 14, 1,2,2)
-#        subgrid.addWidget(self.initialPositionLabel, 0, 1)
-#        subgrid.addWidget(self.initialPositionEdit, 1, 1)
-        subgrid.addWidget(self.aLabel, 0, 1)
-        subgrid.addWidget(self.aEdit, 1, 1)
+        subgrid.addWidget(self.initialPositionLabel, 0, 1)
+        subgrid.addWidget(self.initialPositionEdit, 1, 1)
+#        subgrid.addWidget(self.aLabel, 0, 1)
+#        subgrid.addWidget(self.aEdit, 1, 1)
         subgrid.addWidget(self.mLabel, 2, 1)
         subgrid.addWidget(self.mEdit, 3, 1)
         subgrid.addWidget(self.scanRangeLabel, 4, 1)
@@ -125,6 +127,9 @@ class ScanWidget(QtGui.QFrame):
         self.m = float(self.mEdit.text())
         self.startX = float(self.startXEdit.text())
 
+        self.ptosamano = np.array(self.initialPositionEdit.text().split(' '))
+
+
         self.pixelSize = 1000*self.scanRange/self.numberofPixels
 
         self.pixelSizeValue.setText('{}'.format(np.around(self.pixelSize, 2)))
@@ -151,7 +156,13 @@ class ScanWidget(QtGui.QFrame):
         T = tpix * Npix  # tiempo total de la linea
         V = (R/T)  # velocidad de la rampa
         #V = 100  # um/ms
-        m=self.m
+        m = self.m
+        ptsamano  = int(self.ptosamano[0])
+        ptsamano1 = int(self.ptosamano[1])  # int(self.a)
+        ptsamano2  = int(self.ptosamano[2])
+        ptsamano3  = int(self.ptosamano[3])
+
+
         #Npuntos= int(R / reDAQ)
         #rate = Npuntos / T
         rate = (1/tpix)  # 10**5 * 10**-3
@@ -167,7 +178,7 @@ class ScanWidget(QtGui.QFrame):
         #quiero ver cuando alcanza velocidad V (a*ti =V )
         ti = V / a
         #xi = a*ti**2 + V0*ti  # no lo uso
-        Ni = int(np.ceil(ti * rate)) +10  # xipuntos
+        Ni = int(np.ceil(ti * rate)) + ptsamano  # xipuntos
         tiempoi=np.linspace(0,ti,Ni)
         xti=np.zeros(Ni)
         for i in range(Ni):
@@ -187,7 +198,7 @@ class ScanWidget(QtGui.QFrame):
         
         tcasi =-(c+(m*V))/-a
         #xcasi = -0.5*a*tcasi**2 + c*tcasi + d  # no lo uso
-        Ncasi = int(np.ceil(tcasi * rate)) +10 # xchangepuntos
+        Ncasi = int(np.ceil(tcasi * rate)) + ptsamano1 # xchangepuntos
         tiempocasi=np.linspace(0,tcasi,Ncasi)  # tiempofin
         xtcas=np.zeros(Ncasi)  # xchange
         for i in range(Ncasi):
@@ -199,17 +210,10 @@ class ScanWidget(QtGui.QFrame):
         xflip = 0.5*(av)*(tflip**2) + startX  # xlow
         
         #tfin=(xflip-xtcas[-1]/(-m*V)) + tr + tcasi
-        Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate))))  # Nvuelta
+        Nfin = abs(int(np.round(((xflip-xtcas[-1])/((-m*V))*rate)))) + ptsamano2  # Nvuelta
         #Nfin = Npuntos /m
-        Nflip = int(np.ceil(tflip * rate)) +10 # xlowpuntos
+        Nflip = int(np.ceil(tflip * rate)) + ptsamano3 # xlowpuntos
 
-        # Una curva mas para la repeticion de cada señal. 
-        #nuevamente salgo de vel = 0 y voy para atras en el tiempo
-        #  en t0 v=0, x=0;; a*tflip = m*V
-        """
-        # -a*tfin + f = -m*V ==> f = m*V/a*tfin ;;; -a *tflip + f = 0 ==> tflip = f/a ;;; 
-        #f = -m*V/(-a*tfin)
-        """
         
         if xtcas[-1] < xflip:
             if xtcas[-1] < startX:
@@ -246,15 +250,6 @@ class ScanWidget(QtGui.QFrame):
         verfin= np.concatenate( (np.zeros(len(xti)-1),np.zeros(len(rampax)),np.zeros(len(xtcas)-2),        rfin[:]     , np.zeros(len(rflip)-1)))
         verflip =np.concatenate((np.zeros(len(xti)-1),np.zeros(len(rampax)),np.zeros(len(xtcas)-2), np.zeros(len(rfin)),          rflip[1:]    ))
 
-        
-        #tvuelta = np.linspace(0, (-xcasi/(-m*V)), Nfin)+tr+tcasi
-        
-        #ejex = np.concatenate((tiempoi[:-1],np.linspace(ti,tr,Npuntos)[:] , tiempocasi[:]+tr,
-        #                       tvuelta[1:-1], tiempoflip+tvuelta[-1]))
-        
-        #resta=np.zeros((len(barridox)))
-        #for i in range(1,len(barridox)):
-        #    resta[i] = barridox[i] - barridox[i-1]
         self.figure.clf()
         ax = self.figure.add_subplot(111)
         ax.autoscale(True)
@@ -273,9 +268,15 @@ class ScanWidget(QtGui.QFrame):
         ax.plot(verxcas, '.-g')
         ax.plot(verxi, '.-m')
         ax.plot(verflip, '.-y')
+
+        deriv=np.zeros((len(barridox)))
+        for i in range(1,len(barridox)):
+            deriv[i] = (barridox[i] - barridox[i-1])*10
+        ax.plot(deriv,'r.-')
+
         self.canvas.draw_idle()
     
-        #plt.plot(resta,'r.-')
+
         #plt.xlim(-0.5,10)
         #plt.ylim(-0.1,0.1)
         #
@@ -313,29 +314,7 @@ class ScanWidget(QtGui.QFrame):
         #plt.figure(2)
         #plt.plot(todo,'.-')
         #plt.plot(barridoy, 'y')
-#
-#plt.show()
-#    def liveviewStart(self):
-#        
-#        self.viewtimer.start(self.linetime)
-#        
-#    def liveviewStop(self):
-#        
-#        self.viewtimer.stop()
-#        
-#    def updateView(self):
-#        
-#        self.lineData = self.inputImage[:, self.i]
-#        self.image[:, self.numberofPixels-1-self.i] = self.lineData
-#        
-#        self.img.setImage(self.image, autoLevels=False)
-#        
-#        if self.i < self.numberofPixels-1:
-#            self.i = self.i + 1
-#        else:
-#            self.i = 0
-#            self.inputImage = 100 * np.random.normal(size=(self.numberofPixels))#, self.numberofPixels))
-#
+
 
 if __name__ == '__main__':
 
