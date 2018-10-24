@@ -199,10 +199,15 @@ class ScanWidget(QtGui.QFrame):
         self.ROIButton.setCheckable(True)
         self.ROIButton.clicked.connect(self.ROImethod)
 
-
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
 
+        self.roiline = None
+        self.ROIlineButton = QtGui.QPushButton('lineROIline')
+        self.ROIlineButton.setCheckable(True)
+        self.ROIlineButton.clicked.connect(self.ROIlinear)
+        self.selectlineROIButton = QtGui.QPushButton('select line ROI')
+        self.selectlineROIButton.clicked.connect(self.selectLineROI)
         # Scanning parameters
 
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
@@ -342,6 +347,9 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.ROIButton, 2, 3)
         subgrid.addWidget(self.selectROIButton, 3, 3)
+
+        subgrid.addWidget(self.ROIlineButton, 4, 3)
+        subgrid.addWidget(self.selectlineROIButton, 5, 3)
 # --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -994,7 +1002,7 @@ y guarde la imagen"""
         Z=self.Z
         if self.step==1:
             self.cuentas = np.zeros((self.numberofPixels))
-            self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
+            self.cuentas = Z[self.i,:]  * abs(np.random.normal(size=(1, self.numberofPixels))[0])
             for i in range(self.numberofPixels):
                 borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
@@ -1162,6 +1170,73 @@ y guarde la imagen"""
         self.img.setImage(mapa, autoLevels=False)
 
 # %%  ROI cosas
+    def ROIlinear(self):
+        self.NofPixels = self.numberofPixels
+
+        if self.ROIlineButton.isChecked():
+            print("entra")
+
+            self.linearROI = pg.LineSegmentROI((0,50))
+            self.vb.addItem(self.linearROI)
+#            self.roi = viewbox_tools.cropROI(ROIpos, self.vb)
+            print("termina")
+        else:
+            self.vb.removeItem(self.linearROI)
+            self.linearROI.hide()
+
+    def selectLineROI(self):
+        self.NofPixels = self.numberofPixels
+        self.pxSize = self.pixelSize
+        self.liveviewStop()
+
+        print("Estoy en", float(self.xLabel.text()), float(self.yLabel.text()),
+              float(self.zLabel.text()))
+
+        array = self.linearROI.getArrayRegion(self.image, self.img)
+        ROIpos = np.array(self.linearROI.pos())
+        print(ROIpos)
+        print(array)
+        newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                             self.NofPixels,
+                                             np.shape(array)[0])
+        print(newPos_px)
+#        print(self.initialPosition)
+        newPos_µm = newPos_px * self.pxSize + self.initialPosition[0:2]
+#
+        newPos_µm = np.around(newPos_µm, 2)
+        print(newPos_µm)
+        newRange_px = np.shape(array)[0]
+        newRange_µm = self.pxSize * newRange_px
+        newRange_µm = np.around(newRange_µm, 2)
+        print(newRange_px, newRange_µm)
+        plt.plot(array)
+        plt.show()
+        #-- Generate some data...
+#        x, y = np.mgrid[-5:5:0.1, -5:5:0.1]
+#        z = np.sqrt(x**2 + y**2) + np.sin(x**2 + y**2)
+#        
+#        #-- Extract the line...
+#        # Make a line with "num" points...
+#        x0, y0 = array[0] # These are in _pixel_ coordinates!!
+#        x1, y1 = 60, 75
+#        length = int(np.hypot(x1-x0, y1-y0))
+#        x, y = np.linspace(x0, x1, length), np.linspace(y0, y1, length)
+#        
+#        # Extract the values along the line
+#        zi = self.image[x.astype(np.int), y.astype(np.int)]
+#        
+#        #-- Plot...
+#        fig, axes = plt.subplots(nrows=2)
+#        axes[0].imshow(z)
+#        axes[0].plot([x0, x1], [y0, y1], 'ro-')
+#        axes[0].axis('image')
+#        
+#        axes[1].plot(zi)
+#        
+#        plt.show()
+
+
+# %% Lucho's ROI
     def ROImethod(self):
         self.NofPixels = self.numberofPixels
 

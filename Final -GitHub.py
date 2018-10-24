@@ -55,7 +55,7 @@ class ScanWidget(QtGui.QFrame):
     def graphplot(self):
 #        if self.dy==0:
 #            self.paramChanged()
-#        self.getInitPos()
+        self.getInitPos()
         self.paramChangedInitialize()
         if self.graphcheck.isChecked():
             if self.imagecheck.isChecked():
@@ -147,7 +147,7 @@ class ScanWidget(QtGui.QFrame):
     # 2D Gaussian fit to estimate the center of a NP
         self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
         self.Gausscheck.setChecked(False)
-        self.Gausscheck.clicked.connect(self.GaussFite)
+        self.Gausscheck.clicked.connect(self.GaussFit)
 
     # save image Button
         self.saveimageButton = QtGui.QPushButton('Scan and Save')
@@ -537,7 +537,7 @@ class ScanWidget(QtGui.QFrame):
             self.autoLevels = False
 
     def PSFYZ(self):
-        if self.PSFMode.currentText() == self.PSFMode[0]:
+        if self.PSFMode.currentText() == self.PSFModes[0]:
             self.YZ = False
         else:
             self.YZ = True
@@ -642,7 +642,7 @@ class ScanWidget(QtGui.QFrame):
             self.PMT = np.zeros(len(self.onerampx))
         #print(self.linetime, "linetime\n")
 
-        self.autoLevels = True
+#        self.autoLevels = True
         self.zeroImage()
       # numberofpixels is the relevant part of the total ramp.
         self.APD = np.zeros((self.numberofPixels + self.pixelsofftotal)*self.Napd)
@@ -652,7 +652,7 @@ class ScanWidget(QtGui.QFrame):
         toc = ptime.time()
         print("\n tiempo paramCahnged (ms)", (toc-tic)*10**3,"\n")
 #        self.PMT = np.zeros((self.numberofPixels + self.pixelsofftotal, self.numberofPixels))
-
+        self.maxcountsEdit.setStyleSheet("{ background-color: }")
 # %% cosas para el save image
     def saveimage(self):
         """ la idea es que escanee la zona deseada (desde cero) una sola vez,
@@ -742,11 +742,13 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.write(np.array(
                 [self.totalrampx / convFactors['x'],
                  self.totalrampy / convFactors['y']]), auto_start=True)
-    #             self.totalrampz / convFactors['z']]), auto_start=True)
-#        self.inStart = False
+
+        if self.detectMode.currentText() != "PMT":
+            self.APD1task.start()
+            self.APD2task.start()
+        else:
+            self.PMTtask.start()
         print("ya arranca...")
-        self.APD1task.start()
-        self.APD2task.start()
     # Starting the trigger. It have a controllable 'delay'
         self.triggertask.write(self.trigger, auto_start=True)
 
@@ -794,14 +796,11 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels, 2)
 
         if self.dy in multi5:
-            print("error1 ?")
             if self.imagecheck.isChecked():
                 self.img.setImage(self.image2, autoLevels=self.autoLevels)
             else:
                 self.img.setImage(self.image, autoLevels=self.autoLevels)
-            print("error2 (despues de plotear ")
             self.MaxCounts()
-            print("error3 despues del max ")
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
@@ -846,12 +845,11 @@ class ScanWidget(QtGui.QFrame):
 # %% MAX Counts
     def MaxCounts(self):
         m = np.max(self.image)
+        self.maxcountsEdit.setText("<strong>{}".format(float(m)))
         if m >= (5000 * self.pixelTime*10**3):
-            self.maxcountsEdit.setText("<strong>{}".format(float(m)))
-            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
-        else:
-            self.maxcountsEdit.setText("<strong>{}".format(float(m)))
-            self.maxcountsEdit.setStyleSheet("{ background-color: }")
+            self.maxcou1ntsEdit.setStyleSheet(" background-color: red; ")
+
+
 # %% runing Ramp loop (PMT)
     def PMTupdate(self):
         paso = 1
@@ -890,7 +888,7 @@ class ScanWidget(QtGui.QFrame):
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
         else:
-            self.autoLevels = False
+#            self.autoLevels = False
             if self.save:
                 self.saveFrame()
                 self.saveimageButton.setText('End')
@@ -1487,7 +1485,7 @@ class ScanWidget(QtGui.QFrame):
         if self.dy < self.numberofPixels-1:
             self.dy = self.dy + 1
         else:
-            self.autoLevels = False
+#            self.autoLevels = False
             if self.save:
                 self.saveFrame()
                 if self.CMcheck.isChecked():
@@ -2188,15 +2186,18 @@ class ScanWidget(QtGui.QFrame):
         print("Posiciones Actuales", self.realposX, self.realposY)
         valorX = find_nearest(self.totalrampx, self.realposX)
         valorY = find_nearest(self.totalrampy, self.realposY)
+        print("valorx,y", valorX,valorY)
         self.indiceX = np.where(self.totalrampx == valorX)[0][0]
         self.indiceY = np.where(self.totalrampy == valorY)[0][0]#[-self.p]
+        print(self.indiceX,self.indiceX)
         print("En la rampa X:",self.totalrampx[self.indiceX])
         print("En la rampa Y:",self.totalrampy[self.indiceY])
         # ojo, el indice en x se repite Npix veces
         #  y el indice en y es el mismo para len(onerampx) valores
         nrampa = np.round(self.indiceY / len(self.onerampx))*len(self.onerampx)
         # tengo que hacer esto porque y cambia antes (recordar el p que puse)
-        print("índice posta", self.totalrampx[int(nrampa+self.indiceX)])
+        print("índice posta",int(nrampa+self.indiceX))
+        print("valor en totalrampx", self.totalrampx[int(nrampa+self.indiceX)])
         
 #def find_nearest(array,value):
 
