@@ -55,7 +55,7 @@ class ScanWidget(QtGui.QFrame):
     def graphplot(self):
 #        if self.dy==0:
 #            self.paramChanged()
-        self.getInitPos()
+#        self.getInitPos()
         self.paramChangedInitialize()
         if self.graphcheck.isChecked():
             if self.imagecheck.isChecked():
@@ -147,7 +147,7 @@ class ScanWidget(QtGui.QFrame):
     # 2D Gaussian fit to estimate the center of a NP
         self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
         self.Gausscheck.setChecked(False)
-        self.Gausscheck.clicked.connect(self.GaussMeasure)
+        self.Gausscheck.clicked.connect(self.GaussFite)
 
     # save image Button
         self.saveimageButton = QtGui.QPushButton('Scan and Save')
@@ -203,10 +203,13 @@ class ScanWidget(QtGui.QFrame):
         self.autoLevels = True
         self.YZ = False
 
+        self.GaussPlot = False
+        self.CMplot = False
+
         self.shuttersChannelsNidaq()  # los prendo al principio y me olvido
 
     # autoLevel image
-        self.autoLevelscheck = QtGui.QCheckBox('Image change')
+        self.autoLevelscheck = QtGui.QCheckBox('Auto escalar (o no)')
         self.autoLevelscheck.clicked.connect(self.autoLevelset)
 
     # Shutters buttons
@@ -331,8 +334,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.OpenButton,        2, 2)
 #        subgrid.addWidget(self.triggerLabel,       4, 2)
 #        subgrid.addWidget(self.triggerEdit,        5, 2)
-#        subgrid.addWidget(self.accelerationLabel,  6, 2)
-#        subgrid.addWidget(self.accelerationEdit,   7, 2)
+        subgrid.addWidget(self.accelerationLabel,  6, 2)
+        subgrid.addWidget(self.accelerationEdit,   7, 2)
         subgrid.addWidget(self.vueltaLabel,        8, 2)
         subgrid.addWidget(self.vueltaEdit,         9, 2)
         subgrid.addWidget(self.VideoCheck,        10, 2)
@@ -340,8 +343,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.graphcheck,        12, 2)
         subgrid.addWidget(self.CMcheck,           13, 2)
         subgrid.addWidget(self.PSFMode,            15, 2)
-        subgrid.addWidget(self.maxcountsLabel,      17, 2)
-        subgrid.addWidget(self.maxcountsEdit,       18, 2)
+        subgrid.addWidget(self.maxcountsLabel,     16, 2)
+        subgrid.addWidget(self.maxcountsEdit,      17, 2)
     # Columna 3
 #        subgrid.addWidget(self.algobutton,     0, 3)
         subgrid.addWidget(self.ROIButton,       2, 3)
@@ -791,16 +794,19 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels, 2)
 
         if self.dy in multi5:
+            print("error1 ?")
             if self.imagecheck.isChecked():
                 self.img.setImage(self.image2, autoLevels=self.autoLevels)
             else:
                 self.img.setImage(self.image, autoLevels=self.autoLevels)
+            print("error2 (despues de plotear ")
             self.MaxCounts()
+            print("error3 despues del max ")
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
         else:
-            self.autoLevels = False
+#            self.autoLevels = False
 #            self.img.setImage(self.image, autoLevels=self.autoLevels)
             if self.save:
                 self.saveFrame()
@@ -820,7 +826,7 @@ class ScanWidget(QtGui.QFrame):
               if self.CMcheck.isChecked():
                   self.CMmeasure()
               if self.Gausscheck.isChecked():
-                  self.GaussMeasure()
+                  self.GaussFit()
               self.MovetoStart()
               if self.Continouscheck.isChecked():
                   self.liveviewStart()
@@ -837,10 +843,10 @@ class ScanWidget(QtGui.QFrame):
             self.APD2task.stop()
         except:
             pass
-
+# %% MAX Counts
     def MaxCounts(self):
         m = np.max(self.image)
-        if m >= (5000 * self.pixelTime):
+        if m >= (5000 * self.pixelTime*10**3):
             self.maxcountsEdit.setText("<strong>{}".format(float(m)))
             self.maxcountsEdit.setStyleSheet(" background-color: red; ")
         else:
@@ -1056,7 +1062,7 @@ class ScanWidget(QtGui.QFrame):
         T = self.numberofPixels * self.pixelTime * 10**3  # all in ms
         velocity = (self.scanRange / T)
         rate = self.sampleRate*10**-3
-        acceleration = (200*self.scanRange)/((self.numberofPixels*self.pixelTime)**2)
+        acceleration = (200*self.scanRange)/((self.numberofPixels*self.pixelTime*10**3)**2)
 
         startX = float(self.initialPosition[0])
         ptsamano = self.ptsamano  # int(self.accelerationEdit.text())
@@ -1186,11 +1192,13 @@ class ScanWidget(QtGui.QFrame):
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
             if self.YZ:
-                AOchans = [0,1,2]
+                AOchans2 = [0,1,2]
+            else:
+                AOchans2 = AOchans
         # Following loop creates the voltage channels
-            for n in range(len(AOchans)):
+            for n in range(len(AOchans2)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % AOchans[n],
+                    physical_channel='Dev1/ao%s' % AOchans2[n],
                     name_to_assign_to_channel='chan_%s' % activeChannels[n],
                     min_val=minVolt[activeChannels[n]],
                     max_val=maxVolt[activeChannels[n]])
@@ -1867,7 +1875,7 @@ class ScanWidget(QtGui.QFrame):
         cb = fig.colorbar(p)
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
-        try:
+        if self.CMplot:
             xc = int(np.floor(self.xcm))
             yc = int(np.floor(self.ycm))
             X2=np.transpose(X)
@@ -1879,8 +1887,19 @@ class ScanWidget(QtGui.QFrame):
             Normal = self.scanRange / self.numberofPixels  # Normalizo
             ax.set_title((self.xcm*Normal+float(initPos[0]),
                                          self.ycm*Normal+float(initPos[1])))
-        except:
-            pass
+        if self.GaussPlot:
+            xc = int(np.floor(self.xGauss))
+            yc = int(np.floor(self.yGauss))
+            X2=np.transpose(X)
+            Y2=np.transpose(Y)
+            resol = 2
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title((self.xcm*Normal+float(initPos[0]),
+                                         self.ycm*Normal+float(initPos[1])))
+
         plt.show()
         toc = ptime.time()
         print("\n tiempo Plotlive", toc-tic,"\n")
@@ -1924,15 +1943,16 @@ class ScanWidget(QtGui.QFrame):
     def openFolder(self):
         os.startfile(self.file_path)
 
-# %% GaussMeasure 
-    def GaussMeasure(self):
+# %% GaussFit
+    def GaussFit(self):
         tic = ptime.time()
         self.data = self.image
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params
         (height, x, y, width_x, width_y) = params
-
+        self.xGauss = x
+        self.yGauss = y
 #        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
 #        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 #        xv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
@@ -1944,6 +1964,7 @@ class ScanWidget(QtGui.QFrame):
         self.GaussxValue.setText(str(xx))
         self.GaussyValue.setText(str(yy))
         tac = ptime.time()
+        self.GaussPlot = True
         print(np.round((tac-tic)*10**3,3), "(ms)Gauss fit\n")
 
 # %% CMmeasure
@@ -1962,7 +1983,7 @@ class ScanWidget(QtGui.QFrame):
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
         tac = ptime.time()
-
+        self.CMplot = True
         print(np.round((tac-tic)*10**3,3), "(ms) CM\n")
 
 # %% arma los datos para modular.(mapa)
