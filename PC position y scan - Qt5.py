@@ -374,7 +374,15 @@ class ScanWidget(QtGui.QFrame):
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
 #        self.plotLivebutton.clicked.connect(self.otroPlot)
-
+        
+        
+    # ROI Lineal
+        self.roiline = None
+        self.ROIlineButton = QtGui.QPushButton('lineROIline')
+        self.ROIlineButton.setCheckable(True)
+        self.ROIlineButton.clicked.connect(self.ROIlinear)
+        self.selectlineROIButton = QtGui.QPushButton('select line ROI')
+        self.selectlineROIButton.clicked.connect(self.selectLineROI)
 
         self.paramChanged()
 
@@ -460,6 +468,9 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.CMcheck, 8, 2)
         subgrid.addWidget(self.Gausscheck, 8, 3)
+
+        subgrid.addWidget(self.ROIlineButton, 4, 3)
+        subgrid.addWidget(self.selectlineROIButton, 5, 3)
 
 # --- POSITIONERRRRR-------------------------------
 
@@ -632,7 +643,7 @@ class ScanWidget(QtGui.QFrame):
 #        fileMenu = menubar.addMenu('&File')
 #        fileMenu.addAction(self.savePresetAction)
 #        fileMenu.addSeparator()
-
+        self.imageWidget=imageWidget
 
         self.liveviewAction = QtGui.QAction(self)
         self.liveviewAction.setShortcut('Ctrl+a')
@@ -1368,7 +1379,28 @@ y guarde la imagen"""
         self.CMxValue.setText(str(xcm*Normal))
         self.CMyValue.setText(str(ycm*Normal))
 
+# %%  ROI cosas
+    def ROIlinear(self):
+        def updatelineal():
+            array = self.linearROI.getArrayRegion(self.image, self.img)
+            self.curve.setData(array)
 
+        if self.ROIlineButton.isChecked():
+
+            self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
+            self.vb.addItem(self.linearROI)
+            self.linearROI.sigRegionChanged.connect(updatelineal)
+            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating plot")
+            self.curve = self.p6.plot(open='y')
+        else:
+            self.vb.removeItem(self.linearROI)
+            self.linearROI.hide()
+            self.imageWidget.removeItem(self.p6)
+
+    def selectLineROI(self):
+        array = self.linearROI.getArrayRegion(self.image, self.img)
+        plt.plot(array)
+        plt.show()
 
 # %% Presets copiados del inspector
     def Presets(self):

@@ -239,6 +239,15 @@ class ScanWidget(QtGui.QFrame):
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
 
+    # ROI Lineal
+        self.roiline = None
+        self.ROIlineButton = QtGui.QPushButton('lineROIline')
+        self.ROIlineButton.setCheckable(True)
+        self.ROIlineButton.clicked.connect(self.ROIlinear)
+        self.selectlineROIButton = QtGui.QPushButton('select line ROI')
+        self.selectlineROIButton.clicked.connect(self.selectLineROI)
+
+
     # Point scan
         self.PointButton = QtGui.QPushButton('Point scan')
         self.PointButton.setCheckable(True)
@@ -346,15 +355,17 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.maxcountsLabel,     16, 2)
         subgrid.addWidget(self.maxcountsEdit,      17, 2)
     # Columna 3
-#        subgrid.addWidget(self.algobutton,     0, 3)
-        subgrid.addWidget(self.ROIButton,       2, 3)
-        subgrid.addWidget(self.selectROIButton, 3, 3)
-        subgrid.addWidget(self.PointButton,      6, 3)
-        subgrid.addWidget(self.PointLabel,       7, 3)
-        subgrid.addWidget(self.plotLivebutton,    9, 3)
-        subgrid.addWidget(self.imagecheck,       11, 3)
-        subgrid.addWidget(self.Gausscheck,        13, 3)
-        subgrid.addWidget(self.presetsMode,        15, 3)
+#        subgrid.addWidget(self.algobutton,        0, 3)
+        subgrid.addWidget(self.ROIButton,           2, 3)
+        subgrid.addWidget(self.selectROIButton,     3, 3)
+        subgrid.addWidget(self.ROIlineButton,       4, 3)
+        subgrid.addWidget(self.selectlineROIButton, 5, 3)
+        subgrid.addWidget(self.PointButton,         6, 3)
+        subgrid.addWidget(self.PointLabel,          7, 3)
+        subgrid.addWidget(self.plotLivebutton,       9, 3)
+        subgrid.addWidget(self.imagecheck,            11, 3)
+        subgrid.addWidget(self.Gausscheck,             13, 3)
+        subgrid.addWidget(self.presetsMode,             15, 3)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -2120,6 +2131,28 @@ class ScanWidget(QtGui.QFrame):
         print("hasta :", self.scanRange, "\n")
         self.paramChanged()
 
+# %% Roi lineal
+    def ROIlinear(self):
+        def updatelineal():
+            array = self.linearROI.getArrayRegion(self.image, self.img)
+            self.curve.setData(array)
+
+        if self.ROIlineButton.isChecked():
+
+            self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
+            self.vb.addItem(self.linearROI)
+            self.linearROI.sigRegionChanged.connect(updatelineal)
+            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating plot")
+            self.curve = self.p6.plot(open='y')
+        else:
+            self.vb.removeItem(self.linearROI)
+            self.linearROI.hide()
+            self.imageWidget.removeItem(self.p6)
+
+    def selectLineROI(self):
+        array = self.linearROI.getArrayRegion(self.image, self.img)
+        plt.plot(array)
+        plt.show()
 # %% Presets copiados del inspector
     def Presets(self):
         """ Elige convinaciones de parametros como los que usa el inspectora

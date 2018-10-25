@@ -1235,6 +1235,8 @@ y guarde la imagen"""
 #        
 #        plt.show()
 
+#import pyqtgraph.examples
+#pyqtgraph.examples.run()
 
 # %% Lucho's ROI
     def ROImethod(self):
