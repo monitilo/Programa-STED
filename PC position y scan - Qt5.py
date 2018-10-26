@@ -211,6 +211,10 @@ class ScanWidget(QtGui.QFrame):
         self.zStepEdit = QtGui.QLineEdit("1")
         self.zStepUnit = QtGui.QLabel(" µm")
 
+        tamaño = 50
+        self.xStepUnit.setFixedWidth(tamaño)
+        self.yStepUnit.setFixedWidth(tamaño)
+        self.zStepUnit.setFixedWidth(tamaño)
 # ---- fin 1ra parte del positioner ----------
         self.step = 1
         imageWidget = pg.GraphicsLayoutWidget()
@@ -390,7 +394,7 @@ class ScanWidget(QtGui.QFrame):
 
         grid = QtGui.QGridLayout()
         self.setLayout(grid)
-        grid.addWidget(imageWidget, 2, 0)
+        grid.addWidget(imageWidget, 0, 0)
         grid.addWidget(self.paramWidget, 2, 1)
 
 
@@ -513,12 +517,17 @@ class ScanWidget(QtGui.QFrame):
         grid.addWidget(self.gotoWidget, 1, 1)
         layout2 = QtGui.QGridLayout()
         self.gotoWidget.setLayout(layout2)
-        layout2.addWidget(QtGui.QLabel("||x"), 1, 7)
-        layout2.addWidget(QtGui.QLabel("||y"), 2, 7)
-        layout2.addWidget(QtGui.QLabel("||z"), 3, 7)
+        layout2.addWidget(QtGui.QLabel("x"), 1, 7)
+        layout2.addWidget(QtGui.QLabel("y"), 2, 7)
+        layout2.addWidget(QtGui.QLabel("z"), 3, 7)
         self.xgotoLabel = QtGui.QLineEdit("0")
         self.ygotoLabel = QtGui.QLineEdit("0")
         self.zgotoLabel = QtGui.QLineEdit("0")
+        tamaño = 40
+        self.xgotoLabel.setFixedWidth(tamaño)
+        self.ygotoLabel.setFixedWidth(tamaño)
+        self.zgotoLabel.setFixedWidth(tamaño)
+
         self.gotoButton = QtGui.QPushButton("♥ G0 To ♦")
         self.gotoButton.pressed.connect(self.goto)
         layout2.addWidget(self.gotoButton, 1, 9, 2, 2)
@@ -526,10 +535,10 @@ class ScanWidget(QtGui.QFrame):
         layout2.addWidget(self.ygotoLabel, 2, 8)
         layout2.addWidget(self.zgotoLabel, 3, 8)
 
-        layout2.addWidget(self.CMxLabel, 4, 8)
-        layout2.addWidget(self.CMxValue, 5, 8)
-        layout2.addWidget(self.CMyLabel, 4, 9)
-        layout2.addWidget(self.CMyValue, 5, 9)
+        layout2.addWidget(self.CMxLabel, 4, 7)
+        layout2.addWidget(self.CMxValue, 5, 7)
+        layout2.addWidget(self.CMyLabel, 4, 8)
+        layout2.addWidget(self.CMyValue, 5, 8)
         self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
         self.goCMButton.pressed.connect(self.goCM)
         layout2.addWidget(self.goCMButton, 2, 9, 2, 2)
@@ -544,13 +553,49 @@ class ScanWidget(QtGui.QFrame):
         layout2.addWidget(self.GaussyLabel, 4, 11)
         layout2.addWidget(self.GaussyValue, 5, 11)
 
-
+#    # Nueva interface mas comoda!
+#        hbox = QtGui.QHBoxLayout(self)
+#        topleft=QtGui.QFrame()
+#        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
+#        bottom = QtGui.QFrame()
+#        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
+#        topleft.setLayout(grid)
+#        downright=QtGui.QFrame()
+#        downright.setFrameShape(QtGui.QFrame.StyledPanel)
+#        topright=QtGui.QFrame()
+#        topright.setFrameShape(QtGui.QFrame.StyledPanel)
+#        topright.setLayout(subgrid)
+#
+#        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+##        splitter1.addWidget(imageWidget)
+#        splitter1.addWidget(topleft)
+#        splitter1.addWidget(topright)
+#        splitter1.setSizes([10**6, 1])
+#
+#        splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+#        downright.setLayout(layout)
+#        splitter15.addWidget(downright)
+##        splitter15.addWidget(self.positioner)
+#        bottom.setLayout(layout2)
+#        splitter15.addWidget(bottom)
+##        splitter15.addWidget(self.gotoWidget)
+#        splitter15.setSizes([100, 1])
+#
+#        splitter2 = QtGui.QSplitter(QtCore.Qt.Vertical)
+#        splitter2.addWidget(splitter1)
+#
+#        splitter2.addWidget(splitter15)
+#        splitter2.setSizes([10, 10])
+#
+#        hbox.addWidget(splitter2)
+#
+#        self.setLayout(hbox)
         # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
         topleft=QtGui.QFrame()
         topleft.setFrameShape(QtGui.QFrame.StyledPanel)
         bottom = QtGui.QFrame()
-        bottom.setFrameShape(QtGui.QFrame.StyledPanel) 
+        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
         topleft.setLayout(grid)
         downright=QtGui.QFrame()
         downright.setFrameShape(QtGui.QFrame.StyledPanel)
@@ -574,7 +619,6 @@ class ScanWidget(QtGui.QFrame):
         hbox.addWidget(splitter2)
 
         self.setLayout(hbox)
-
         # no se como hacerla andar con docks
 #        dockArea = DockArea()
 #        scanDock = Dock('Scan', size=(1, 1))

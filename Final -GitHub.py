@@ -434,6 +434,9 @@ class ScanWidget(QtGui.QFrame):
 
         layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
         
+        tamaño = 40
+        self.yStepEdit.setFixedWidth(tamaño)
+        self.zStepEdit.setFixedWidth(tamaño)
 #        self.yStepEdit.setValidator(self.onlypos)
 #        self.zStepEdit.setValidator(self.onlypos)
 
@@ -454,6 +457,10 @@ class ScanWidget(QtGui.QFrame):
         layout2.addWidget(self.ygotoLabel, 2, 8)
         layout2.addWidget(self.zgotoLabel, 3, 8)
         self.zgotoLabel.setValidator(self.onlypos)
+#        tamaño = 50
+        self.xgotoLabel.setFixedWidth(tamaño)
+        self.ygotoLabel.setFixedWidth(tamaño)
+        self.zgotoLabel.setFixedWidth(tamaño)
 
         self.CMxLabel = QtGui.QLabel('CM X')
         self.CMxValue = QtGui.QLabel('NaN')
@@ -471,10 +478,10 @@ class ScanWidget(QtGui.QFrame):
         self.GaussxValue = QtGui.QLabel('NaN')
         self.GaussyLabel = QtGui.QLabel('Gauss Y')
         self.GaussyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.GaussxLabel, 6, 8)
-        layout2.addWidget(self.GaussxValue, 7, 8)
-        layout2.addWidget(self.GaussyLabel, 6, 9)
-        layout2.addWidget(self.GaussyValue, 7, 9)
+        layout2.addWidget(self.GaussxLabel, 4, 10)
+        layout2.addWidget(self.GaussxValue, 5, 10)
+        layout2.addWidget(self.GaussyLabel, 4, 11)
+        layout2.addWidget(self.GaussyValue, 5, 11)
 
         # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
