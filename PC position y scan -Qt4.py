@@ -1169,71 +1169,94 @@ y guarde la imagen"""
         print(np.round(time.time()-tec,4),"s tarda con 1 for\n")
         self.img.setImage(mapa, autoLevels=False)
 
-# %%  ROI cosas
+        # %%  ROI cosas
     def ROIlinear(self):
-        self.NofPixels = self.numberofPixels
+        def updatelineal():
+            array = self.linearROI.getArrayRegion(self.image, self.img)
+            self.curve.setData(array)
 
         if self.ROIlineButton.isChecked():
-            print("entra")
 
-            self.linearROI = pg.LineSegmentROI((0,50))
+            self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
             self.vb.addItem(self.linearROI)
-#            self.roi = viewbox_tools.cropROI(ROIpos, self.vb)
-            print("termina")
+            self.linearROI.sigRegionChanged.connect(updatelineal)
+            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating plot")
+            self.curve = self.p6.plot(open='y')
         else:
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
+            self.imageWidget.removeItem(self.p6)
 
     def selectLineROI(self):
-        self.NofPixels = self.numberofPixels
-        self.pxSize = self.pixelSize
-        self.liveviewStop()
-
-        print("Estoy en", float(self.xLabel.text()), float(self.yLabel.text()),
-              float(self.zLabel.text()))
-
         array = self.linearROI.getArrayRegion(self.image, self.img)
-        ROIpos = np.array(self.linearROI.pos())
-        print(ROIpos)
-        print(array)
-        newPos_px = tools.ROIscanRelativePOS(ROIpos,
-                                             self.NofPixels,
-                                             np.shape(array)[0])
-        print(newPos_px)
-#        print(self.initialPosition)
-        newPos_µm = newPos_px * self.pxSize + self.initialPosition[0:2]
-#
-        newPos_µm = np.around(newPos_µm, 2)
-        print(newPos_µm)
-        newRange_px = np.shape(array)[0]
-        newRange_µm = self.pxSize * newRange_px
-        newRange_µm = np.around(newRange_µm, 2)
-        print(newRange_px, newRange_µm)
         plt.plot(array)
         plt.show()
-        #-- Generate some data...
-#        x, y = np.mgrid[-5:5:0.1, -5:5:0.1]
-#        z = np.sqrt(x**2 + y**2) + np.sin(x**2 + y**2)
-#        
-#        #-- Extract the line...
-#        # Make a line with "num" points...
-#        x0, y0 = array[0] # These are in _pixel_ coordinates!!
-#        x1, y1 = 60, 75
-#        length = int(np.hypot(x1-x0, y1-y0))
-#        x, y = np.linspace(x0, x1, length), np.linspace(y0, y1, length)
-#        
-#        # Extract the values along the line
-#        zi = self.image[x.astype(np.int), y.astype(np.int)]
-#        
-#        #-- Plot...
-#        fig, axes = plt.subplots(nrows=2)
-#        axes[0].imshow(z)
-#        axes[0].plot([x0, x1], [y0, y1], 'ro-')
-#        axes[0].axis('image')
-#        
-#        axes[1].plot(zi)
-#        
+
+# %%  ROI cosas
+#    def ROIlinear(self):
+#        self.NofPixels = self.numberofPixels
+#
+#        if self.ROIlineButton.isChecked():
+#            print("entra")
+#
+#            self.linearROI = pg.LineSegmentROI((0,50))
+#            self.vb.addItem(self.linearROI)
+##            self.roi = viewbox_tools.cropROI(ROIpos, self.vb)
+#            print("termina")
+#        else:
+#            self.vb.removeItem(self.linearROI)
+#            self.linearROI.hide()
+#
+#    def selectLineROI(self):
+#        self.NofPixels = self.numberofPixels
+#        self.pxSize = self.pixelSize
+#        self.liveviewStop()
+#
+#        print("Estoy en", float(self.xLabel.text()), float(self.yLabel.text()),
+#              float(self.zLabel.text()))
+#
+#        array = self.linearROI.getArrayRegion(self.image, self.img)
+#        ROIpos = np.array(self.linearROI.pos())
+#        print(ROIpos)
+#        print(array)
+#        newPos_px = tools.ROIscanRelativePOS(ROIpos,
+#                                             self.NofPixels,
+#                                             np.shape(array)[0])
+#        print(newPos_px)
+##        print(self.initialPosition)
+#        newPos_µm = newPos_px * self.pxSize + self.initialPosition[0:2]
+##
+#        newPos_µm = np.around(newPos_µm, 2)
+#        print(newPos_µm)
+#        newRange_px = np.shape(array)[0]
+#        newRange_µm = self.pxSize * newRange_px
+#        newRange_µm = np.around(newRange_µm, 2)
+#        print(newRange_px, newRange_µm)
+#        plt.plot(array)
 #        plt.show()
+#        #-- Generate some data...
+##        x, y = np.mgrid[-5:5:0.1, -5:5:0.1]
+##        z = np.sqrt(x**2 + y**2) + np.sin(x**2 + y**2)
+##        
+##        #-- Extract the line...
+##        # Make a line with "num" points...
+##        x0, y0 = array[0] # These are in _pixel_ coordinates!!
+##        x1, y1 = 60, 75
+##        length = int(np.hypot(x1-x0, y1-y0))
+##        x, y = np.linspace(x0, x1, length), np.linspace(y0, y1, length)
+##        
+##        # Extract the values along the line
+##        zi = self.image[x.astype(np.int), y.astype(np.int)]
+##        
+##        #-- Plot...
+##        fig, axes = plt.subplots(nrows=2)
+##        axes[0].imshow(z)
+##        axes[0].plot([x0, x1], [y0, y1], 'ro-')
+##        axes[0].axis('image')
+##        
+##        axes[1].plot(zi)
+##        
+##        plt.show()
 
 #import pyqtgraph.examples
 #pyqtgraph.examples.run()

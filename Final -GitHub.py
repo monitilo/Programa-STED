@@ -55,7 +55,7 @@ class ScanWidget(QtGui.QFrame):
     def graphplot(self):
 #        if self.dy==0:
 #            self.paramChanged()
-        self.getInitPos()
+#        self.getInitPos()
         self.paramChangedInitialize()
         if self.graphcheck.isChecked():
             if self.imagecheck.isChecked():
@@ -210,6 +210,7 @@ class ScanWidget(QtGui.QFrame):
 
     # autoLevel image
         self.autoLevelscheck = QtGui.QCheckBox('Auto escalar (o no)')
+        self.autoLevelscheck.setChecked(True)
         self.autoLevelscheck.clicked.connect(self.autoLevelset)
 
     # Shutters buttons
@@ -331,16 +332,16 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.pixelSizeLabel,      9, 1)
         subgrid.addWidget(self.pixelSizeValue,     10, 1)
         subgrid.addWidget(self.liveviewButton,     11, 1)
-        subgrid.addWidget(self.scanMode,            13, 1)
-        subgrid.addWidget(self.timeTotalLabel,      14, 1)
-        subgrid.addWidget(self.timeTotalValue,      15, 1)
-        subgrid.addWidget(self.saveimageButton,     16, 1)
-        subgrid.addWidget(self.autoLevelscheck,     17, 1)
-
+        subgrid.addWidget(self.scanMode,           12, 1)
+        subgrid.addWidget(self.timeTotalLabel,     13, 1)
+        subgrid.addWidget(self.timeTotalValue,     14, 1)
+        subgrid.addWidget(self.saveimageButton,    15, 1)
+        subgrid.addWidget(self.autoLevelscheck,    16, 1)
+        subgrid.addWidget(self.imagecheck,         17, 1)
     # Columna 2
-        subgrid.addWidget(self.detectMode,        0, 2)
-        subgrid.addWidget(self.NameDirButton,     1, 2)
-        subgrid.addWidget(self.OpenButton,        2, 2)
+        subgrid.addWidget(self.NameDirButton,     0, 2)
+        subgrid.addWidget(self.OpenButton,        1, 2)
+        subgrid.addWidget(self.detectMode,        3, 2)
 #        subgrid.addWidget(self.triggerLabel,       4, 2)
 #        subgrid.addWidget(self.triggerEdit,        5, 2)
         subgrid.addWidget(self.accelerationLabel,  6, 2)
@@ -350,22 +351,23 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.VideoCheck,        10, 2)
         subgrid.addWidget(self.Continouscheck,    11, 2)
         subgrid.addWidget(self.graphcheck,        12, 2)
-        subgrid.addWidget(self.CMcheck,           13, 2)
         subgrid.addWidget(self.PSFMode,            15, 2)
-        subgrid.addWidget(self.maxcountsLabel,     16, 2)
-        subgrid.addWidget(self.maxcountsEdit,      17, 2)
+
+
     # Columna 3
 #        subgrid.addWidget(self.algobutton,        0, 3)
-        subgrid.addWidget(self.ROIButton,           2, 3)
-        subgrid.addWidget(self.selectROIButton,     3, 3)
+        subgrid.addWidget(self.ROIButton,          0, 3)
+        subgrid.addWidget(self.selectROIButton,    1, 3)
         subgrid.addWidget(self.ROIlineButton,       4, 3)
         subgrid.addWidget(self.selectlineROIButton, 5, 3)
-        subgrid.addWidget(self.PointButton,         6, 3)
-        subgrid.addWidget(self.PointLabel,          7, 3)
-        subgrid.addWidget(self.plotLivebutton,       9, 3)
-        subgrid.addWidget(self.imagecheck,            11, 3)
-        subgrid.addWidget(self.Gausscheck,             13, 3)
-        subgrid.addWidget(self.presetsMode,             15, 3)
+        subgrid.addWidget(self.PointButton,          7, 3)
+        subgrid.addWidget(self.PointLabel,           8, 3)
+        subgrid.addWidget(self.plotLivebutton,       10, 3)
+        subgrid.addWidget(self.CMcheck,               12, 3)
+        subgrid.addWidget(self.Gausscheck,            13, 3)
+        subgrid.addWidget(self.presetsMode,            15, 3)
+        subgrid.addWidget(self.maxcountsLabel,         16, 3)
+        subgrid.addWidget(self.maxcountsEdit,          17, 3)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -537,6 +539,7 @@ class ScanWidget(QtGui.QFrame):
         self.image2 = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
         self.dy = 0
 
+        self.imageWidget = imageWidget
         #self.startRutine()  # que lea de algun lado la posicion y la setee como start x,y,z
 
 #    def startRutine(self):
@@ -1011,16 +1014,16 @@ class ScanWidget(QtGui.QFrame):
 
 #        j = self.dy
 
-#        if self.pixelsoffL == 0:
-#            self.counts[0] = self.APD[Napd-1] - self.APD[0]
-#            self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
-#
-#        else:
-#            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(self.pixelsoffL))-1]
-#            self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
+        if self.pixelsoffL == 0:
+            self.counts[0] = self.APD[Napd-1] - self.APD[0]
+            self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
 
-        self.counts[0] = 0
-        self.counts[0:5] = 5  # probando cosas
+        else:
+            self.counts[0] = self.APD[(Napd*(1+self.pixelsoffL))-1]-self.APD[(Napd*(self.pixelsoffL))-1]
+            self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
+
+#        self.counts[0] = 0
+#        self.counts[0:5] = 5  # probando cosas
 
         for i in range(1, self.numberofPixels):
             ei = ((self.pixelsoffL+i)   * Napd)-1
@@ -2133,13 +2136,14 @@ class ScanWidget(QtGui.QFrame):
 
 # %% Roi lineal
     def ROIlinear(self):
+        largo = self.numberofPixels/1.5+10
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
             self.curve.setData(array)
 
         if self.ROIlineButton.isChecked():
 
-            self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
+            self.linearROI = pg.LineSegmentROI([[10, 64], [largo,64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
             self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating plot")
