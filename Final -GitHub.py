@@ -29,7 +29,7 @@ device = nidaqmx.system.System.local().devices['Dev1']
 convFactors = {'x': 25, 'y': 25, 'z': 1.683}
 # la calibracion es 1 µm = 40 mV en x,y (galvos);
 # en z, 0.17 µm = 0.1 V  ==> 1 µm = 0.58 V
-# 1.68 um = 1 V ==> 1 um = 0.59V  # asi que promedie.
+# 1.68 um = 1 V ==> 1 um = 0.59V  # asi que promedie, y lo puse a ojo.
 minVolt = {'x': -10, 'y': -10, 'z': 0}
 maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x'] # V => µm; uso el doble para no errarle
@@ -720,7 +720,7 @@ class ScanWidget(QtGui.QFrame):
         if self.liveviewButton.isChecked():
             """if dy != 0:  # aca prentendia poner la parte con lectura de ai
 #            """
-            self.openShutter("red")
+            self.openShutter("red")  # self.Presets  # abre los shutters que sean
             self.paramChangedInitialize()
             self.MovetoStart()  # getini: se va
             self.liveviewStart()
@@ -739,23 +739,11 @@ class ScanWidget(QtGui.QFrame):
 #        if self.scanMode.currentText() == "ramp scan" or self.scanMode.currentText() == "otra frec ramp":
             self.channelsOpenRamp()
             self.tic = ptime.time()
+            self.startingRamps()
             if self.detectMode.currentText() == "PMT":
-                self.rampScanPMT()
+                self.PMTtimer.start(self.reallinetime*10**3)  # imput in ms
             else:
-                self.rampScanAPD()
-
-    def rampScanPMT(self):
-#        self.MovetoStart()
-        self.startingRamps()
-#        self.tic = ptime.time()
-        self.PMTtimer.start(self.reallinetime*10**3)  # imput in ms
-
-    def rampScanAPD(self):
-#        self.MovetoStart()
-        self.startingRamps()
-#        self.tic = ptime.time()
-        self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
-
+                self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
 
     def liveviewStop(self):
         self.MovetoStart()
@@ -2205,9 +2193,20 @@ class ScanWidget(QtGui.QFrame):
             self.numberofPixelsEdit.setText('300')
             self.accelerationEdit.setText('120')
             self.vueltaEdit.setText('100')
-
-#        self.paramChanged()
-#        self.preseteado = True    creo que no lo voy a usar
+        """
+    # otra idea de presets. abrir los shutters que se quieran
+#shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
+        if self.presetsMode .currentText() == self.presetsModes[0]:  # rojo
+            self.openShutter(shutters[0])
+        elif self.presetsMode .currentText() == self.presetsModes[1]:  # amarillo
+            self.openShutter(shutters[2])
+        elif self.presetsMode .currentText() == self.presetsModes[2]: # rojo+STED
+            self.openShutter(shutters[0])
+            self.openShutter(shutters[1])
+        elif self.presetsMode .currentText() == self.presetsModes[3]:  # amar+STED
+            self.openShutter(shutters[2])
+            self.openShutter(shutters[1])
+        """
 
 # %% getInitPos  Posiciones reales, si agrego los cables que faltan
     def getInitPos(self):
@@ -2244,17 +2243,9 @@ class ScanWidget(QtGui.QFrame):
         # tengo que hacer esto porque y cambia antes (recordar el p que puse)
         print("índice posta",int(nrampa+self.indiceX))
         print("valor en totalrampx", self.totalrampx[int(nrampa+self.indiceX)])
-        
-#def find_nearest(array,value):
+    # definir dy para que empieze a dibujar por donde corresponda
+#        self.dy=
 
-#    # update position text
-#        self.xLabel.setText("{}".format(np.around(float(data[-1,0]), 2)))  # X
-#        self.yLabel.setText("{}".format(np.around(float(data[-1,1]), 2)))  # Y
-##        self.zLabel.setText("{}".format(np.around(float(data[-1,2]), 2)))  # Z
-#        self.initialPosition = (float(self.xLabel.text()),
-#                                float(self.yLabel.text()))#,
-##                                float(self.zLabel.text()))
-#        self.paramChanged()
         toc = ptime.time()
         print("\n tiempo getInitPos", toc-tic,"\n")
 # %% Otras Funciones
