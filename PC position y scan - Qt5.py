@@ -248,6 +248,7 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['step scan', 'ramp scan', 'otro scan']
         self.scanMode.addItems(self.scanModes)
+        self.scanMode.setCurrentIndex(1)
 #        self.scanMode.currentIndexChanged.connect(self.paramChanged)
 
     # Presets simil inspector

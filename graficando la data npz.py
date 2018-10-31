@@ -5,6 +5,23 @@ import time
 import multiprocessing as mp
 import pyqtgraph.ptime as ptime
 
+#%%
+a=np.linspace(0,10,3)
+N=10
+x=np.linspace(0,20,20)
+y=np.linspace(50,200,10)
+Nmax= N+len(a)
+y = np.zeros(N)
+y = x[len(a):Nmax]
+
+c=np.linspace(10,0,4)
+Nmin = Nmax+len(c)
+
+x= np.zeros((50,50))+1
+for i in range(len(x[0,:])):
+    y=np.linspace(50+i,200,10)
+    x[:,-1] = y
+
 # %% Las rampas que miden cuando va y vuelve rapido
 """ con m = 1 tengo ida y vuelta simetricas"""
 a = 120  # aceleracion um/ms2

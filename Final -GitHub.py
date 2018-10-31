@@ -233,6 +233,7 @@ class ScanWidget(QtGui.QFrame):
         self.detectMode = QtGui.QComboBox()
 #        self.detectModes = ['APD red', 'APD green', 'both APDs', 'PMT']  lo agregue antes.
         self.detectMode.addItems(detectModes)
+        self.detectMode.setCurrentIndex(-2)
 
     # ROI buttons
         self.roi = None
@@ -251,7 +252,6 @@ class ScanWidget(QtGui.QFrame):
         self.selectlineROIButton = QtGui.QPushButton('Plot line ROI')
         self.selectlineROIButton.clicked.connect(self.selectLineROI)
 
-
     # Point scan
         self.PointButton = QtGui.QPushButton('Point scan')
         self.PointButton.setCheckable(True)
@@ -260,7 +260,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Max Counts')
-        self.maxcountsEdit = QtGui.QLabel('<strong>0.0')
+        self.maxcountsEdit = QtGui.QLabel('<strong> 0|0')
 
     # Scanning parameters
 
@@ -788,6 +788,7 @@ class ScanWidget(QtGui.QFrame):
             self.APD2task.start()
         else:
             self.PMTtask.start()
+
         print("ya arranca...")
     # Starting the trigger. It have a controllable 'delay'
         self.triggertask.write(self.trigger, auto_start=True)
@@ -796,7 +797,6 @@ class ScanWidget(QtGui.QFrame):
 # %% runing Ramp loop (APD)
     def APDupdateView(self):
         paso = 1
-
     # The counter reads this numbers of points when the trigger starts
         if self.detectMode .currentText() == detectModes[0]:
             self.APD[:] = self.APD1task.read(
@@ -858,7 +858,6 @@ class ScanWidget(QtGui.QFrame):
           else:
               self.liveviewStop()
 
-
     def APDstop(self):
         try:
             self.APDtask.stop()
@@ -871,18 +870,17 @@ class ScanWidget(QtGui.QFrame):
 # %% MAX Counts
     def MaxCounts(self):
         m = np.max(self.image)
-        self.maxcountsEdit.setText("<strong>{}".format(float(m)))
-        if m >= (5000 * self.pixelTime*10**3):
+        m2 = np.max(self.image2)
+        self.maxcountsEdit.setText("<strong> {}|{}".format(int(m),int(m2)))
+        if m >= (5000 * self.pixelTime*10**3) or m2 >= (5000 * self.pixelTime*10**3):
             self.maxcountsEdit.setStyleSheet(" background-color: red; ")
 
 
 # %% runing Ramp loop (PMT)
     def PMTupdate(self):
         paso = 1
-    # The counter reads this numbers of points when the trigger starts
+    # The counter will reads this numbers of points when the trigger starts
         self.PMT[:] = self.PMTtask.read(len(self.onerampx))
-        self.triggertask.write(self.trigger, auto_start=True)
-#        self.PMTtask.wait_until_done()  # no va porque quiere medirlo TODO
 
     # limpio la parte acelerada.
         pixelsEnd = len(self.xini[:-1]) + self.numberofPixels
@@ -893,8 +891,8 @@ class ScanWidget(QtGui.QFrame):
             self.image[:, -2-self.dy] = (self.PMT[pixelsIniB : -len(self.xstops[1:])])
             paso = 2
         else:
-            self.backimage[:, -1-self.dy] = self.PMT[pixelsIniB : -len(self.xstops[1:])]  # f
-
+            self.backimagePMT[:, -1-self.dy] = self.PMT[pixelsIniB : -len(self.xstops[1:])]  # f
+        self.MaxPMT()
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
     #, so I´m plotting in packages. It's looks like realtime
@@ -906,10 +904,11 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels, 2)
 
         if self.dy in multi5:
-            if self.graphcheck.isChecked():
-                self.img.setImage(self.backimage, autoLevels=self.autoLevels)
-            else:
-                self.img.setImage(self.image, autoLevels=self.autoLevels)
+            self.img.setImage(self.image, autoLevels=self.autoLevels)
+#            if self.graphcheck.isChecked():
+#                self.img.setImage(self.backimagePMT, autoLevels=self.autoLevels)
+#            else:
+#                self.img.setImage(self.image, autoLevels=self.autoLevels)
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
@@ -926,6 +925,13 @@ class ScanWidget(QtGui.QFrame):
               self.liveviewStart()
           else:
               self.liveviewStop()
+# %% MAX PMT
+    def MaxPMT(self):
+        m = np.max(self.image)
+        m2 = np.max(self.backimagePMT)
+        self.maxcountsEdit.setText("<strong> {}|{}".format(float(m),float(m2)))
+        if m >= 1 or m2 >= 1:
+            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
 
 
 # %% --- Creating Ramps  ----
@@ -938,8 +944,11 @@ class ScanWidget(QtGui.QFrame):
         self.acceleration()
         self.backcounts = np.zeros((self.pixelsoffB))
         self.backcounts2 = np.zeros((self.pixelsoffB)) # self.backcounts
-        self.backimage = np.zeros((self.pixelsoffB, self.numberofPixels))  # para la vuelta (poner back Velocity=1)
-        self.backimage2 = np.zeros((self.pixelsoffB, self.numberofPixels)) # self.backimage
+        self.backimage = np.zeros((self.pixelsoffB, self.numberofPixels))  # para la vuelta bien poner back Velocity=1
+        self.backimage2 = self.backimage  # np.zeros((self.pixelsoffB, self.numberofPixels))
+        self.backimagePMT = np.zeros((len(self.xback[:]), self.numberofPixels))  # para la vuelta bien poner back Velocity=1
+
+
 #    Barrido x
         startX = float(self.initialPosition[0])
         sizeX = self.scanRange
@@ -1912,24 +1921,24 @@ class ScanWidget(QtGui.QFrame):
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
         if self.PSFMode.currentText() == 'XY normal psf':
-            psfmode = "XY"
+            psfmode = "-"
         elif self.PSFMode.currentText() == 'XZ':
-            psfmode = "XZ"
+            psfmode = "XZ-"
         elif self.PSFMode.currentText() == 'YZ':
-            psfmode = "YZ"
+            psfmode = "YZ-"
 #        filepath = self.main.file_path
         timestr = time.strftime("%Y%m%d-%H%M%S")
 
         if self.detectMode .currentText() == detectModes[-2]:
-            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
             guardado.save(name)
-            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image2,1)))  # np.flip(,1)
             guardado.save(name)
 
         else:
-            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
+            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
             guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
             guardado.save(name)
 
