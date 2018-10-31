@@ -233,7 +233,7 @@ class ScanWidget(QtGui.QFrame):
         self.detectMode = QtGui.QComboBox()
 #        self.detectModes = ['APD red', 'APD green', 'both APDs', 'PMT']  lo agregue antes.
         self.detectMode.addItems(detectModes)
-        self.detectMode.setCurrentIndex(-2)
+        self.detectMode.setCurrentIndex(2)
 
     # ROI buttons
         self.roi = None
@@ -1254,11 +1254,9 @@ class ScanWidget(QtGui.QFrame):
     def APDOpen(self):
         if self.APDson:  # esto puede fallar cuando cambio de ramp a step
             print("Ya esta algun APD")  # to dont open again
-            p=0
         else:
-            if self.PMTon:
+#            if self.PMTon:
                 #print("ojo que sigue preparado el PMT (no hago nada al respecto)")
-                p=0
             self.APDson = True
             self.APD1task = nidaqmx.Task('APD1task')
 
@@ -1292,11 +1290,9 @@ class ScanWidget(QtGui.QFrame):
     def PMTOpen(self):
         if self.PMTon:
             print("Ya esta el PMT")  # to dont open again
-            p=0
         else:
-            if self.APDson:
+#            if self.APDson:
                 #print("ojo que sigue preparado el APD (no hago nada al respecto)")
-                p=0
             self.PMTon = True
             self.PMTtask = nidaqmx.Task('PMTtask')
             self.PMTtask.ai_channels.add_ai_voltage_chan(
@@ -1310,7 +1306,6 @@ class ScanWidget(QtGui.QFrame):
     def TriggerOpenPMT(self):
         if self.triggerPMT:
             print("Ya esta el trigger PMT")  # to dont open again
-            p=0
         else:
             if self.triggerAPD:
                 self.triggertask.stop()
@@ -1349,7 +1344,7 @@ class ScanWidget(QtGui.QFrame):
     def TriggerOpenAPD(self):
         if self.triggerAPD:
             print("Ya esta el trigger APD")  # to dont open again
-            p=0
+
         else:
             if self.triggerPMT:
                 self.triggertask.stop()
@@ -1550,8 +1545,7 @@ class ScanWidget(QtGui.QFrame):
         self.allstepsz = np.tile(goz,(self.numberofPixels,1))
 
         if self.PSFMode.currentText() == 'XY normal psf':
-            #print("escaneo x y normal S")
-            p=0
+            print("escaneo x y normal S")
 
         elif self.PSFMode.currentText() == 'XZ':
             #print("intercambio y por z S")
@@ -1711,7 +1705,7 @@ class ScanWidget(QtGui.QFrame):
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
         self.PiezoOpenStep()  # se mueve de a puntos, no rampas.
-        t = self.moveTime
+#        t = self.moveTime
         N = self.moveSamples
 
     # read initial position for all channels
@@ -1742,8 +1736,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.channelsOpen()
 
         else:
-            #print("¡YA ESTOY EN ESAS COORDENADAS!")
-            p=0
+            print("¡YA ESTOY EN ESAS COORDENADAS!")
 
 
 # %% ---  Shutters zone ---------------------------------
@@ -1885,7 +1878,7 @@ class ScanWidget(QtGui.QFrame):
         X, Y = np.meshgrid(x, y)
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
-        cb = fig.colorbar(p)
+        fig.colorbar(p)  # cb = 
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         if self.CMplot:
@@ -2038,35 +2031,50 @@ class ScanWidget(QtGui.QFrame):
         self.pointtask.close()
 
     def PointScan(self):
-        if self.detectMode .currentText() == detectModes[0]:
-#        if self.APDred.isChecked():
-            c = COchans[0]
-        elif self.detectMode .currentText() == detectModes[1]:
-#        elif self.APDgreen.isChecked():
-            c = COchans[1]
-        else:
-            print("seleccionar algun apd")
-        print(c)
-        tiempo = 400 # ms  # refresca el numero cada este tiempo
-        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
+#        if self.detectMode .currentText() == detectModes[0]:
+##        if self.APDred.isChecked():
+#            c = COchans[0]
+#        elif self.detectMode .currentText() == detectModes[1]:
+##        elif self.APDgreen.isChecked():
+#            c = COchans[1]
+#        else:
+#            print("seleccionar algun apd")
+#        print(c)
+
+        self.tiempo = 400 # ms  # refresca el numero cada este tiempo
+#        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
+#        self.points2 = self.points
+
         self.pointtask = nidaqmx.Task('pointtask')
 
         # Configure the counter channel to read the APD
         self.pointtask.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[c]),
+                            counter='Dev1/ctr{}'.format(COchans[0]),
+                            name_to_assign_to_channel=u'Line_counter',
+                            initial_count=0)
+        
+        self.pointtask2 = nidaqmx.Task('pointtask')
+        # Configure the counter channel to read the APD
+        self.pointtask2.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr{}'.format(COchans[1]),
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
 
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
-        self.pointtimer.start(tiempo)
+        self.pointtimer.start(self.tiempo)
 
     def updatePoint(self):
-        N = len(self.points)
-        self.points[:] = self.pointtask.read(N)
-        m = np.mean(self.points)
+        points = np.zeros(int((self.apdrate*(self.tiempo /10**3))))
+        points2 = points
+        N = len(points)
+        points[:] = self.pointtask.read(N)
+        points2[:] = self.pointtask.read(N)
+
+        m = np.mean(points)
+        m2 = np.mean(points2)
 #        #print("valor traza", m)
-        self.PointLabel.setText("<strong>{0:.2e}".format(float(m)))
+        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
 
 # %%  ROI cosas
     def ROImethod(self):
