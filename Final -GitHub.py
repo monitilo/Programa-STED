@@ -57,13 +57,14 @@ class ScanWidget(QtGui.QFrame):
 #            self.paramChanged()
 #        self.getInitPos()
         self.paramChangedInitialize()
-        if self.graphcheck.isChecked():
-            if self.imagecheck.isChecked():
-                self.img.setImage(self.backimage2, autoLevels=self.autoLevels)
-            else:
-                self.img.setImage(self.backimage, autoLevels=self.autoLevels)
-        else:
-            self.img.setImage(self.image, autoLevels=self.autoLevels)
+
+#        if self.graphcheck.isChecked():
+#            if self.imagecheck.isChecked():
+#                self.img.setImage(self.backimage2, autoLevels=self.autoLevels)
+#            else:
+#                self.img.setImage(self.backimage, autoLevels=self.autoLevels)
+#        else:
+#            self.img.setImage(self.image, autoLevels=self.autoLevels)
 
         verxi = np.concatenate((self.xini[:-1],
                                np.zeros(len(self.wantedrampx)),
@@ -141,12 +142,14 @@ class ScanWidget(QtGui.QFrame):
 
     # to Calculate the mass center
         self.CMcheck = QtGui.QCheckBox('calcula CM')
-        self.CMcheck.setChecked(False)
+#        self.CMcheck.setChecked(False)
+        self.CMcheck.setCheckable(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
 
     # 2D Gaussian fit to estimate the center of a NP
         self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
-        self.Gausscheck.setChecked(False)
+#        self.Gausscheck.setChecked(False)
+        self.Gausscheck.setCheckable(False)
         self.Gausscheck.clicked.connect(self.GaussFit)
 
     # save image Button
@@ -242,10 +245,10 @@ class ScanWidget(QtGui.QFrame):
 
     # ROI Lineal
         self.roiline = None
-        self.ROIlineButton = QtGui.QPushButton('lineROIline')
+        self.ROIlineButton = QtGui.QPushButton('line ROI line')
         self.ROIlineButton.setCheckable(True)
         self.ROIlineButton.clicked.connect(self.ROIlinear)
-        self.selectlineROIButton = QtGui.QPushButton('select line ROI')
+        self.selectlineROIButton = QtGui.QPushButton('Plot line ROI')
         self.selectlineROIButton.clicked.connect(self.selectLineROI)
 
 
@@ -271,8 +274,8 @@ class ScanWidget(QtGui.QFrame):
         self.numberofPixelsEdit = QtGui.QLineEdit('500')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
         self.pixelSizeValue = QtGui.QLabel('')
-        self.accelerationLabel = QtGui.QLabel('puntos agregados a mano por las dudas') #Acceleration (µm/ms^2)')
-        self.accelerationEdit = QtGui.QLineEdit('0')
+        self.accelerationLabel = QtGui.QLabel('puntos agregados ') #Acceleration (µm/ms^2)')
+        self.accelerationEdit = QtGui.QLineEdit('3')
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
         self.vueltaEdit = QtGui.QLineEdit('10')
 
@@ -282,9 +285,9 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('total scan time (s)')
         self.timeTotalValue = QtGui.QLabel('')
 
-        self.onlyInt = QtGui.QIntValidator(0,5000)
+        self.onlyInt = QtGui.QIntValidator(0,10001)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
-        self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
+        self.onlypos = QtGui.QDoubleValidator(0, 1000, 10)
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
@@ -313,7 +316,7 @@ class ScanWidget(QtGui.QFrame):
         grid = QtGui.QGridLayout()
         self.setLayout(grid)
         grid.addWidget(imageWidget, 0, 0)
-        grid.addWidget(self.paramWidget, 0, 1)
+#        grid.addWidget(self.paramWidget, 0, 1)
 
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
@@ -405,7 +408,7 @@ class ScanWidget(QtGui.QFrame):
         self.zStepUnit = QtGui.QLabel(" µm")
 
         self.positioner = QtGui.QWidget()
-        grid.addWidget(self.positioner, 1, 0)
+#        grid.addWidget(self.positioner, 1, 0)
         layout = QtGui.QGridLayout()
         self.positioner.setLayout(layout)
         layout.addWidget(self.xname,       1, 0)
@@ -433,7 +436,7 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(self.zStepUnit,   4, 7)
 
         layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
-        
+
         tamaño = 40
         self.yStepEdit.setFixedWidth(tamaño)
         self.zStepEdit.setFixedWidth(tamaño)
@@ -441,21 +444,21 @@ class ScanWidget(QtGui.QFrame):
 #        self.zStepEdit.setValidator(self.onlypos)
 
         self.gotoWidget = QtGui.QWidget()
-        grid.addWidget(self.gotoWidget, 1, 1)
+#        grid.addWidget(self.gotoWidget, 1, 1)
         layout2 = QtGui.QGridLayout()
         self.gotoWidget.setLayout(layout2)
-        layout2.addWidget(QtGui.QLabel("X"), 1, 7)
-        layout2.addWidget(QtGui.QLabel("Y"), 2, 7)
-        layout2.addWidget(QtGui.QLabel("Z"), 3, 7)
+        layout2.addWidget(QtGui.QLabel("X"), 1, 1)
+        layout2.addWidget(QtGui.QLabel("Y"), 2, 1)
+        layout2.addWidget(QtGui.QLabel("Z"), 3, 1)
         self.xgotoLabel = QtGui.QLineEdit("0")
         self.ygotoLabel = QtGui.QLineEdit("0")
         self.zgotoLabel = QtGui.QLineEdit("0")
         self.gotoButton = QtGui.QPushButton("♫ G0 To ♪")
         self.gotoButton.pressed.connect(self.goto)
-        layout2.addWidget(self.gotoButton, 1, 9, 2, 2)
-        layout2.addWidget(self.xgotoLabel, 1, 8)
-        layout2.addWidget(self.ygotoLabel, 2, 8)
-        layout2.addWidget(self.zgotoLabel, 3, 8)
+        layout2.addWidget(self.gotoButton, 1, 5, 2, 2)
+        layout2.addWidget(self.xgotoLabel, 1, 2)
+        layout2.addWidget(self.ygotoLabel, 2, 2)
+        layout2.addWidget(self.zgotoLabel, 3, 2)
         self.zgotoLabel.setValidator(self.onlypos)
 #        tamaño = 50
         self.xgotoLabel.setFixedWidth(tamaño)
@@ -466,24 +469,48 @@ class ScanWidget(QtGui.QFrame):
         self.CMxValue = QtGui.QLabel('NaN')
         self.CMyLabel = QtGui.QLabel('CM Y')
         self.CMyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.CMxLabel, 4, 8)
-        layout2.addWidget(self.CMxValue, 5, 8)
-        layout2.addWidget(self.CMyLabel, 4, 9)
-        layout2.addWidget(self.CMyValue, 5, 9)
+        layout2.addWidget(self.CMxLabel, 4, 1)
+        layout2.addWidget(self.CMxValue, 5, 1)
+        layout2.addWidget(self.CMyLabel, 4, 2)
+        layout2.addWidget(self.CMyValue, 5, 2)
         self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
         self.goCMButton.pressed.connect(self.goCM)
-        layout2.addWidget(self.goCMButton, 2, 9, 2, 2)
+        layout2.addWidget(self.goCMButton, 2, 5, 2, 2)
 
         self.GaussxLabel = QtGui.QLabel('Gauss X')
         self.GaussxValue = QtGui.QLabel('NaN')
         self.GaussyLabel = QtGui.QLabel('Gauss Y')
         self.GaussyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.GaussxLabel, 4, 10)
-        layout2.addWidget(self.GaussxValue, 5, 10)
-        layout2.addWidget(self.GaussyLabel, 4, 11)
-        layout2.addWidget(self.GaussyValue, 5, 11)
+        layout2.addWidget(self.GaussxLabel, 4, 5)
+        layout2.addWidget(self.GaussxValue, 5, 5)
+        layout2.addWidget(self.GaussyLabel, 4, 6)
+        layout2.addWidget(self.GaussyValue, 5, 6)
+        layout2.addWidget(QtGui.QLabel(' '), 4, 4)
+        layout2.addWidget(QtGui.QLabel(' '), 4, 0)
+        layout2.addWidget(QtGui.QLabel(' '), 4, 7)
 
-        # Nueva interface mas comoda!
+#        # Nueva interface mas comoda!
+#        hbox = QtGui.QHBoxLayout(self)
+#        topleft=QtGui.QFrame()
+#        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
+#        bottom = QtGui.QFrame()
+#        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
+#        topleft.setLayout(grid)
+#        downright=QtGui.QFrame()
+#        downright.setFrameShape(QtGui.QFrame.StyledPanel)
+#
+#        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+#        splitter1.addWidget(imageWidget)
+#        splitter1.addWidget(topleft)
+#        splitter1.setSizes([10**6, 1])
+#
+#        splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+#        splitter15.addWidget(self.positioner)
+##        splitter15.addWidget(bottom)
+#        splitter15.addWidget(self.gotoWidget)
+#        splitter15.setSizes([10, 10])
+
+#    # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
         topleft=QtGui.QFrame()
         topleft.setFrameShape(QtGui.QFrame.StyledPanel)
@@ -492,22 +519,29 @@ class ScanWidget(QtGui.QFrame):
         topleft.setLayout(grid)
         downright=QtGui.QFrame()
         downright.setFrameShape(QtGui.QFrame.StyledPanel)
+        topright=QtGui.QFrame()
+        topright.setFrameShape(QtGui.QFrame.StyledPanel)
+        topright.setLayout(subgrid)
 
         splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        splitter1.addWidget(imageWidget)
+#        splitter1.addWidget(imageWidget)
         splitter1.addWidget(topleft)
+        splitter1.addWidget(topright)
         splitter1.setSizes([10**6, 1])
 
         splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        splitter15.addWidget(self.positioner)
-#        splitter15.addWidget(bottom)
-        splitter15.addWidget(self.gotoWidget)
-        splitter15.setSizes([1000, 1])
+        downright.setLayout(layout)
+        splitter15.addWidget(downright)
+#        splitter15.addWidget(self.positioner)
+        bottom.setLayout(layout2)
+        splitter15.addWidget(bottom)
+#        splitter15.addWidget(self.gotoWidget)
+        splitter15.setSizes([10, 10])
 
         splitter2 = QtGui.QSplitter(QtCore.Qt.Vertical)
         splitter2.addWidget(splitter1)
         splitter2.addWidget(splitter15)
-        splitter2.setSizes([10, 10])
+        splitter2.setSizes([10**6, 1])
 
         hbox.addWidget(splitter2)
 
@@ -515,7 +549,7 @@ class ScanWidget(QtGui.QFrame):
 # ---- fin positioner part----------
 
         self.paramChanged()
-        self.paramWidget.setFixedHeight(400)
+        self.paramWidget.setFixedHeight(500)
 
         self.vb.setMouseMode(pg.ViewBox.RectMode)
         self.img = pg.ImageItem()
@@ -695,8 +729,8 @@ class ScanWidget(QtGui.QFrame):
     def liveview(self):
         if self.liveviewButton.isChecked():
             """if dy != 0:  # aca prentendia poner la parte con lectura de ai
-                
 #            """
+            self.openShutter("red")
             self.save = False
             self.paramChangedInitialize()
             self.MovetoStart()  # getini: se va
@@ -751,7 +785,7 @@ class ScanWidget(QtGui.QFrame):
 #    def startingSteps(self):
 # %%
     def startingRamps(self):
-        self.openShutter("red")
+
 #        self.working = True
     # Send the signals to the NiDaq, but only start when the trigger is on
         if self.YZ:
@@ -843,10 +877,6 @@ class ScanWidget(QtGui.QFrame):
               self.triggertask.stop()
               self.aotask.stop()
               self.APDstop()
-              if self.CMcheck.isChecked():
-                  self.CMmeasure()
-              if self.Gausscheck.isChecked():
-                  self.GaussFit()
               self.MovetoStart()
               if self.Continouscheck.isChecked():
                   self.liveviewStart()
@@ -868,7 +898,7 @@ class ScanWidget(QtGui.QFrame):
         m = np.max(self.image)
         self.maxcountsEdit.setText("<strong>{}".format(float(m)))
         if m >= (5000 * self.pixelTime*10**3):
-            self.maxcou1ntsEdit.setStyleSheet(" background-color: red; ")
+            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
 
 
 # %% runing Ramp loop (PMT)
@@ -925,13 +955,10 @@ class ScanWidget(QtGui.QFrame):
               self.triggertask.stop()
               self.aotask.stop()
               self.PMTtask.stop()
-              if self.CMcheck.isChecked():
-                  self.CMmeasure()
               self.MovetoStart()
               if self.Continouscheck.isChecked():
                   self.liveviewStart()
               else:
-                  self.MovetoStart()
                   self.liveviewStop()
 
 
@@ -1902,7 +1929,7 @@ class ScanWidget(QtGui.QFrame):
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"CM",color='m')
             Normal = self.scanRange / self.numberofPixels  # Normalizo
             ax.set_title((self.xcm*Normal+float(initPos[0]),
                                          self.ycm*Normal+float(initPos[1])))
@@ -1914,10 +1941,10 @@ class ScanWidget(QtGui.QFrame):
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"☺",color='m')
+                    ax.text(X2[xc+i,yc+j],Y2[xc+i,yc+j],"Ga",color='m')
             Normal = self.scanRange / self.numberofPixels  # Normalizo
-            ax.set_title((self.xcm*Normal+float(initPos[0]),
-                                         self.ycm*Normal+float(initPos[1])))
+            ax.set_title((xc*Normal+float(initPos[0]),
+                                         yc*Normal+float(initPos[1])))
 
         plt.show()
         toc = ptime.time()
@@ -1937,15 +1964,15 @@ class ScanWidget(QtGui.QFrame):
 
         if self.detectMode .currentText() == detectModes[-2]:
             name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose((self.image)))  # f
+            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
             guardado.save(name)
             name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(self.image2))  # np.flip(,1)
+            guardado = Image.fromarray(np.transpose(np.flip(self.image2,1)))  # np.flip(,1)
             guardado.save(name)
 
         else:
             name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(self.image))  # f
+            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
             guardado.save(name)
 
         print("\n Image saved\n")
