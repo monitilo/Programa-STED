@@ -232,9 +232,9 @@ class ScanWidget(QtGui.QFrame):
 
         # save image Button
 
-        self.saveimageButton = QtGui.QPushButton('Scan and Save')
-        self.saveimageButton.setCheckable(True)
-        self.saveimageButton.clicked.connect(self.saveimage)
+        self.saveimageButton = QtGui.QPushButton('Save Frame')
+        self.saveimageButton.setCheckable(False)
+        self.saveimageButton.clicked.connect(self.guardarimagen)
         self.saveimageButton.setStyleSheet(
                 "QPushButton { background-color: gray; }"
                 "QPushButton:pressed { background-color: blue; }")
@@ -772,23 +772,23 @@ class ScanWidget(QtGui.QFrame):
         self.i = 0
 
 # %% cosas para el save image
-    def saveimage(self):
-        """ la idea es que escanee la zona deseada (desde cero)
-y guarde la imagen"""
-        if self.saveimageButton.isChecked():
-            self.save = True
-            self.liveviewButton.setChecked(False)
-#            self.channelsOpen()
-            self.MovetoStart()
-            self.saveimageButton.setText('Abort')
-            self.guarda = np.zeros((self.numberofPixels, self.numberofPixels))
-            self.liveviewStart()
-
-        else:
-            self.save = False
-            print("Abort")
-            self.saveimageButton.setText('reintentar')
-            self.liveviewStop()
+#    def saveimage(self):
+#        """ la idea es que escanee la zona deseada (desde cero)
+#y guarde la imagen"""
+#        if self.saveimageButton.isChecked():
+#            self.save = True
+#            self.liveviewButton.setChecked(False)
+##            self.channelsOpen()
+#            self.MovetoStart()
+#            self.saveimageButton.setText('Abort')
+#            self.guarda = np.zeros((self.numberofPixels, self.numberofPixels))
+#            self.liveviewStart()
+#
+#        else:
+#            self.save = False
+#            print("Abort")
+#            self.saveimageButton.setText('reintentar')
+#            self.liveviewStop()
 
     def steptype(self):
         if self.stepcheck.isChecked():
@@ -804,7 +804,7 @@ y guarde la imagen"""
     def liveview(self):
         """ Image live view when not recording"""
         if self.liveviewButton.isChecked():
-            self.save = False
+#            self.save = False
             self.paramChangedInitialize()
             self.openShutter("red")
             self.liveviewStart()
@@ -824,11 +824,11 @@ y guarde la imagen"""
 #            print("PMT")
 
     def liveviewStop(self):
-        if self.save:
-            print("listo el pollo")
-            self.saveimageButton.setChecked(False)
-            self.saveimageButton.setText('Otro Scan and Stop')
-            self.save = False
+#        if self.save:
+#            print("listo el pollo")
+#            self.saveimageButton.setChecked(False)
+#            self.saveimageButton.setText('Otro Scan and Stop')
+#            self.save = False
 
         self.closeShutter("red")
         self.liveviewButton.setChecked(False)
@@ -868,39 +868,23 @@ y guarde la imagen"""
 
         self.img.setImage(self.image, autoLevels=False)
 
-        if self.save:
-            if self.i < self.numberofPixels-self.step:
-#                self.guarda[:, self.i] = self.inputImage[:, self.i] 
-                # no es necesario crear guarda. self.image es lo mismo
-                self.i = self.i + self.step
-            else:
-#                print(self.i,"i")
-                self.guardarimagen()
-                if self.CMcheck.isChecked():
-                  self.CMmeasure()
-
-                self.saveimageButton.setText('Fin')  # ni se ve
-                self.liveviewStop()
-                self.MovetoStart()
-
+        if self.i < self.numberofPixels-self.step:
+            self.i = self.i + self.step
         else:
-            if self.i < self.numberofPixels-self.step:
-                self.i = self.i + self.step
-            else:
-                print(self.i==self.numberofPixels-1,"i")
+            print(self.i==self.numberofPixels-1,"i")
 #                self.i = 0
-                if self.Alancheck.isChecked():
-                    self.guardarimagen()  # para guardar siempre (Alan idea)
-                if self.CMcheck.isChecked():
-                    self.CMmeasure()
-                if self.Gausscheck.isChecked():
-                    self.GaussMeasure()
-                self.viewtimer.stop()
-                self.MovetoStart()
-                if self.Continouscheck.isChecked():
-                    self.liveviewStart()
-                else:
-                    self.liveviewStop()
+            if self.Alancheck.isChecked():
+                self.guardarimagen()  # para guardar siempre (Alan idea)
+            if self.CMcheck.isChecked():
+                self.CMmeasure()
+            if self.Gausscheck.isChecked():
+                self.GaussMeasure()
+            self.viewtimer.stop()
+            self.MovetoStart()
+            if self.Continouscheck.isChecked():
+                self.liveviewStart()
+            else:
+                self.liveviewStop()
 
 
 # %% Barridos

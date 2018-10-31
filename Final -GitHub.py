@@ -153,9 +153,9 @@ class ScanWidget(QtGui.QFrame):
         self.Gausscheck.clicked.connect(self.GaussFit)
 
     # save image Button
-        self.saveimageButton = QtGui.QPushButton('Scan and Save')
-        self.saveimageButton.setCheckable(True)
-        self.saveimageButton.clicked.connect(self.saveimage)
+        self.saveimageButton = QtGui.QPushButton('Save Frame')
+        self.saveimageButton.setCheckable(False)
+        self.saveimageButton.clicked.connect(self.saveFrame)
         self.saveimageButton.setStyleSheet(
                 "QPushButton { background-color: gray; }"
                 "QPushButton:pressed { background-color: blue; }")
@@ -611,6 +611,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
+        """ update de parameters only if something change"""
         tic = ptime.time()
 
         a = [self.scanRange,
@@ -639,9 +640,12 @@ class ScanWidget(QtGui.QFrame):
 
         toc = ptime.time()
         print("tiempo paramchangeInitailize (ms)", (toc-tic)*10**3,"\n")
+
     def paramChanged(self):
         tic = ptime.time()
-        """ Update the parameters when the user edit them """
+
+        self.GaussPlot = False
+        self.CMplot = False
 
         self.scanModeSet = self.scanMode.currentText()
         self.PSFModeSet = self.PSFMode.currentText()
@@ -708,21 +712,7 @@ class ScanWidget(QtGui.QFrame):
         print("\n tiempo paramCahnged (ms)", (toc-tic)*10**3,"\n")
 #        self.PMT = np.zeros((self.numberofPixels + self.pixelsofftotal, self.numberofPixels))
         self.maxcountsEdit.setStyleSheet("{ background-color: }")
-# %% cosas para el save image
-    def saveimage(self):
-        """ la idea es que escanee la zona deseada (desde cero) una sola vez,
-        y guarde la imagen"""
-        if self.saveimageButton.isChecked():
-            self.MovetoStart()
-            self.save = True
-            self.saveimageButton.setText('Abort')
-            self.liveviewStart()
 
-        else:
-            self.save = False
-            #print("Abort")
-            self.saveimageButton.setText('Retry Scan and Stop')
-            self.liveviewStop()
 
 # %%--- liveview------
 # This is the function triggered by pressing the liveview button
@@ -731,7 +721,6 @@ class ScanWidget(QtGui.QFrame):
             """if dy != 0:  # aca prentendia poner la parte con lectura de ai
 #            """
             self.openShutter("red")
-            self.save = False
             self.paramChangedInitialize()
             self.MovetoStart()  # getini: se va
             self.liveviewStart()
@@ -769,10 +758,6 @@ class ScanWidget(QtGui.QFrame):
 
 
     def liveviewStop(self):
-        if self.save:
-            self.saveimageButton.setChecked(False)
-            self.saveimageButton.setText('Scan and save')
-            self.save = False
         self.MovetoStart()
         #print("liveStop")
         self.liveviewButton.setChecked(False)
@@ -860,28 +845,18 @@ class ScanWidget(QtGui.QFrame):
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
         else:
-#            self.autoLevels = False
-#            self.img.setImage(self.image, autoLevels=self.autoLevels)
-            if self.save:
-                self.saveFrame()
-                self.saveimageButton.setText('End')
-                if self.CMcheck.isChecked():
-                    self.CMmeasure()
-                self.liveviewStop()
-                self.mapa()
-            else:
-              if self.VideoCheck.isChecked():
-                  self.saveFrame()  # para guardar siempre (Alan idea)
-              print(ptime.time()-self.tic, "Tiempo imagen completa.")
-              self.viewtimer.stop()
-              self.triggertask.stop()
-              self.aotask.stop()
-              self.APDstop()
-              self.MovetoStart()
-              if self.Continouscheck.isChecked():
-                  self.liveviewStart()
-              else:
-                  self.liveviewStop()
+          if self.VideoCheck.isChecked():
+              self.saveFrame()  # para guardar siempre (Alan idea)
+          print(ptime.time()-self.tic, "Tiempo imagen completa.")
+          self.viewtimer.stop()
+          self.triggertask.stop()
+          self.aotask.stop()
+          self.APDstop()
+          self.MovetoStart()
+          if self.Continouscheck.isChecked():
+              self.liveviewStart()
+          else:
+              self.liveviewStop()
 
 
     def APDstop(self):
@@ -939,27 +914,18 @@ class ScanWidget(QtGui.QFrame):
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
         else:
-#            self.autoLevels = False
-            if self.save:
-                self.saveFrame()
-                self.saveimageButton.setText('End')
-                if self.CMcheck.isChecked():
-                    self.CMmeasure()
-                self.liveviewStop()
-                self.mapa()
-            else:
-              if self.VideoCheck.isChecked():
-                  self.saveFrame()  # para guardar siempre (Alan idea)
-              print(ptime.time()-self.tic, "Tiempo imagen completa.")
-              self.PMTtimer.stop()
-              self.triggertask.stop()
-              self.aotask.stop()
-              self.PMTtask.stop()
-              self.MovetoStart()
-              if self.Continouscheck.isChecked():
-                  self.liveviewStart()
-              else:
-                  self.liveviewStop()
+          if self.VideoCheck.isChecked():
+              self.saveFrame()  # para guardar siempre (Alan idea)
+          print(ptime.time()-self.tic, "Tiempo imagen completa.")
+          self.PMTtimer.stop()
+          self.triggertask.stop()
+          self.aotask.stop()
+          self.PMTtask.stop()
+          self.MovetoStart()
+          if self.Continouscheck.isChecked():
+              self.liveviewStart()
+          else:
+              self.liveviewStop()
 
 
 # %% --- Creating Ramps  ----
@@ -1533,25 +1499,17 @@ class ScanWidget(QtGui.QFrame):
         if self.dy < self.numberofPixels-1:
             self.dy = self.dy + 1
         else:
-#            self.autoLevels = False
-            if self.save:
-                self.saveFrame()
-                if self.CMcheck.isChecked():
-                    self.CMmeasure()
-                self.liveviewStop()
-                self.mapa()
+            if self.VideoCheck.isChecked():
+                self.saveFrame()  # para guardar siempre (Alan idea)
+            print(ptime.time()-self.tic, "Tiempo imagen completa.")
+            self.viewtimer.stop()
+            if self.CMcheck.isChecked():
+                self.CMmeasure()
+            if self.Continouscheck.isChecked():
+                self.liveviewStart()
             else:
-                if self.VideoCheck.isChecked():
-                    self.saveFrame()  # para guardar siempre (Alan idea)
-                print(ptime.time()-self.tic, "Tiempo imagen completa.")
-                self.viewtimer.stop()
-                if self.CMcheck.isChecked():
-                    self.CMmeasure()
-                if self.Continouscheck.isChecked():
-                    self.liveviewStart()
-                else:
-                    self.MovetoStart()
-                    self.done()
+                self.MovetoStart()
+                self.done()
 
 
     def Steps(self):
