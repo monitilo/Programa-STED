@@ -753,7 +753,8 @@ class ScanWidget(QtGui.QFrame):
         self.viewtimer.stop()
         self.steptimer.stop()
         self.PMTtimer.stop()
-        self.closeShutter("red")
+#        self.closeShutter("red")
+        self.closeAllShutters()
         self.done()
 
 #    def startingSteps(self):
@@ -1761,7 +1762,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.shuttersChannelsNidaq()
 #        self.closedo()
         #print("cierra shutter", p)
-        for i in range(3):
+        for i in range(len(shutters)):
             if p == shutters[i]:
                 self.shuttersignal[i] = False
         self.shuttertask.write(self.shuttersignal, auto_start=True)
@@ -1791,6 +1792,12 @@ class ScanWidget(QtGui.QFrame):
                 line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
 #        else:
 #            #print("ya estaban abiertos los canales shutters")
+
+    def closeAllShutters(self):
+        for i in range(len(shutters)):
+            self.shuttersignal[i] = False
+        self.shuttertask.write(self.shuttersignal, auto_start=True)
+        self.checkShutters()
 
 # %%--- MovetoStart ---
     def MovetoStart(self):
