@@ -257,6 +257,11 @@ class ScanWidget(QtGui.QFrame):
         self.presetsMode.addItems(self.presetsModes)
         self.presetsMode.activated.connect(self.Presets)
 
+#        self.presetsMode.setStyleSheet("QComboBox{color: rgb(255,0,200);}\n")
+#                                        "background-color: transparent;\n"
+#                                        "background-image:url(background.png);}\n"
+#                                        "QComboBox QAbstractItemView{border: 0px;color:orange}")
+
     # to run continuously
         self.Continouscheck = QtGui.QCheckBox('Continous')
         self.Continouscheck.setChecked(False)
@@ -702,7 +707,7 @@ class ScanWidget(QtGui.QFrame):
             QtGui.QKeySequence('Ctrl+a'), self, self.liveviewKey)
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
-
+        self.Presets()
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
         a = [self.scanRange, self.numberofPixels, self.pixelTime,
@@ -1442,19 +1447,22 @@ class ScanWidget(QtGui.QFrame):
         if self.presetsMode .currentText() == self.presetsModes[0]:
             self.scanRangeEdit.setText('5')
             self.pixelTimeEdit.setText('0.01')
-            self.numberofPixels.setText('100')
+            self.numberofPixelsEdit.setText('100')
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
 
 
         elif self.presetsMode .currentText() == self.presetsModes[1]:
             self.scanRangeEdit.setText('100')
             self.pixelTimeEdit.setText('0.2')
-            self.numberofPixels.setText('128')
+            self.numberofPixelsEdit.setText('128')
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(153,153,10);}\n")
 
 
         elif self.presetsMode .currentText() == self.presetsModes[2]:
             self.scanRangeEdit.setText('50')
             self.pixelTimeEdit.setText('0.05')
-            self.numberofPixels.setText('250')
+            self.numberofPixelsEdit.setText('250')
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(76,0,153);}\n")
 
         else:
             print("nunca tiene que entrar aca")

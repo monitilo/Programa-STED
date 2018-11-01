@@ -129,7 +129,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
-        self.presetsModes = ['normal', '10', '5','0.6', '3']
+        self.presetsModes = ['Red', 'Yellow', 'STED','Yell+STED', 'Red+STED', 'nada']
         self.presetsMode.addItems(self.presetsModes)
 
     # To save all images until stops
@@ -309,7 +309,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.PSFMode.activated.connect(self.paramChanged)
 
 #        self.presetsMode.activated.connect(self.done)
-        self.presetsMode.activated.connect(self.Presets)
+        self.presetsMode.activated.connect(self.PreparePresets)
 
         self.paramWidget = QtGui.QWidget()
 
@@ -720,7 +720,8 @@ class ScanWidget(QtGui.QFrame):
         if self.liveviewButton.isChecked():
             """if dy != 0:  # aca prentendia poner la parte con lectura de ai
 #            """
-            self.openShutter("red")  # self.Presets  # abre los shutters que sean
+#            self.openShutter("red")
+            self.Presets()  # abre los shutters que sean
             self.paramChangedInitialize()
             self.MovetoStart()  # getini: se va
             self.liveviewStart()
@@ -2155,58 +2156,79 @@ class ScanWidget(QtGui.QFrame):
         plt.plot(array)
         plt.show()
 # %% Presets copiados del inspector
-    def Presets(self):
-        """ Elige convinaciones de parametros como los que usa el inspectora
-        para algunos de sus barridos"""
-        if self.presetsMode .currentText() == self.presetsModes[0]:
-            self.scanRangeEdit.setText('10')
-            self.pixelTimeEdit.setText('0.01')
-            self.numberofPixelsEdit.setText('500')
-            self.accelerationEdit.setText('120')
-            self.vueltaEdit.setText('15')
+#    def Presets(self):
+#        """ Elige convinaciones de parametros como los que usa el inspectora
+#        para algunos de sus barridos"""
+#        if self.presetsMode .currentText() == self.presetsModes[0]:
+#            self.scanRangeEdit.setText('10')
+#            self.pixelTimeEdit.setText('0.01')
+#            self.numberofPixelsEdit.setText('500')
+#            self.accelerationEdit.setText('120')
+#            self.vueltaEdit.setText('15')
+#
+#
+#        elif self.presetsMode .currentText() == self.presetsModes[1]:
+#            self.scanRangeEdit.setText('10')
+#            self.pixelTimeEdit.setText('0.2')
+#            self.numberofPixelsEdit.setText('128')
+#            self.accelerationEdit.setText('0.1')
+#            self.vueltaEdit.setText('1')
+#
+#        elif self.presetsMode .currentText() == self.presetsModes[2]:
+#            self.scanRangeEdit.setText('5')
+#            self.pixelTimeEdit.setText('0.05')
+#            self.numberofPixelsEdit.setText('250')
+#            self.accelerationEdit.setText('12')
+#            self.vueltaEdit.setText('10')
+#
+#        elif self.presetsMode .currentText() == self.presetsModes[3]:
+#            self.scanRangeEdit.setText('0.6')
+#            self.pixelTimeEdit.setText('0.2')
+#            self.numberofPixelsEdit.setText('30')
+#            self.accelerationEdit.setText('120')
+#            self.vueltaEdit.setText('100')
+#
+#        elif self.presetsMode .currentText() == self.presetsModes[4]:
+#            self.scanRangeEdit.setText('3')
+#            self.pixelTimeEdit.setText('0.1')
+#            self.numberofPixelsEdit.setText('300')
+#            self.accelerationEdit.setText('120')
+#            self.vueltaEdit.setText('100')
 
-
-        elif self.presetsMode .currentText() == self.presetsModes[1]:
-            self.scanRangeEdit.setText('10')
-            self.pixelTimeEdit.setText('0.2')
-            self.numberofPixelsEdit.setText('128')
-            self.accelerationEdit.setText('0.1')
-            self.vueltaEdit.setText('1')
-
-        elif self.presetsMode .currentText() == self.presetsModes[2]:
-            self.scanRangeEdit.setText('5')
-            self.pixelTimeEdit.setText('0.05')
-            self.numberofPixelsEdit.setText('250')
-            self.accelerationEdit.setText('12')
-            self.vueltaEdit.setText('10')
-
-        elif self.presetsMode .currentText() == self.presetsModes[3]:
-            self.scanRangeEdit.setText('0.6')
-            self.pixelTimeEdit.setText('0.2')
-            self.numberofPixelsEdit.setText('30')
-            self.accelerationEdit.setText('120')
-            self.vueltaEdit.setText('100')
-
-        elif self.presetsMode .currentText() == self.presetsModes[4]:
-            self.scanRangeEdit.setText('3')
-            self.pixelTimeEdit.setText('0.1')
-            self.numberofPixelsEdit.setText('300')
-            self.accelerationEdit.setText('120')
-            self.vueltaEdit.setText('100')
-        """
     # otra idea de presets. abrir los shutters que se quieran
+    def PreparePresets(self):
+#self.presetsModes = ['Red', 'Yellow', 'STED','Yell+STED', 'Red+STED', 'nada']
+        if self.presetsMode .currentText() == self.presetsModes[0]:  # rojo
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
+        elif self.presetsMode .currentText() == self.presetsModes[1]:  # amarillo
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(128,128,0);}\n")
+        elif self.presetsMode .currentText() == self.presetsModes[2]: # TED
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(128,0,0);}\n")
+        elif self.presetsMode .currentText() == self.presetsModes[3]:  # amar+STED
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(210,105,30);}\n")
+        elif self.presetsMode .currentText() == self.presetsModes[4]:  # rojo+STED
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(255,90,0);}\n")
+        elif self.presetsMode .currentText() == self.presetsModes[5]:  # nada
+            self.presetsMode.setStyleSheet("QComboBox{color: rgb(0,0,0);}\n")
+#https://www.rapidtables.com/web/color/RGB_Color.html  COLORES en rgb
+    def Presets(self):
 #shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
+#self.presetsModes = ['Red', 'Yellow', 'STED','Yell+STED', 'Red+STED']
+# Estan definidos mas arriba, los copio aca como referencia
         if self.presetsMode .currentText() == self.presetsModes[0]:  # rojo
             self.openShutter(shutters[0])
         elif self.presetsMode .currentText() == self.presetsModes[1]:  # amarillo
             self.openShutter(shutters[2])
-        elif self.presetsMode .currentText() == self.presetsModes[2]: # rojo+STED
-            self.openShutter(shutters[0])
+        elif self.presetsMode .currentText() == self.presetsModes[2]: # TED
             self.openShutter(shutters[1])
         elif self.presetsMode .currentText() == self.presetsModes[3]:  # amar+STED
             self.openShutter(shutters[2])
             self.openShutter(shutters[1])
-        """
+        elif self.presetsMode .currentText() == self.presetsModes[4]:  # rojo+STED
+            self.openShutter(shutters[0])
+            self.openShutter(shutters[1])
+
+
 
 # %% getInitPos  Posiciones reales, si agrego los cables que faltan
     def getInitPos(self):
