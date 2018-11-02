@@ -654,7 +654,7 @@ class ScanWidget(QtGui.QFrame):
         self.hist = pg.HistogramLUTItem(image=self.img)
         self.hist.gradient.loadPreset('thermal')  # thermal
 # 'thermal', 'flame', 'yellowy', 'bipolar', 'spectrum',
-# 'cyclic', 'greyclip', 'grey'
+# 'cyclic', 'greyclip', 'grey' # Solo son estos
 
         self.hist.vb.setLimits(yMin=0, yMax=66000)
 #        self.cubehelixCM = pg.ColorMap(np.arange(0, 1, 1/256),

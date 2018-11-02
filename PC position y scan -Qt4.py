@@ -475,7 +475,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.hist.vb.setLimits(yMin=0, yMax=66000)
 #        self.cubehelixCM = pg.ColorMap(np.arange(0, 1, 1/256),
-#                                       guitools.cubehelix().astype(int))
+#                                       viewbox_tools.cubehelix().astype(int))
 #        self.hist.gradient.setColorMap(self.cubehelixCM)
         for tick in self.hist.gradient.ticks:
             tick.hide()
