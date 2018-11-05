@@ -49,8 +49,12 @@ class ScanWidget(QtGui.QFrame):
     def imageplot(self):
         if self.imagecheck.isChecked():
             self.img.setImage(self.image2, autoLevels=self.autoLevels)
+            self.imagecheck.setStyleSheet(" color: green; ")
+            self.hist.gradient.loadPreset('bipolar')
         else:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
+            self.imagecheck.setStyleSheet(" color: red; ")
+            self.hist.gradient.loadPreset('thermal')
 
     def graphplot(self):
 #        if self.dy==0:
@@ -188,6 +192,7 @@ class ScanWidget(QtGui.QFrame):
     # Plot ramps scan button
         self.imagecheck = QtGui.QCheckBox('Image change')
         self.imagecheck.clicked.connect(self.imageplot)
+        self.imagecheck.setStyleSheet(" color: red; ")
 
     # useful Booleans
         self.channelramp = False #canales
@@ -256,7 +261,7 @@ class ScanWidget(QtGui.QFrame):
         self.PointButton = QtGui.QPushButton('Point scan')
         self.PointButton.setCheckable(True)
         self.PointButton.clicked.connect(self.PointStart)
-        self.PointLabel = QtGui.QLabel('<strong>0.0')
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
 
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Max Counts (red|green)')
