@@ -50,7 +50,7 @@ class ScanWidget(QtGui.QFrame):
         if self.imagecheck.isChecked():
             self.img.setImage(self.image2, autoLevels=self.autoLevels)
             self.imagecheck.setStyleSheet(" color: green; ")
-            self.hist.gradient.loadPreset('bipolar')
+            self.hist.gradient.loadPreset('cyclic')
         else:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
             self.imagecheck.setStyleSheet(" color: red; ")
@@ -565,7 +565,8 @@ class ScanWidget(QtGui.QFrame):
         self.hist = pg.HistogramLUTItem(image=self.img)
         self.hist.gradient.loadPreset('thermal')
         self.hist.vb.setLimits(yMin=0, yMax=66000)
-
+# 'thermal', 'flame', 'yellowy', 'bipolar', 'spectrum',
+# 'cyclic', 'greyclip', 'grey' # Solo son estos
 
         for tick in self.hist.gradient.ticks:
             tick.hide()

@@ -330,7 +330,9 @@ class ScanWidget(QtGui.QFrame):
         self.pixelSizeValue = QtGui.QLabel('')
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
-
+        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
+        self.pixelSizeValue.setFont(newfont)
+        
         self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
         self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
@@ -755,6 +757,9 @@ class ScanWidget(QtGui.QFrame):
 
         self.pixelSizeValue.setText('<strong>{0:.2e}'.format(np.around(
                         1000 * self.pixelSize, 2)))
+#        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
+#        self.pixelSizeValue.setFont(newfont)
+
 
 #        self.linetime = (1/1000)*float(
 #                self.pixelTimeEdit.text())*int(self.numberofPixelsEdit.text())

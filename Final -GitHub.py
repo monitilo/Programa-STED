@@ -50,7 +50,7 @@ class ScanWidget(QtGui.QFrame):
         if self.imagecheck.isChecked():
             self.img.setImage(self.image2, autoLevels=self.autoLevels)
             self.imagecheck.setStyleSheet(" color: green; ")
-            self.hist.gradient.loadPreset('bipolar')
+            self.hist.gradient.loadPreset('flame')
         else:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
             self.imagecheck.setStyleSheet(" color: red; ")
@@ -161,7 +161,7 @@ class ScanWidget(QtGui.QFrame):
         self.saveimageButton.setCheckable(False)
         self.saveimageButton.clicked.connect(self.saveFrame)
         self.saveimageButton.setStyleSheet(
-                "QPushButton { background-color: gray; }"
+                "QPushButton { background-color: blue; }"
                 "QPushButton:pressed { background-color: blue; }")
 
 #        label_save = QtGui.QLabel('Nombre del archivo (archivo.tiff)')
@@ -266,6 +266,8 @@ class ScanWidget(QtGui.QFrame):
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Max Counts (red|green)')
         self.maxcountsEdit = QtGui.QLabel('<strong> 0|0')
+        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
+        self.maxcountsEdit.setFont(newfont)
 
     # Scanning parameters
 
@@ -375,7 +377,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.Gausscheck,            13, 3)
         subgrid.addWidget(self.presetsMode,            15, 3)
         subgrid.addWidget(self.maxcountsLabel,         16, 3)
-        subgrid.addWidget(self.maxcountsEdit,          17, 3)
+        subgrid.addWidget(self.maxcountsEdit,          17, 3,2,2)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -949,9 +951,9 @@ class ScanWidget(QtGui.QFrame):
 
 #    Barrido x
         startX = float(self.initialPosition[0])
-        sizeX = self.scanRange
+        self.scanRange
         Npuntos = self.nSamplesrampa  # self.numberofPixels  #
-        wantedrampx = np.linspace(0, sizeX, Npuntos) + self.xini[-1]
+        wantedrampx = np.linspace(0, self.scanRange, Npuntos) + self.xini[-1]  # -(self.scanRange/2)
 
         self.onerampx = np.concatenate((self.xini[:-1],
                                              wantedrampx,
@@ -976,7 +978,7 @@ class ScanWidget(QtGui.QFrame):
         startY = float(self.initialPosition[1])
 
         stepy = self.scanRange / self.numberofPixels
-        rampay = np.ones(len(self.onerampx))*startY
+        rampay = np.ones(len(self.onerampx))*startY   # -(self.scanRange/2)
 
         muchasrampasy = np.tile(rampay, (self.numberofPixels, 1))
         self.onerampy = np.zeros((self.numberofPixels, len(rampay)))
@@ -2016,11 +2018,11 @@ class ScanWidget(QtGui.QFrame):
         Smapa = mapa.ravel()
         for i in range(len(SZ)):
             if SZ[i] > paso:
-                Smapa[i] = 1
+                Smapa[i] = 10
             if SZ[i] > paso*2:
-                Smapa[i] = 2
+                Smapa[i] = 20
             if SZ[i] > paso*3:
-                Smapa[i] = 3
+                Smapa[i] = 30
         mapa = np.split(Smapa,N)
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
         self.img.setImage((np.array(mapa)), autoLevels=True)
