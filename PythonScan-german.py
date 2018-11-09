@@ -50,7 +50,7 @@ class ScanWidget(QtGui.QFrame):
         if self.imagecheck.isChecked():
             self.img.setImage(self.image2, autoLevels=self.autoLevels)
             self.imagecheck.setStyleSheet(" color: green; ")
-            self.hist.gradient.loadPreset('cyclic')
+            self.hist.gradient.loadPreset('flame')
         else:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
             self.imagecheck.setStyleSheet(" color: red; ")
@@ -161,13 +161,17 @@ class ScanWidget(QtGui.QFrame):
         self.saveimageButton.setCheckable(False)
         self.saveimageButton.clicked.connect(self.saveFrame)
         self.saveimageButton.setStyleSheet(
-                "QPushButton { background-color: gray; }"
+                "QPushButton { background-color:  rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
-#        label_save = QtGui.QLabel('Nombre del archivo (archivo.tiff)')
-#        label_save.resize(label_save.sizeHint())
-#        self.edit_save = QtGui.QLineEdit('imagenScan.tiff')
-#        self.edit_save.resize(self.edit_save.sizeHint())
+        label_save = QtGui.QLabel('Nombre del archivo')
+        label_save.resize(label_save.sizeHint())
+        self.edit_save = QtGui.QLineEdit('Test Image')
+        self.edit_save.resize(self.edit_save.sizeHint())
+
+        self.edit_Name = str(self.edit_save.text())
+        self.edit_save.textEdited.connect(self.saveName)
+        self.saveName()
 
         self.NameDirButton = QtGui.QPushButton('Select Dir')
         self.NameDirButton.clicked.connect(self.selectFolder)
@@ -266,6 +270,8 @@ class ScanWidget(QtGui.QFrame):
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Max Counts (red|green)')
         self.maxcountsEdit = QtGui.QLabel('<strong> 0|0')
+        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
+        self.maxcountsEdit.setFont(newfont)
 
     # Scanning parameters
 
@@ -352,10 +358,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.detectMode,        3, 2)
 #        subgrid.addWidget(self.triggerLabel,       4, 2)
 #        subgrid.addWidget(self.triggerEdit,        5, 2)
-        subgrid.addWidget(self.accelerationLabel,  6, 2)
-        subgrid.addWidget(self.accelerationEdit,   7, 2)
-        subgrid.addWidget(self.vueltaLabel,        8, 2)
-        subgrid.addWidget(self.vueltaEdit,         9, 2)
+#        subgrid.addWidget(self.accelerationLabel,  6, 2)
+#        subgrid.addWidget(self.accelerationEdit,   7, 2)
+#        subgrid.addWidget(self.vueltaLabel,        8, 2)
+#        subgrid.addWidget(self.vueltaEdit,         9, 2)
         subgrid.addWidget(self.VideoCheck,        10, 2)
         subgrid.addWidget(self.Continouscheck,    11, 2)
         subgrid.addWidget(self.graphcheck,        12, 2)
@@ -371,11 +377,13 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.PointButton,          7, 3)
         subgrid.addWidget(self.PointLabel,           8, 3)
         subgrid.addWidget(self.plotLivebutton,       10, 3)
-        subgrid.addWidget(self.CMcheck,               12, 3)
-        subgrid.addWidget(self.Gausscheck,            13, 3)
+#        subgrid.addWidget(self.CMcheck,               12, 3)
+#        subgrid.addWidget(self.Gausscheck,            13, 3)
+        subgrid.addWidget(label_save,                 12, 3)
+        subgrid.addWidget(self.edit_save,             13, 3)
         subgrid.addWidget(self.presetsMode,            15, 3)
         subgrid.addWidget(self.maxcountsLabel,         16, 3)
-        subgrid.addWidget(self.maxcountsEdit,          17, 3)
+        subgrid.addWidget(self.maxcountsEdit,          17, 3,2,2)
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -470,29 +478,31 @@ class ScanWidget(QtGui.QFrame):
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
 
-        self.CMxLabel = QtGui.QLabel('CM X')
-        self.CMxValue = QtGui.QLabel('NaN')
-        self.CMyLabel = QtGui.QLabel('CM Y')
-        self.CMyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.CMxLabel, 4, 1)
-        layout2.addWidget(self.CMxValue, 5, 1)
-        layout2.addWidget(self.CMyLabel, 4, 2)
-        layout2.addWidget(self.CMyValue, 5, 2)
-        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
-        self.goCMButton.pressed.connect(self.goCM)
-        layout2.addWidget(self.goCMButton, 2, 5, 2, 2)
+         #---------------- Botones que comente para no verlos
+#        self.CMxLabel = QtGui.QLabel('CM X')
+#        self.CMxValue = QtGui.QLabel('NaN')
+#        self.CMyLabel = QtGui.QLabel('CM Y')
+#        self.CMyValue = QtGui.QLabel('NaN')
+#        layout2.addWidget(self.CMxLabel, 4, 1)
+#        layout2.addWidget(self.CMxValue, 5, 1)
+#        layout2.addWidget(self.CMyLabel, 4, 2)
+#        layout2.addWidget(self.CMyValue, 5, 2)
+#        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
+#        self.goCMButton.pressed.connect(self.goCM)
+#        layout2.addWidget(self.goCMButton, 2, 5, 2, 2)
 
-        self.GaussxLabel = QtGui.QLabel('Gauss X')
-        self.GaussxValue = QtGui.QLabel('NaN')
-        self.GaussyLabel = QtGui.QLabel('Gauss Y')
-        self.GaussyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.GaussxLabel, 4, 5)
-        layout2.addWidget(self.GaussxValue, 5, 5)
-        layout2.addWidget(self.GaussyLabel, 4, 6)
-        layout2.addWidget(self.GaussyValue, 5, 6)
-        layout2.addWidget(QtGui.QLabel(' '), 4, 4)
-        layout2.addWidget(QtGui.QLabel(' '), 4, 0)
-        layout2.addWidget(QtGui.QLabel(' '), 4, 7)
+#        self.GaussxLabel = QtGui.QLabel('Gauss X')
+#        self.GaussxValue = QtGui.QLabel('NaN')
+#        self.GaussyLabel = QtGui.QLabel('Gauss Y')
+#        self.GaussyValue = QtGui.QLabel('NaN')
+#        layout2.addWidget(self.GaussxLabel, 4, 5)
+#        layout2.addWidget(self.GaussxValue, 5, 5)
+#        layout2.addWidget(self.GaussyLabel, 4, 6)
+#        layout2.addWidget(self.GaussyValue, 5, 6)
+#        layout2.addWidget(QtGui.QLabel(' '), 4, 4)
+#        layout2.addWidget(QtGui.QLabel(' '), 4, 0)
+#        layout2.addWidget(QtGui.QLabel(' '), 4, 7)
+         #---------------- Botones que comente para no verlos
 
 #        # Nueva interface mas comoda!
 #        hbox = QtGui.QHBoxLayout(self)
@@ -565,8 +575,7 @@ class ScanWidget(QtGui.QFrame):
         self.hist = pg.HistogramLUTItem(image=self.img)
         self.hist.gradient.loadPreset('thermal')
         self.hist.vb.setLimits(yMin=0, yMax=66000)
-# 'thermal', 'flame', 'yellowy', 'bipolar', 'spectrum',
-# 'cyclic', 'greyclip', 'grey' # Solo son estos
+
 
         for tick in self.hist.gradient.ticks:
             tick.hide()
@@ -608,12 +617,13 @@ class ScanWidget(QtGui.QFrame):
             self.vueltaEdit.setText("1")
             self.vueltaEdit.setStyleSheet(" background-color: red; ")
         else:
+            self.vueltaEdit.setText("10")
             self.vueltaEdit.setStyleSheet("{ background-color: }")
 
     def zeroImage(self):
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.image = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
-        self.image2 = np.zeros((self.numberofPixels, self.numberofPixels))#self.blankImage
+        self.image = self.blankImage
+        self.image2 = self.blankImage
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
@@ -825,10 +835,10 @@ class ScanWidget(QtGui.QFrame):
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
     #, so I´m plotting in packages. It's looks like realtime
-        if self.numberofPixels >= 500:
-            multi5 = np.arange(0, self.numberofPixels, 14)
-        elif self.numberofPixels >= 200:
-            multi5 = np.arange(0, self.numberofPixels, 9)
+#        if self.numberofPixels >= 500:
+#            multi5 = np.arange(0, self.numberofPixels, 15)
+        if self.numberofPixels >= 200:
+            multi5 = np.arange(0, self.numberofPixels, 10)
         else:
             multi5 = np.arange(0, self.numberofPixels, 2)
 
@@ -950,9 +960,9 @@ class ScanWidget(QtGui.QFrame):
 
 #    Barrido x
         startX = float(self.initialPosition[0])
-        sizeX = self.scanRange
+        self.scanRange
         Npuntos = self.nSamplesrampa  # self.numberofPixels  #
-        wantedrampx = np.linspace(0, sizeX, Npuntos) + self.xini[-1]
+        wantedrampx = np.linspace(0, self.scanRange, Npuntos) + self.xini[-1]  # -(self.scanRange/2)
 
         self.onerampx = np.concatenate((self.xini[:-1],
                                              wantedrampx,
@@ -977,7 +987,7 @@ class ScanWidget(QtGui.QFrame):
         startY = float(self.initialPosition[1])
 
         stepy = self.scanRange / self.numberofPixels
-        rampay = np.ones(len(self.onerampx))*startY
+        rampay = np.ones(len(self.onerampx))*startY   # -(self.scanRange/2)
 
         muchasrampasy = np.tile(rampay, (self.numberofPixels, 1))
         self.onerampy = np.zeros((self.numberofPixels, len(rampay)))
@@ -1922,34 +1932,48 @@ class ScanWidget(QtGui.QFrame):
         print("\n tiempo Plotlive", toc-tic,"\n")
 
 # %%--- SaveFrame ---
+    def saveName(self):
+        self.edit_Name = str(self.edit_save.text())
+        self.NameNumber = 0
+
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
-        if self.PSFMode.currentText() == 'XY normal psf':
-            psfmode = "-"
-        elif self.PSFMode.currentText() == 'XZ':
-            psfmode = "XZ-"
-        elif self.PSFMode.currentText() == 'YZ':
-            psfmode = "YZ-"
-#        filepath = self.main.file_path
-        timestr = time.strftime("%Y%m%d-%H%M%S")
+#        if self.PSFMode.currentText() == 'XY normal psf':
+#            psfmode = "-"
+#        elif self.PSFMode.currentText() == 'XZ':
+#            psfmode = "XZ-"
+#        elif self.PSFMode.currentText() == 'YZ':
+#            psfmode = "YZ-"
+##        filepath = self.main.file_path
+#        timestr = time.strftime("%Y%m%d-%H%M%S")
 
-        if self.detectMode .currentText() == detectModes[-2]:
-            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
-            guardado.save(name)
-            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(np.flip(self.image2,1)))  # np.flip(,1)
-            guardado.save(name)
+#        if self.detectMode .currentText() == detectModes[-2]:
+#            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
+#            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
+#            guardado.save(name)
+#            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
+#            guardado = Image.fromarray(np.transpose(np.flip(self.image2,1)))  # np.flip(,1)
+#            guardado.save(name)
+#
+#        else:
+#            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
+#            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
+#            guardado.save(name)
 
+#        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
+#        timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
+        name = str(self.file_path + "/" + str(self.edit_save.text()) + ".tiff")  # nombre con la fecha -hora
+        if self.imagecheck.isChecked():
+            guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
         else:
-            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
-            guardado.save(name)
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
 
+        guardado.save(name)
+        self.NameNumber = self.NameNumber + 1
+        self.edit_save.setText(self.edit_Name + str(self.NameNumber))
         print("\n Image saved\n")
 
     def selectFolder(self):
-
         root = tk.Tk()
         root.withdraw()
         self.file_path = filedialog.askdirectory()
@@ -2017,11 +2041,11 @@ class ScanWidget(QtGui.QFrame):
         Smapa = mapa.ravel()
         for i in range(len(SZ)):
             if SZ[i] > paso:
-                Smapa[i] = 1
+                Smapa[i] = 10
             if SZ[i] > paso*2:
-                Smapa[i] = 2
+                Smapa[i] = 20
             if SZ[i] > paso*3:
-                Smapa[i] = 3
+                Smapa[i] = 30
         mapa = np.split(Smapa,N)
         print(np.round((ptime.time()-tec)*10**3, 4),"ms tarda mapa\n")
         self.img.setImage((np.array(mapa)), autoLevels=True)

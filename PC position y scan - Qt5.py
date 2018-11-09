@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def openCall(self):
         self.a = 1.5
         os.startfile(self.file_path)
-        print('Open')
+#        print('Open')
 
     def exitCall(self):
         self.a = -1.5
@@ -236,7 +236,7 @@ class ScanWidget(QtGui.QFrame):
         self.saveimageButton.setCheckable(False)
         self.saveimageButton.clicked.connect(self.guardarimagen)
         self.saveimageButton.setStyleSheet(
-                "QPushButton { background-color: gray; }"
+                "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
 #        self.NameDirButton = QtGui.QPushButton('Open')
@@ -341,10 +341,14 @@ class ScanWidget(QtGui.QFrame):
 
 
 
-#        label_save = QtGui.QLabel('Nombre del archivo (archivo.tiff)')
-#        label_save.resize(label_save.sizeHint())
-#        self.edit_save = QtGui.QLineEdit('imagenScan.tiff')
-#        self.edit_save.resize(self.edit_save.sizeHint())
+        label_save = QtGui.QLabel('Nombre del archivo')
+        label_save.resize(label_save.sizeHint())
+        self.edit_save = QtGui.QLineEdit('imagenScan')
+        self.edit_save.resize(self.edit_save.sizeHint())
+
+        self.edit_Name = str(self.edit_save.text())
+        self.edit_save.textEdited.connect(self.saveName)
+        self.saveName()
 
 #        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
 ##        self.scanRangexEdit.textChanged.connect(self.squarex)
@@ -450,8 +454,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.XYcheck, 15, 2)
         subgrid.addWidget(self.XZcheck, 16, 2)
         subgrid.addWidget(self.YZcheck, 17, 2)
-#        subgrid.addWidget(label_save, 16, 0, 1, 2)
-#        subgrid.addWidget(self.edit_save, 17, 0, 1, 2)
+
 
         self.aLabel = QtGui.QLabel('a')
         self.bLabel = QtGui.QLabel('b')
@@ -483,6 +486,9 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid.addWidget(self.ROIlineButton, 4, 3)
         subgrid.addWidget(self.selectlineROIButton, 5, 3)
+
+        subgrid.addWidget(label_save, 10, 3)#, 1, 2)
+        subgrid.addWidget(self.edit_save, 11, 3)#, 1, 2)
 
 # --- POSITIONERRRRR-------------------------------
 
@@ -957,32 +963,38 @@ class ScanWidget(QtGui.QFrame):
         self.Z = self.Z #+ np.random.choice([1,-1])*0.01
 
 # %%--- Guardar imagen
-    def guardarimagen(self):
-        print("\n Guardo la imagen\n")
-        if self.XYcheck.isChecked():
-            scanmode = "XY"
-        if self.XZcheck.isChecked():
-            scanmode = "XZ"
-        if self.YZcheck.isChecked():
-            scanmode = "YZ"
-#        ####name = str(self.edit_save.text()) # solo si quiero elegir el nombre ( pero no quiero)
-        filepath = self.main.file_path
-#        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        name = str(filepath + "/image-" + scanmode + "-" + timestr + ".tiff")  # nombre con la fecha -hora
-        guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-        guardado.save(name)
+    def saveName(self):
+        self.edit_Name = str(self.edit_save.text())
+        self.number = 0
+        print("Actualizo el save name")
 
-#        self.folderEdit = QtGui.QLineEdit(self.initialDir)
-#        openFolderButton = QtGui.QPushButton('Open')
-#        openFolderButton.clicked.connect(self.openFolder)
-#        self.specifyfile = QtGui.QCheckBox('Specify file name')
-#        self.specifyfile.clicked.connect(self.specFile)
-#        self.filenameEdit = QtGui.QLineEdit('Current_time')
-#        self.formatBox = QtGui.QComboBox()
-#        self.formatBox.addItem('tiff')
-#        self.formatBox.addItem('hdf5')
-# --------------------------------------------------------------------------
+    def guardarimagen(self):
+#        if self.XYcheck.isChecked():
+#            scanmode = "XY"
+#        if self.XZcheck.isChecked():
+#            scanmode = "XZ"
+#        if self.YZcheck.isChecked():
+#            scanmode = "YZ"
+#        ####name = str(self.edit_save.text()) # solo si quiero elegir el nombre ( pero no quiero)
+
+#        if str(self.edit_save.text()) == self.edit_Name:
+#            self.number = self.number + 1
+#        else:
+#            self.number = 0
+
+        try:
+            filepath = self.main.file_path
+    #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
+#            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
+            name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")  # nombre con la fecha -hora
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+            guardado.save(name)
+            self.number = self.number + 1
+            self.edit_save.setText(self.edit_Name + str(self.number))
+            print("\n Guardo la imagen\n")
+        except:
+            print("hay un error y no guardó")
+
 
 # %%---Move----------------------------------------
 
