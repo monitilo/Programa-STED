@@ -413,61 +413,19 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
-#        subgrid.addWidget(self.initialPositionLabel, 0, 1)
-#        subgrid.addWidget(self.initialPositionEdit, 1, 1)
-        subgrid.addWidget(self.shutterredbutton, 1, 1)
-        subgrid.addWidget(self.shuttergreenbutton, 2, 1)
-        subgrid.addWidget(self.shutterotrobutton, 3, 1)
-        subgrid.addWidget(self.scanRangeLabel, 4, 1)
-        subgrid.addWidget(self.scanRangeEdit, 5, 1)
-#        subgrid.addWidget(self.scanRangeyLabel, 3, 2)
-#        subgrid.addWidget(self.scanRangeyEdit, 4, 2)
-        subgrid.addWidget(pixelTimeLabel, 6, 1)
-        subgrid.addWidget(self.pixelTimeEdit, 7, 1)
-        subgrid.addWidget(numberofPixelsLabel, 8, 1)
-        subgrid.addWidget(self.numberofPixelsEdit, 9, 1)
-        subgrid.addWidget(self.pixelSizeLabel, 10, 1)
-        subgrid.addWidget(self.pixelSizeValue, 11, 1)
-        subgrid.addWidget(self.scanMode, 13, 1)
 
-        subgrid.addWidget(self.liveviewButton, 14, 1, 2, 1)
-        subgrid.addWidget(self.Alancheck, 16, 1)
-        subgrid.addWidget(self.timeTotalLabel, 17, 1)
-#        subgrid.addWidget(self.timeTotalValue, 15, 1)
-        subgrid.addWidget(self.saveimageButton, 18, 1)
-
-#        subgrid.addWidget(self.NameDirButton, 18, 2,2,1)
-
-        subgrid.addWidget(self.stepcheck, 12, 1)
-#        subgrid.addWidget(self.squareRadio, 12, 2)
-        subgrid.addWidget(self.presetsMode, 15, 3)
-
-        subgrid.addWidget(self.Continouscheck,  11, 2)
 
         group1 = QtGui.QButtonGroup(self.paramWidget)
         group1.addButton(self.XYcheck)
         group1.addButton(self.XZcheck)
         group1.addButton(self.YZcheck)
-#        subgrid.addWidget(self.XYcheck)
-#        subgrid.addWidget(self.XZcheck)
-#        subgrid.addWidget(self.YZcheck)
-        subgrid.addWidget(self.XYcheck, 15, 2)
-        subgrid.addWidget(self.XZcheck, 16, 2)
-        subgrid.addWidget(self.YZcheck, 17, 2)
+
+
 
 
         self.aLabel = QtGui.QLabel('a')
         self.bLabel = QtGui.QLabel('b')
-        subgrid.addWidget(self.aLabel, 1, 2)
-        subgrid.addWidget(self.a, 2, 2)
-        subgrid.addWidget(self.bLabel, 3, 2)
-        subgrid.addWidget(self.b, 4, 2)
 
-#        self.detectMode = QtGui.QComboBox()
-#        self.detectModes = ['APD red', 'APD green', 'PMT']
-#        self.detectMode.addItems(self.detectModes)
-#        self.detectMode.activated.connect(self.paramChanged)
-#        self.detectMode.currentIndexChanged.connect(self.paramChanged)
 
         group2 = QtGui.QButtonGroup(self.paramWidget)
         self.APDred=QtGui.QRadioButton("APD red")
@@ -476,20 +434,51 @@ class ScanWidget(QtGui.QFrame):
         self.APDgreen.setChecked(False)
         group2.addButton(self.APDred)
         group2.addButton(self.APDgreen)
+
+        subgrid.addWidget(self.APDred,                0, 1)
+#        subgrid.addWidget(self.initialPositionLabel, 0, 1)
+#        subgrid.addWidget(self.initialPositionEdit,  1, 1)
+        subgrid.addWidget(self.shutterredbutton,      1, 1)
+        subgrid.addWidget(self.shuttergreenbutton,    2, 1)
+        subgrid.addWidget(self.shutterotrobutton,     3, 1)
+        subgrid.addWidget(self.scanRangeLabel,        4, 1)
+        subgrid.addWidget(self.scanRangeEdit,         5, 1)
+        subgrid.addWidget(pixelTimeLabel,             6, 1)
+        subgrid.addWidget(self.pixelTimeEdit,         7, 1)
+        subgrid.addWidget(numberofPixelsLabel,        8, 1)
+        subgrid.addWidget(self.numberofPixelsEdit,    9, 1)
+        subgrid.addWidget(self.pixelSizeLabel,       10, 1)
+        subgrid.addWidget(self.pixelSizeValue,       11, 1)
+        subgrid.addWidget(self.stepcheck,            12, 1)
+        subgrid.addWidget(self.scanMode,             13, 1)
+        subgrid.addWidget(self.liveviewButton,       14, 1, 2, 1)
+        subgrid.addWidget(self.Alancheck,             16, 1)
+        subgrid.addWidget(self.timeTotalLabel,        17, 1)
+#        subgrid.addWidget(self.timeTotalValue,       17, 1)
+        subgrid.addWidget(self.saveimageButton,       18, 1)
+
+#        subgrid.addWidget(self.squareRadio, 12, 2)
+        subgrid.addWidget(self.APDgreen,              0, 2)
+        subgrid.addWidget(self.aLabel,                1, 2)
+        subgrid.addWidget(self.a,                     2, 2)
+        subgrid.addWidget(self.bLabel,                3, 2)
+        subgrid.addWidget(self.b,                     4, 2)
+        subgrid.addWidget(self.plotLivebutton,         6, 2)
+        subgrid.addWidget(self.CMcheck,                 8, 2)
+        subgrid.addWidget(self.Continouscheck,       11, 2)
+        subgrid.addWidget(self.XYcheck,              15, 2)
+        subgrid.addWidget(self.XZcheck,              16, 2)
+        subgrid.addWidget(self.YZcheck,              17, 2)
+
 #        subgrid.addWidget(self.detectMode, 0, 1)
-        subgrid.addWidget(self.APDred, 0, 1)
-        subgrid.addWidget(self.APDgreen, 0, 2)
-        subgrid.addWidget(self.plotLivebutton, 6, 2)
 
-        subgrid.addWidget(self.CMcheck, 8, 2)
-        subgrid.addWidget(self.Gausscheck, 8, 3)
 
-        subgrid.addWidget(self.ROIlineButton, 4, 3)
-        subgrid.addWidget(self.selectlineROIButton, 5, 3)
-
-        subgrid.addWidget(label_save, 10, 3)#, 1, 2)
-        subgrid.addWidget(self.edit_save, 11, 3)#, 1, 2)
-
+        subgrid.addWidget(self.ROIlineButton,        4, 3)
+        subgrid.addWidget(self.selectlineROIButton,  5, 3)
+        subgrid.addWidget(self.Gausscheck,           8, 3)
+        subgrid.addWidget(label_save,               10, 3)#, 1, 2)
+        subgrid.addWidget(self.edit_save,           11, 3)#, 1, 2)
+        subgrid.addWidget(self.presetsMode,         15, 3)
 # --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -574,68 +563,81 @@ class ScanWidget(QtGui.QFrame):
         layout2.addWidget(QtGui.QLabel(' '), 4, 0)
         layout2.addWidget(QtGui.QLabel(' '), 4, 7)
 
-#    # Nueva interface mas comoda!
-        hbox = QtGui.QHBoxLayout(self)
-        topleft=QtGui.QFrame()
-        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
-        bottom = QtGui.QFrame()
-        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
-        topleft.setLayout(grid)
-        downright=QtGui.QFrame()
-        downright.setFrameShape(QtGui.QFrame.StyledPanel)
-        topright=QtGui.QFrame()
-        topright.setFrameShape(QtGui.QFrame.StyledPanel)
-        topright.setLayout(subgrid)
-
-        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        splitter1.addWidget(imageWidget)
-        splitter1.addWidget(topleft)
-        splitter1.addWidget(topright)
-        splitter1.setSizes([10**6, 1])
-
-        splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        downright.setLayout(layout)
-        splitter15.addWidget(downright)
-#        splitter15.addWidget(self.positioner)
-        bottom.setLayout(layout2)
-        splitter15.addWidget(bottom)
-#        splitter15.addWidget(self.gotoWidget)
-        splitter15.setSizes([10, 10])
-
-        splitter2 = QtGui.QSplitter(QtCore.Qt.Vertical)
-        splitter2.addWidget(splitter1)
-        splitter2.addWidget(splitter15)
-        splitter2.setSizes([10**6, 1])
-
-        hbox.addWidget(splitter2)
-
-        self.setLayout(hbox)
-#        # Nueva interface mas comoda!
+##    # Nueva interface mas comoda!
 #        hbox = QtGui.QHBoxLayout(self)
 #        topleft=QtGui.QFrame()
 #        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
 #        bottom = QtGui.QFrame()
 #        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
-#        topleft.setLayout(grid)
+#        topleft.setLayout(grid)  # viewbox
 #        downright=QtGui.QFrame()
 #        downright.setFrameShape(QtGui.QFrame.StyledPanel)
+#        topright=QtGui.QFrame()
+#        topright.setFrameShape(QtGui.QFrame.StyledPanel)
+#        topright.setLayout(subgrid)  # menu con cosas
 #
 #        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        splitter1.addWidget(imageWidget)
+##        splitter1.addWidget(imageWidget)
 #        splitter1.addWidget(topleft)
+#        splitter1.addWidget(topright)
 #        splitter1.setSizes([10**6, 1])
 #
 #        splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        splitter15.addWidget(self.positioner)
-##        splitter15.addWidget(bottom)
-#        splitter15.addWidget(self.gotoWidget)
-#        splitter15.setSizes([1000, 1])
+#        downright.setLayout(layout)  # positioner
+#        splitter15.addWidget(downright)
+##        splitter15.addWidget(self.positioner)
+#        bottom.setLayout(layout2)  # gotoWidget
+#        splitter15.addWidget(bottom)
+##        splitter15.addWidget(self.gotoWidget)
+#        splitter15.setSizes([10, 10])
 #
 #        splitter2 = QtGui.QSplitter(QtCore.Qt.Vertical)
 #        splitter2.addWidget(splitter1)
 #        splitter2.addWidget(splitter15)
-#        splitter2.setSizes([10, 10])
+#        splitter2.setSizes([10**6, 1])
 #
+#        hbox.addWidget(splitter2)
+#
+#        self.setLayout(hbox)
+        
+        
+#    # Nueva interface mas comoda!
+        hbox = QtGui.QHBoxLayout(self)
+        topleft=QtGui.QFrame()
+        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
+        topleft.setLayout(grid)  # viewbox
+
+        bottom = QtGui.QFrame()
+        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
+        bottom.setLayout(layout2)  # gotoWidget
+
+        downright=QtGui.QFrame()
+        downright.setFrameShape(QtGui.QFrame.StyledPanel)
+        downright.setLayout(layout)  # positioner
+
+        topright=QtGui.QFrame()
+        topright.setFrameShape(QtGui.QFrame.StyledPanel)
+        topright.setLayout(subgrid)  # menu con cosas
+
+        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        splitter1.addWidget(downright)
+        splitter1.addWidget(bottom)
+        splitter1.setSizes([10, 10])
+
+        splitter15 = QtGui.QSplitter(QtCore.Qt.Vertical)
+        splitter15.addWidget(topleft)
+        splitter15.addWidget(splitter1)
+        splitter15.setSizes([10**6, 1])
+
+        splitter2 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        splitter2.addWidget(splitter15)
+        splitter2.addWidget(topright)
+        splitter2.setSizes([10**6, 1])
+
+        hbox.addWidget(splitter2)
+
+        self.setLayout(hbox)
+
 #        dockArea = DockArea()
 #        hbox.addWidget(splitter2)
 #
