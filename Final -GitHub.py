@@ -294,7 +294,7 @@ class ScanWidget(QtGui.QFrame):
         self.triggerEdit = QtGui.QLineEdit('1')
 
         self.timeTotalLabel = QtGui.QLabel('total scan time (s)')
-        self.timeTotalValue = QtGui.QLabel('')
+#        self.timeTotalValue = QtGui.QLabel('')
 
         self.onlyInt = QtGui.QIntValidator(0,10001)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
@@ -348,7 +348,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.liveviewButton,     11, 1)
         subgrid.addWidget(self.scanMode,           12, 1)
         subgrid.addWidget(self.timeTotalLabel,     13, 1)
-        subgrid.addWidget(self.timeTotalValue,     14, 1)
+#        subgrid.addWidget(self.timeTotalValue,     14, 1)
         subgrid.addWidget(self.saveimageButton,    15, 1)
         subgrid.addWidget(self.autoLevelscheck,    16, 1)
         subgrid.addWidget(self.imagecheck,         17, 1)
@@ -529,14 +529,19 @@ class ScanWidget(QtGui.QFrame):
         hbox = QtGui.QHBoxLayout(self)
         topleft=QtGui.QFrame()
         topleft.setFrameShape(QtGui.QFrame.StyledPanel)
+        topleft.setLayout(grid)  # viewbox
+
         bottom = QtGui.QFrame()
         bottom.setFrameShape(QtGui.QFrame.StyledPanel)
-        topleft.setLayout(grid)
+        bottom.setLayout(layout2)  # gotoWidget
+
         downright=QtGui.QFrame()
         downright.setFrameShape(QtGui.QFrame.StyledPanel)
+        downright.setLayout(layout) # positioner
+
         topright=QtGui.QFrame()
         topright.setFrameShape(QtGui.QFrame.StyledPanel)
-        topright.setLayout(subgrid)
+        topright.setLayout(subgrid)   # menu con cosas
 
         splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
 #        splitter1.addWidget(imageWidget)
@@ -545,10 +550,10 @@ class ScanWidget(QtGui.QFrame):
         splitter1.setSizes([10**6, 1])
 
         splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        downright.setLayout(layout)
+
         splitter15.addWidget(downright)
 #        splitter15.addWidget(self.positioner)
-        bottom.setLayout(layout2)
+
         splitter15.addWidget(bottom)
 #        splitter15.addWidget(self.gotoWidget)
         splitter15.setSizes([10, 10])
@@ -691,8 +696,11 @@ class ScanWidget(QtGui.QFrame):
 
 #        #print(self.linetime, "linetime")
 
-        self.timeTotalValue.setText('{}'.format(np.around(
-                         self.numberofPixels * self.linetime, 2)))
+#        self.timeTotalValue.setText('{}'.format(np.around(
+#                         self.numberofPixels * self.linetime, 2)))
+
+        self.timeTotalLabel.setText("Tiempo total (s) = ~" +'{}'.format(np.around(
+                        2 * self.numberofPixels * self.linetime, 2)))
 
         if self.scanMode.currentText() == scanModes[1]:  # "step scan":
         # en el caso step no hay frecuencias

@@ -397,7 +397,7 @@ class ScanWidget(QtGui.QFrame):
         self.ROIlineButton = QtGui.QPushButton('lineROIline')
         self.ROIlineButton.setCheckable(True)
         self.ROIlineButton.clicked.connect(self.ROIlinear)
-        self.selectlineROIButton = QtGui.QPushButton('select line ROI')
+        self.selectlineROIButton = QtGui.QPushButton('Plot line ROI')
         self.selectlineROIButton.clicked.connect(self.selectLineROI)
 
         self.paramChanged()
@@ -413,15 +413,13 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
-
+        subgrid2 = QtGui.QGridLayout()
+        self.paramWidget.setLayout(subgrid2)
 
         group1 = QtGui.QButtonGroup(self.paramWidget)
         group1.addButton(self.XYcheck)
         group1.addButton(self.XZcheck)
         group1.addButton(self.YZcheck)
-
-
-
 
         self.aLabel = QtGui.QLabel('a')
         self.bLabel = QtGui.QLabel('b')
@@ -436,8 +434,6 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDgreen)
 
         subgrid.addWidget(self.APDred,                0, 1)
-#        subgrid.addWidget(self.initialPositionLabel, 0, 1)
-#        subgrid.addWidget(self.initialPositionEdit,  1, 1)
         subgrid.addWidget(self.shutterredbutton,      1, 1)
         subgrid.addWidget(self.shuttergreenbutton,    2, 1)
         subgrid.addWidget(self.shutterotrobutton,     3, 1)
@@ -452,33 +448,29 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.stepcheck,            12, 1)
         subgrid.addWidget(self.scanMode,             13, 1)
         subgrid.addWidget(self.liveviewButton,       14, 1, 2, 1)
-        subgrid.addWidget(self.Alancheck,             16, 1)
-        subgrid.addWidget(self.timeTotalLabel,        17, 1)
-#        subgrid.addWidget(self.timeTotalValue,       17, 1)
-        subgrid.addWidget(self.saveimageButton,       18, 1)
+        subgrid.addWidget(self.Alancheck,            16, 1)
+        subgrid.addWidget(self.timeTotalLabel,       17, 1)
+#        subgrid.addWidget(self.timeTotalValue,      17, 1)
+        subgrid.addWidget(self.saveimageButton,      18, 1)
 
-#        subgrid.addWidget(self.squareRadio, 12, 2)
-        subgrid.addWidget(self.APDgreen,              0, 2)
-        subgrid.addWidget(self.aLabel,                1, 2)
-        subgrid.addWidget(self.a,                     2, 2)
-        subgrid.addWidget(self.bLabel,                3, 2)
-        subgrid.addWidget(self.b,                     4, 2)
-        subgrid.addWidget(self.plotLivebutton,         6, 2)
-        subgrid.addWidget(self.CMcheck,                 8, 2)
-        subgrid.addWidget(self.Continouscheck,       11, 2)
-        subgrid.addWidget(self.XYcheck,              15, 2)
-        subgrid.addWidget(self.XZcheck,              16, 2)
-        subgrid.addWidget(self.YZcheck,              17, 2)
+        subgrid2.addWidget(self.APDgreen,              0, 2)
+        subgrid2.addWidget(self.aLabel,                1, 2)
+        subgrid2.addWidget(self.a,                     2, 2)
+        subgrid2.addWidget(self.bLabel,                3, 2)
+        subgrid2.addWidget(self.b,                     4, 2)
+        subgrid2.addWidget(self.ROIlineButton,         5, 2)
+        subgrid2.addWidget(self.selectlineROIButton,   6, 2)
+        subgrid2.addWidget(self.plotLivebutton,         8, 2)
+#        subgrid2.addWidget(self.CMcheck,                 8, 2)
+        subgrid2.addWidget(self.Continouscheck,        11, 2)
+        subgrid2.addWidget(self.presetsMode,            13, 2)
+        subgrid2.addWidget(self.XYcheck,                14, 2)
+        subgrid2.addWidget(self.XZcheck,                15, 2)
+        subgrid2.addWidget(self.YZcheck,                16, 2)
+#        subgrid2.addWidget(self.Gausscheck,            7, 2)
+        subgrid2.addWidget(label_save,                 17, 2)#, 1, 2)
+        subgrid2.addWidget(self.edit_save,             18, 2)#, 1, 2)
 
-#        subgrid.addWidget(self.detectMode, 0, 1)
-
-
-        subgrid.addWidget(self.ROIlineButton,        4, 3)
-        subgrid.addWidget(self.selectlineROIButton,  5, 3)
-        subgrid.addWidget(self.Gausscheck,           8, 3)
-        subgrid.addWidget(label_save,               10, 3)#, 1, 2)
-        subgrid.addWidget(self.edit_save,           11, 3)#, 1, 2)
-        subgrid.addWidget(self.presetsMode,         15, 3)
 # --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -539,29 +531,29 @@ class ScanWidget(QtGui.QFrame):
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
 
-        self.CMxLabel = QtGui.QLabel('CM X')
-        self.CMxValue = QtGui.QLabel('NaN')
-        self.CMyLabel = QtGui.QLabel('CM Y')
-        self.CMyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.CMxLabel, 4, 1)
-        layout2.addWidget(self.CMxValue, 5, 1)
-        layout2.addWidget(self.CMyLabel, 4, 2)
-        layout2.addWidget(self.CMyValue, 5, 2)
-        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
-        self.goCMButton.pressed.connect(self.goCM)
-        layout2.addWidget(self.goCMButton, 2, 5, 2, 2)
-
-        self.GaussxLabel = QtGui.QLabel('Gauss X')
-        self.GaussxValue = QtGui.QLabel('NaN')
-        self.GaussyLabel = QtGui.QLabel('Gauss Y')
-        self.GaussyValue = QtGui.QLabel('NaN')
-        layout2.addWidget(self.GaussxLabel, 4, 5)
-        layout2.addWidget(self.GaussxValue, 5, 5)
-        layout2.addWidget(self.GaussyLabel, 4, 6)
-        layout2.addWidget(self.GaussyValue, 5, 6)
-        layout2.addWidget(QtGui.QLabel(' '), 4, 4)
-        layout2.addWidget(QtGui.QLabel(' '), 4, 0)
-        layout2.addWidget(QtGui.QLabel(' '), 4, 7)
+#        self.CMxLabel = QtGui.QLabel('CM X')
+#        self.CMxValue = QtGui.QLabel('NaN')
+#        self.CMyLabel = QtGui.QLabel('CM Y')
+#        self.CMyValue = QtGui.QLabel('NaN')
+#        layout2.addWidget(self.CMxLabel, 4, 1)
+#        layout2.addWidget(self.CMxValue, 5, 1)
+#        layout2.addWidget(self.CMyLabel, 4, 2)
+#        layout2.addWidget(self.CMyValue, 5, 2)
+#        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
+#        self.goCMButton.pressed.connect(self.goCM)
+#        layout2.addWidget(self.goCMButton, 2, 5, 2, 2)
+#
+#        self.GaussxLabel = QtGui.QLabel('Gauss X')
+#        self.GaussxValue = QtGui.QLabel('NaN')
+#        self.GaussyLabel = QtGui.QLabel('Gauss Y')
+#        self.GaussyValue = QtGui.QLabel('NaN')
+#        layout2.addWidget(self.GaussxLabel, 4, 5)
+#        layout2.addWidget(self.GaussxValue, 5, 5)
+#        layout2.addWidget(self.GaussyLabel, 4, 6)
+#        layout2.addWidget(self.GaussyValue, 5, 6)
+#        layout2.addWidget(QtGui.QLabel(' '), 4, 4)
+#        layout2.addWidget(QtGui.QLabel(' '), 4, 0)
+#        layout2.addWidget(QtGui.QLabel(' '), 4, 7)
 
 ##    # Nueva interface mas comoda!
 #        hbox = QtGui.QHBoxLayout(self)
@@ -603,38 +595,48 @@ class ScanWidget(QtGui.QFrame):
         
 #    # Nueva interface mas comoda!
         hbox = QtGui.QHBoxLayout(self)
-        topleft=QtGui.QFrame()
-        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
-        topleft.setLayout(grid)  # viewbox
+        ViewBox=QtGui.QFrame()
+        ViewBox.setFrameShape(QtGui.QFrame.StyledPanel)
+        ViewBox.setLayout(grid)  # viewbox
 
-        bottom = QtGui.QFrame()
-        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
-        bottom.setLayout(layout2)  # gotoWidget
+        gotowidget = QtGui.QFrame()
+        gotowidget.setFrameShape(QtGui.QFrame.StyledPanel)
+        gotowidget.setLayout(layout2)  # gotoWidget
 
-        downright=QtGui.QFrame()
-        downright.setFrameShape(QtGui.QFrame.StyledPanel)
-        downright.setLayout(layout)  # positioner
+        positionermenu=QtGui.QFrame()
+        positionermenu.setFrameShape(QtGui.QFrame.StyledPanel)
+        positionermenu.setLayout(layout)  # positioner
 
-        topright=QtGui.QFrame()
-        topright.setFrameShape(QtGui.QFrame.StyledPanel)
-        topright.setLayout(subgrid)  # menu con cosas
+        menuwidg=QtGui.QFrame()
+        menuwidg.setFrameShape(QtGui.QFrame.StyledPanel)
+        menuwidg.setLayout(subgrid)  # menu con cosas izquierda
+
+        menuwidg2=QtGui.QFrame()
+        menuwidg2.setFrameShape(QtGui.QFrame.StyledPanel)
+        menuwidg2.setLayout(subgrid2)  # menu con cosas derecha
 
         splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        splitter1.addWidget(downright)
-        splitter1.addWidget(bottom)
+        splitter1.addWidget(positionermenu)
+        splitter1.addWidget(gotowidget)
         splitter1.setSizes([10, 10])
 
         splitter15 = QtGui.QSplitter(QtCore.Qt.Vertical)
-        splitter15.addWidget(topleft)
+        splitter15.addWidget(ViewBox)
         splitter15.addWidget(splitter1)
         splitter15.setSizes([10**6, 1])
 
         splitter2 = QtGui.QSplitter(QtCore.Qt.Horizontal)
         splitter2.addWidget(splitter15)
-        splitter2.addWidget(topright)
+        splitter2.addWidget(menuwidg)
         splitter2.setSizes([10**6, 1])
 
-        hbox.addWidget(splitter2)
+        splitter3 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        splitter3.addWidget(menuwidg2)
+        splitter3.addWidget(splitter2)
+        splitter3.setSizes([1, 10**6])
+
+#        hbox.addWidget(splitter2)
+        hbox.addWidget(splitter3)
 
         self.setLayout(hbox)
 
@@ -1457,8 +1459,11 @@ class ScanWidget(QtGui.QFrame):
             self.imageWidget.removeItem(self.p6)
 
     def selectLineROI(self):
+        fig, ax = plt.subplots()
         array = self.linearROI.getArrayRegion(self.image, self.img)
         plt.plot(array)
+        ax.set_xlabel('Roi')
+        ax.set_ylabel('Intensiti (N photons)')
         plt.show()
 
 # %% Presets copiados del inspector
