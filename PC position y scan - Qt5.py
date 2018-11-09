@@ -404,17 +404,19 @@ class ScanWidget(QtGui.QFrame):
 
         self.paramWidget = QtGui.QWidget()
 
-        grid = QtGui.QGridLayout()
-        self.setLayout(grid)
-        grid.addWidget(imageWidget, 0, 0)
+#        grid = QtGui.QGridLayout()
+#        self.setLayout(grid)
+#        grid.addWidget(imageWidget, 0, 0)
 #        grid.addWidget(self.paramWidget, 2, 1)
 
 
 
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
+
+        self.paramWidget2 = QtGui.QWidget()
         subgrid2 = QtGui.QGridLayout()
-        self.paramWidget.setLayout(subgrid2)
+        self.paramWidget2.setLayout(subgrid2)
 
         group1 = QtGui.QButtonGroup(self.paramWidget)
         group1.addButton(self.XYcheck)
@@ -591,60 +593,89 @@ class ScanWidget(QtGui.QFrame):
 #        hbox.addWidget(splitter2)
 #
 #        self.setLayout(hbox)
-        
-        
-#    # Nueva interface mas comoda!
+
+
+##    # Nueva interface mas comoda!
+#        hbox = QtGui.QHBoxLayout(self)
+#        ViewBox=QtGui.QFrame()
+#        ViewBox.setFrameShape(QtGui.QFrame.StyledPanel)
+#        ViewBox.setLayout(grid)  # viewbox
+#
+#        gotowidget = QtGui.QFrame()
+#        gotowidget.setFrameShape(QtGui.QFrame.StyledPanel)
+#        gotowidget.setLayout(layout2)  # gotoWidget
+#
+#        positionermenu=QtGui.QFrame()
+#        positionermenu.setFrameShape(QtGui.QFrame.StyledPanel)
+#        positionermenu.setLayout(layout)  # positioner
+#
+#        menuwidg=QtGui.QFrame()
+#        menuwidg.setFrameShape(QtGui.QFrame.StyledPanel)
+#        menuwidg.setLayout(subgrid)  # menu con cosas izquierda
+#
+#        menuwidg2=QtGui.QFrame()
+#        menuwidg2.setFrameShape(QtGui.QFrame.StyledPanel)
+#        menuwidg2.setLayout(subgrid2)  # menu con cosas derecha
+#
+#        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+#        splitter1.addWidget(positionermenu)
+#        splitter1.addWidget(gotowidget)
+#        splitter1.setSizes([10, 10])
+#
+#        splitter15 = QtGui.QSplitter(QtCore.Qt.Vertical)
+#        splitter15.addWidget(ViewBox)
+#        splitter15.addWidget(splitter1)
+#        splitter15.setSizes([10**6, 1])
+#
+#        splitter2 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+#        splitter2.addWidget(splitter15)
+#        splitter2.addWidget(menuwidg)
+#        splitter2.setSizes([10**6, 1])
+#
+#        splitter3 = QtGui.QSplitter(QtCore.Qt.Horizontal)
+#        splitter3.addWidget(menuwidg2)
+#        splitter3.addWidget(splitter2)
+#        splitter3.setSizes([1, 10**6])
+
+#        #hbox.addWidget(splitter2)
+#        hbox.addWidget(splitter3)
+
+#        self.setLayout(hbox)
+
+# ----DOCK cosas
         hbox = QtGui.QHBoxLayout(self)
-        ViewBox=QtGui.QFrame()
-        ViewBox.setFrameShape(QtGui.QFrame.StyledPanel)
-        ViewBox.setLayout(grid)  # viewbox
+        from pyqtgraph.dockarea import DockArea, Dock
+        dockArea = DockArea()
 
-        gotowidget = QtGui.QFrame()
-        gotowidget.setFrameShape(QtGui.QFrame.StyledPanel)
-        gotowidget.setLayout(layout2)  # gotoWidget
+        viewDock = Dock('viewbox', size=(10, 10))
+        viewDock.addWidget(imageWidget)
+#        viewDock.hideTitleBar()
+        dockArea.addDock(viewDock,'left')
 
-        positionermenu=QtGui.QFrame()
-        positionermenu.setFrameShape(QtGui.QFrame.StyledPanel)
-        positionermenu.setLayout(layout)  # positioner
+        gotoDock = Dock('goto', size=(10, 10))
+        gotoDock.addWidget(self.gotoWidget)
+        dockArea.addDock(gotoDock, 'bottom', viewDock)
 
-        menuwidg=QtGui.QFrame()
-        menuwidg.setFrameShape(QtGui.QFrame.StyledPanel)
-        menuwidg.setLayout(subgrid)  # menu con cosas izquierda
+        posDock = Dock('positioner', size=(1, 1))
+        posDock.addWidget(self.positioner)
+        dockArea.addDock(posDock, 'above', gotoDock)
 
-        menuwidg2=QtGui.QFrame()
-        menuwidg2.setFrameShape(QtGui.QFrame.StyledPanel)
-        menuwidg2.setLayout(subgrid2)  # menu con cosas derecha
+        scanDock2 = Dock('Scan parameters', size=(10, 10))
+        scanDock2.addWidget(self.paramWidget2)
+        dockArea.addDock(scanDock2,'right')
 
-        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        splitter1.addWidget(positionermenu)
-        splitter1.addWidget(gotowidget)
-        splitter1.setSizes([10, 10])
+        scanDock = Dock('Other parameters', size=(10, 10))
+        scanDock.addWidget(self.paramWidget)
+        dockArea.addDock(scanDock,'above', scanDock2)
 
-        splitter15 = QtGui.QSplitter(QtCore.Qt.Vertical)
-        splitter15.addWidget(ViewBox)
-        splitter15.addWidget(splitter1)
-        splitter15.setSizes([10**6, 1])
-
-        splitter2 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        splitter2.addWidget(splitter15)
-        splitter2.addWidget(menuwidg)
-        splitter2.setSizes([10**6, 1])
-
-        splitter3 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-        splitter3.addWidget(menuwidg2)
-        splitter3.addWidget(splitter2)
-        splitter3.setSizes([1, 10**6])
-
-#        hbox.addWidget(splitter2)
-        hbox.addWidget(splitter3)
-
+        hbox.addWidget(dockArea)
         self.setLayout(hbox)
 
+#        self.setWindowTitle('Programa genial dockeado')
+#        self.resize(10000,500)
 #        dockArea = DockArea()
-#        hbox.addWidget(splitter2)
-#
-#        self.setLayout(hbox)
-        # no se como hacerla andar con docks
+
+#         #no se como hacerla andar con docks
 #        scanDock = Dock('Scan', size=(1, 1))
 #        scanDock.addWidget(self.paramWidget)
 #        dockArea.addDock(scanDock)
