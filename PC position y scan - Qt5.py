@@ -82,7 +82,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.a = 0
         self.file_path = os.path.abspath("")
 # ----- MENU
-        self.setMinimumSize(QtCore.QSize(300, 100))
+        self.setMinimumSize(QtCore.QSize(500, 500))
         self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
 
         # Create new action
@@ -462,9 +462,13 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(self.b,                     4, 2)
         subgrid2.addWidget(self.ROIlineButton,         5, 2)
         subgrid2.addWidget(self.selectlineROIButton,   6, 2)
+        subgrid2.addWidget(QtGui.QLabel(' '),          7, 2) #   
         subgrid2.addWidget(self.plotLivebutton,         8, 2)
+        subgrid2.addWidget(QtGui.QLabel(' '),           9, 2) #   
 #        subgrid2.addWidget(self.CMcheck,                 8, 2)
+        subgrid2.addWidget(QtGui.QLabel(' '),          10, 2) #   
         subgrid2.addWidget(self.Continouscheck,        11, 2)
+        subgrid2.addWidget(QtGui.QLabel(' '),          12, 2) #   
         subgrid2.addWidget(self.presetsMode,            13, 2)
         subgrid2.addWidget(self.XYcheck,                14, 2)
         subgrid2.addWidget(self.XZcheck,                15, 2)
@@ -647,29 +651,31 @@ class ScanWidget(QtGui.QFrame):
         from pyqtgraph.dockarea import DockArea, Dock
         dockArea = DockArea()
 
-        viewDock = Dock('viewbox', size=(10, 10))
+        viewDock = Dock('viewbox', size=(500, 450))
         viewDock.addWidget(imageWidget)
-#        viewDock.hideTitleBar()
+        viewDock.hideTitleBar()
         dockArea.addDock(viewDock,'left')
 
-        gotoDock = Dock('goto', size=(10, 10))
+        gotoDock = Dock('goto', size=(1, 1))
         gotoDock.addWidget(self.gotoWidget)
         dockArea.addDock(gotoDock, 'bottom', viewDock)
 
         posDock = Dock('positioner', size=(1, 1))
         posDock.addWidget(self.positioner)
-        dockArea.addDock(posDock, 'above', gotoDock)
+        dockArea.addDock(posDock, 'left', gotoDock)
 
-        scanDock2 = Dock('Scan parameters', size=(10, 10))
+        scanDock2 = Dock('Other parameters', size=(1, 1))
         scanDock2.addWidget(self.paramWidget2)
         dockArea.addDock(scanDock2,'right')
 
-        scanDock = Dock('Other parameters', size=(10, 10))
+        scanDock = Dock('Scan parameters', size=(1, 1))
         scanDock.addWidget(self.paramWidget)
-        dockArea.addDock(scanDock,'above', scanDock2)
+        dockArea.addDock(scanDock,'left', scanDock2)
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
+
+        self.setFixedHeight(550)
 
 #        self.setWindowTitle('Programa genial dockeado')
 #        self.resize(10000,500)
@@ -686,7 +692,7 @@ class ScanWidget(QtGui.QFrame):
 
 #--- fin POSITIONEERRRRRR---------------------------
 
-        self.paramWidget.setFixedHeight(500)
+#        self.paramWidget.setFixedHeight(500)
 
         self.vb.setMouseMode(pg.ViewBox.PanMode)
         self.img = pg.ImageItem()

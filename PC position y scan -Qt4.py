@@ -482,11 +482,9 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-#
-#        win.resize(1000,500)
-#        print("f")
+
         self.setWindowTitle('Programa genial dockeado')
-#        win.show()
+
 #--- fin POSITIONEERRRRRR---------------------------
 
         self.paramWidget.setFixedHeight(400)
