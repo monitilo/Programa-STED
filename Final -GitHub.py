@@ -302,6 +302,10 @@ class ScanWidget(QtGui.QFrame):
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
+        self.numberofPixelsEdit.textEdited.connect(self.NpixChange)
+        self.pixelSizeValue.textEdited.connect(self.PixelSizeChange)
+
+
 #        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
 #        self.numberofPixelsEdit.textChanged.connect(self.zeroImage)
 
@@ -640,6 +644,18 @@ class ScanWidget(QtGui.QFrame):
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
         self.image = self.blankImage
         self.image2 = self.blankImage
+
+    def NpixChange(self):
+        self.scanRange = float(self.scanRangeEdit.text())
+        self.numberofPixels = int(self.numberofPixelsEdit.text())
+        self.pixelSize = self.scanRange/self.numberofPixels
+        self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
+
+    def PixelSizeChange(self):
+        self.scanRange = float(self.scanRangeEdit.text())
+        self.pixelSize = float(self.pixelSizeValue.text())/1000
+        self.numberofPixelsEdit.setText('{}'.format(int(self.scanRange/self.pixelSize)))
+
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):

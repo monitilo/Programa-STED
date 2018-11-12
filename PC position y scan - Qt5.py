@@ -327,11 +327,12 @@ class ScanWidget(QtGui.QFrame):
         numberofPixelsLabel = QtGui.QLabel('Number of pixels')
         self.numberofPixelsEdit = QtGui.QLineEdit('100')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
-        self.pixelSizeValue = QtGui.QLabel('')
+        self.pixelSizeValue = QtGui.QLineEdit('20')
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
-        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
-        self.pixelSizeValue.setFont(newfont)
+
+#        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
+#        self.pixelSizeValue.setFont(newfont)
         
         self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
@@ -349,6 +350,10 @@ class ScanWidget(QtGui.QFrame):
         self.edit_Name = str(self.edit_save.text())
         self.edit_save.textEdited.connect(self.saveName)
         self.saveName()
+
+        self.numberofPixelsEdit.textEdited.connect(self.NpixChange)
+        self.pixelSizeValue.textEdited.connect(self.PixelSizeChange)
+
 
 #        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
 ##        self.scanRangexEdit.textChanged.connect(self.squarex)
@@ -757,6 +762,18 @@ class ScanWidget(QtGui.QFrame):
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
         self.Presets()
+
+    def NpixChange(self):
+        self.scanRange = float(self.scanRangeEdit.text())
+        self.numberofPixels = int(self.numberofPixelsEdit.text())
+        self.pixelSize = self.scanRange/self.numberofPixels
+        self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
+
+    def PixelSizeChange(self):
+        self.scanRange = float(self.scanRangeEdit.text())
+        self.pixelSize = float(self.pixelSizeValue.text())/1000
+        self.numberofPixelsEdit.setText('{}'.format(int(self.scanRange/self.pixelSize)))
+
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
         a = [self.scanRange, self.numberofPixels, self.pixelTime,
@@ -802,8 +819,9 @@ class ScanWidget(QtGui.QFrame):
 
         self.pixelSize = self.scanRange/self.numberofPixels
 
-        self.pixelSizeValue.setText('<strong>{0:.2e}'.format(np.around(
-                        1000 * self.pixelSize, 2)))
+        self.pixelSizeValue.setText('{}'.format(np.around(
+                                        1000 * self.pixelSize, 2)))  # en nm
+
 #        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
 #        self.pixelSizeValue.setFont(newfont)
 
