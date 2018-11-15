@@ -284,7 +284,7 @@ class ScanWidget(QtGui.QFrame):
         self.numberofPixelsLabel = QtGui.QLabel('Number of pixels')
         self.numberofPixelsEdit = QtGui.QLineEdit('500')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
-        self.pixelSizeValue = QtGui.QLabel('')
+        self.pixelSizeValue = QtGui.QLineEdit('20')
         self.accelerationLabel = QtGui.QLabel('puntos agregados ') #Acceleration (µm/ms^2)')
         self.accelerationEdit = QtGui.QLineEdit('3')
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
@@ -302,8 +302,9 @@ class ScanWidget(QtGui.QFrame):
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
-        self.numberofPixelsEdit.textEdited.connect(self.NpixChange)
-        self.pixelSizeValue.textEdited.connect(self.PixelSizeChange)
+        self.numberofPixelsEdit.textEdited.connect(self.PixelSizeChange)
+        self.pixelSizeValue.textEdited.connect(self.NpixChange)
+        self.scanRangeEdit.textEdited.connect(self.PixelSizeChange)
 
 
 #        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
@@ -584,6 +585,7 @@ class ScanWidget(QtGui.QFrame):
         self.setFixedHeight(550)
 
         self.paramChanged()
+        self.PixelSizeChange()
 #        self.paramWidget.setFixedHeight(500)
 
         self.vb.setMouseMode(pg.ViewBox.RectMode)
@@ -641,21 +643,22 @@ class ScanWidget(QtGui.QFrame):
             self.vueltaEdit.setStyleSheet("{ background-color: }")
 
     def zeroImage(self):
-        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.image = self.blankImage
-        self.image2 = self.blankImage
-
-    def NpixChange(self):
-        self.scanRange = float(self.scanRangeEdit.text())
-        self.numberofPixels = int(self.numberofPixelsEdit.text())
-        self.pixelSize = self.scanRange/self.numberofPixels
-        self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
+#        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
+        self.image = np.copy(np.zeros((self.numberofPixels, self.numberofPixels)))  # np.copy(self.blankImage)
+        self.image2 = np.copy(np.zeros((self.numberofPixels, self.numberofPixels)))
 
     def PixelSizeChange(self):
-        self.scanRange = float(self.scanRangeEdit.text())
-        self.pixelSize = float(self.pixelSizeValue.text())/1000
-        self.numberofPixelsEdit.setText('{}'.format(int(self.scanRange/self.pixelSize)))
+        scanRange = float(self.scanRangeEdit.text())
+        numberofPixels = int(self.numberofPixelsEdit.text())
+        self.pixelSize = scanRange/numberofPixels
+        self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
+#        self.Vback = 1  # para que entre a paramchanded
 
+    def NpixChange(self):
+        scanRange = float(self.scanRangeEdit.text())
+        pixelSize = float(self.pixelSizeValue.text())/1000
+        self.numberofPixelsEdit.setText('{}'.format(int(scanRange/pixelSize)))
+#        self.Vback = 1
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
@@ -792,9 +795,12 @@ class ScanWidget(QtGui.QFrame):
             self.channelsOpenRamp()
             self.tic = ptime.time()
             self.startingRamps()
+            self.maxcountsEdit.setStyleSheet("{ background-color: }")
             if self.detectMode.currentText() == "PMT":
+                self.maxcountsLabel.setText('Max Counts (V)')
                 self.PMTtimer.start(self.reallinetime*10**3)  # imput in ms
             else:
+                self.maxcountsLabel .setText('Max Counts (red|green)')
                 self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
 
     def liveviewStop(self):
@@ -846,7 +852,7 @@ class ScanWidget(QtGui.QFrame):
         elif self.detectMode .currentText() == detectModes[1]:
             self.APD[:] = self.APD2task.read(
                       ((self.numberofPixels + self.pixelsofftotal)*self.Napd))
-        elif self.detectMode .currentText() == detectModes[-2]:
+        elif self.detectMode.currentText() == detectModes[2]:
 #            #print("se viene!")
             (self.APD, self.APD2) = (self.APD1task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)),
                 self.APD2task.read(((self.numberofPixels + self.pixelsofftotal)*self.Napd)))
@@ -857,6 +863,7 @@ class ScanWidget(QtGui.QFrame):
         self.apdpostprocessing()
 
         self.image[:, -1-self.dy] = self.counts[:] #+ np.random.rand(self.numberofPixels)[:] # f
+
         """ verificar si Slalom es mas rapido que normal"""
         if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
             self.image[:, -2-self.dy] = (self.backcounts[:])  # f
@@ -873,9 +880,9 @@ class ScanWidget(QtGui.QFrame):
 #        if self.numberofPixels >= 500:
 #            multi5 = np.arange(0, self.numberofPixels, 15)
         if self.numberofPixels >= 200:
-            multi5 = np.arange(0, self.numberofPixels, 10)
+            multi5 = np.arange(0, self.numberofPixels+1, 10)
         else:
-            multi5 = np.arange(0, self.numberofPixels, 2)
+            multi5 = np.arange(0, self.numberofPixels+1, 2)
 
         if self.dy in multi5:
             if self.imagecheck.isChecked():
@@ -939,12 +946,12 @@ class ScanWidget(QtGui.QFrame):
     # The plotting method is slow (2-3 ms each, for 500x500 pix)
     #, don't know how to do it fast
     #, so I´m plotting in packages. It's looks like realtime
-        if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
-            multi5 = np.arange(0, self.numberofPixels, 20)
-        elif self.numberofPixels >= 101:
-            multi5 = np.arange(0, self.numberofPixels, 10)
+#        if self.numberofPixels >= 1000:  # (self.pixelTime*10**3) <= 0.5:
+#            multi5 = np.arange(0, self.numberofPixels+1, 20)
+        if self.numberofPixels >= 101:
+            multi5 = np.arange(0, self.numberofPixels+1, 10)
         else:
-            multi5 = np.arange(0, self.numberofPixels, 2)
+            multi5 = np.arange(0, self.numberofPixels+1, 2)
 
         if self.dy in multi5:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
@@ -972,9 +979,9 @@ class ScanWidget(QtGui.QFrame):
 # %% MAX PMT
     def MaxPMT(self):
         m = np.max(self.image)
-        m2 = np.max(self.backimagePMT)
-        self.maxcountsEdit.setText("<strong> {}|{}".format(float(m),float(m2)))
-        if m >= 1 or m2 >= 1:
+#        m2 = np.max(self.backimagePMT)
+        self.maxcountsEdit.setText("<strong> {0:.2}".format(float(m)))#,float(m2)))
+        if m >= 1:  # or m2 >= 1:
             self.maxcountsEdit.setStyleSheet(" background-color: red; ")
 
 

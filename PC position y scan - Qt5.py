@@ -351,9 +351,9 @@ class ScanWidget(QtGui.QFrame):
         self.edit_save.textEdited.connect(self.saveName)
         self.saveName()
 
-        self.numberofPixelsEdit.textEdited.connect(self.NpixChange)
-        self.pixelSizeValue.textEdited.connect(self.PixelSizeChange)
-
+        self.numberofPixelsEdit.textEdited.connect(self.PixelSizeChange)
+        self.pixelSizeValue.textEdited.connect(self.NpixChange)
+        self.scanRangeEdit.textEdited.connect(self.NpixChange)
 
 #        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
 ##        self.scanRangexEdit.textChanged.connect(self.squarex)
@@ -763,13 +763,13 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
         self.Presets()
 
-    def NpixChange(self):
+    def PixelSizeChange(self):
         self.scanRange = float(self.scanRangeEdit.text())
         self.numberofPixels = int(self.numberofPixelsEdit.text())
         self.pixelSize = self.scanRange/self.numberofPixels
         self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
 
-    def PixelSizeChange(self):
+    def NpixChange(self):
         self.scanRange = float(self.scanRangeEdit.text())
         self.pixelSize = float(self.pixelSizeValue.text())/1000
         self.numberofPixelsEdit.setText('{}'.format(int(self.scanRange/self.pixelSize)))
