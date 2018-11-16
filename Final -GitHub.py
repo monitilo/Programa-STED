@@ -125,36 +125,43 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewButton.setStyleSheet(
                 "QPushButton { background-color: green; }"
                 "QPushButton:pressed { background-color: blue; }")
+        self.liveviewButton.setToolTip('The magic begins')
 
         self.PSFMode = QtGui.QComboBox()
         self.PSFModes = ['XY normal psf', 'XZ', 'YZ']
         self.PSFMode.addItems(self.PSFModes)
         self.PSFMode.activated.connect(self.PSFYZ)
+        self.PSFMode.setToolTip('Change the scan axes')
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
-        self.presetsModes = ['Red', 'Yellow', 'STED','Yell+STED', 'Red+STED', 'nada']
+        self.presetsModes = ['Red', 'Yellow', 'STED','STED + Yell', 'STED + Red', 'nada']
         self.presetsMode.addItems(self.presetsModes)
+        self.presetsMode.setToolTip('Select the shutters to open during the scan')
 
     # To save all images until stops
         self.VideoCheck = QtGui.QCheckBox('"video" save')
         self.VideoCheck.setChecked(False)
+        self.VideoCheck.setToolTip('Save every finished image')
 
     # to run continuously
         self.Continouscheck = QtGui.QCheckBox('Continous')
         self.Continouscheck.setChecked(False)
+        self.Continouscheck.setToolTip('Start again, and again, and again...')
 
     # to Calculate the mass center
         self.CMcheck = QtGui.QCheckBox('calcula CM')
 #        self.CMcheck.setChecked(False)
         self.CMcheck.setCheckable(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
+        self.CMcheck.setToolTip('makes a basic measurement of the center of mass')
 
     # 2D Gaussian fit to estimate the center of a NP
         self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
 #        self.Gausscheck.setChecked(False)
         self.Gausscheck.setCheckable(False)
         self.Gausscheck.clicked.connect(self.GaussFit)
+        self.Gausscheck.setToolTip('makes 2D Gaussian fit of the image, and give the center')
 
     # save image Button
         self.saveimageButton = QtGui.QPushButton('Save Frame')
@@ -168,6 +175,7 @@ class ScanWidget(QtGui.QFrame):
         label_save.resize(label_save.sizeHint())
         self.edit_save = QtGui.QLineEdit('Test Image')
         self.edit_save.resize(self.edit_save.sizeHint())
+        self.edit_save.setToolTip('Selec a name to save the image. The name automatically changes to not replace the previous one')
 
         self.edit_Name = str(self.edit_save.text())
         self.edit_save.textEdited.connect(self.saveName)
@@ -182,21 +190,26 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setStyleSheet(" background-color: red; ")
         self.OpenButton = QtGui.QPushButton('open dir')
         self.OpenButton.clicked.connect(self.openFolder)
+        self.NameDirButton.setToolTip('Select the folder where it saves')
+        self.OpenButton.setToolTip('Open the folder where it saves')
+
 
     # Select the wanted scan mode
         self.scanMode = QtGui.QComboBox()
 #        self.scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
         self.scanMode.addItems(scanModes)
+        self.scanMode.setToolTip('Selec the scan type. With a voltage ramps or step by step')
 
     # Plot ramps scan button
         self.graphcheck = QtGui.QCheckBox('Scan Plot')
         self.graphcheck.clicked.connect(self.graphplot)
         self.step = False
-
+        self.graphcheck.setToolTip('It plot the voltage ramps (developer only)')
     # Plot ramps scan button
         self.imagecheck = QtGui.QCheckBox('Image change')
         self.imagecheck.clicked.connect(self.imageplot)
         self.imagecheck.setStyleSheet(" color: red; ")
+        self.imagecheck.setToolTip('Switch between the images of each apd')
 
     # useful Booleans
         self.channelramp = False #canales
@@ -224,6 +237,7 @@ class ScanWidget(QtGui.QFrame):
         self.autoLevelscheck = QtGui.QCheckBox('Auto escalar (o no)')
         self.autoLevelscheck.setChecked(True)
         self.autoLevelscheck.clicked.connect(self.autoLevelset)
+        self.autoLevelscheck.setToolTip('Switch between automatic colorbar normalization, or manually')
 
     # Shutters buttons
         self.shutter0button = QtGui.QCheckBox('shutter Red')
@@ -233,25 +247,34 @@ class ScanWidget(QtGui.QFrame):
         self.shutter2button = QtGui.QCheckBox('shutter Yellow')
         self.shutter2button.clicked.connect(self.shutter2)
 
+        self.shutter0button.setToolTip('Open/close Red Shutter')
+        self.shutter1button.setToolTip('Open/close STED Shutter')
+        self.shutter2button.setToolTip('Open/close Yellow Shutter')
+
+
     # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this frame')
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
+        self.plotLivebutton.setToolTip('Plot this image with matplotlive')
 
     # Select the detector
         self.detectMode = QtGui.QComboBox()
 #        self.detectModes = ['APD red', 'APD green', 'both APDs', 'PMT']  lo agregue antes.
         self.detectMode.addItems(detectModes)
         self.detectMode.setCurrentIndex(2)
+        self.detectMode.setToolTip('Select the detect instrument (APD or PMT)')
 
     # ROI buttons
         self.roi = None
         self.ROIButton = QtGui.QPushButton('ROI')
         self.ROIButton.setCheckable(True)
         self.ROIButton.clicked.connect(self.ROImethod)
+        self.ROIButton.setToolTip('Create/erase a ROI box in the liveview')
 
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
+        self.selectROIButton.setToolTip('go to the ROI selected coordenates')
 
     # ROI Lineal
         self.roiline = None
@@ -260,12 +283,16 @@ class ScanWidget(QtGui.QFrame):
         self.ROIlineButton.clicked.connect(self.ROIlinear)
         self.selectlineROIButton = QtGui.QPushButton('Plot line ROI')
         self.selectlineROIButton.clicked.connect(self.selectLineROI)
+        
+        self.ROIlineButton.setToolTip('Creates a linear ROI to se linear intensities')
+        self.selectlineROIButton.setToolTip('Make a plot with the linear ROI intensities, for save')
 
     # Point scan
         self.PointButton = QtGui.QPushButton('Point scan')
         self.PointButton.setCheckable(True)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+        self.PointButton.setToolTip('continuously measures the APDs')
 
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Max Counts (red|green)')
@@ -281,20 +308,29 @@ class ScanWidget(QtGui.QFrame):
         self.scanRangeEdit = QtGui.QLineEdit('10')
         self.pixelTimeLabel = QtGui.QLabel('Pixel time (ms)')
         self.pixelTimeEdit = QtGui.QLineEdit('0.01')
+        self.pixelTimeEdit.setToolTip('0.01 ms = 10 µs  :)')
+
         self.numberofPixelsLabel = QtGui.QLabel('Number of pixels')
         self.numberofPixelsEdit = QtGui.QLineEdit('500')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
         self.pixelSizeValue = QtGui.QLineEdit('20')
         self.accelerationLabel = QtGui.QLabel('puntos agregados ') #Acceleration (µm/ms^2)')
         self.accelerationEdit = QtGui.QLineEdit('3')
+#        self.accelerationLabel.setToolTip('The aceleration of the ramps (developer only)')  CAMBIO
+        self.accelerationLabel.setToolTip('Added points to the created ramps (developer only)')
+
         self.vueltaLabel = QtGui.QLabel('Back Velocity (relative)')
         self.vueltaEdit = QtGui.QLineEdit('10')
+        self.vueltaLabel.setToolTip('The velocity of the back ramps (developer only)')
+
 
         self.triggerLabel = QtGui.QLabel('Trigger ')
         self.triggerEdit = QtGui.QLineEdit('1')
+        self.triggerLabel.setToolTip('addition a delay before start (developer only)')
 
         self.timeTotalLabel = QtGui.QLabel('total scan time (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
+        self.timeTotalLabel.setToolTip('Is an aproximate value')
 
         self.onlyInt = QtGui.QIntValidator(0,10001)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
@@ -337,6 +373,13 @@ class ScanWidget(QtGui.QFrame):
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
 
+        self.paramWidget2 = QtGui.QWidget()
+        subgrid2 = QtGui.QGridLayout()
+        self.paramWidget2.setLayout(subgrid2)
+
+        self.paramWidget3 = QtGui.QWidget()
+        subgrid3 = QtGui.QGridLayout()
+        self.paramWidget3.setLayout(subgrid3)
 
     # Columna 1
         subgrid.addWidget(self.shutter0button,      0, 1)
@@ -351,44 +394,50 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.pixelSizeLabel,      9, 1)
         subgrid.addWidget(self.pixelSizeValue,     10, 1)
         subgrid.addWidget(self.liveviewButton,     11, 1)
-        subgrid.addWidget(self.scanMode,           12, 1)
+        subgrid.addWidget(self.Continouscheck,     12, 1)
         subgrid.addWidget(self.timeTotalLabel,     13, 1)
 #        subgrid.addWidget(self.timeTotalValue,     14, 1)
         subgrid.addWidget(self.saveimageButton,    15, 1)
         subgrid.addWidget(self.autoLevelscheck,    16, 1)
         subgrid.addWidget(self.imagecheck,         17, 1)
-    # Columna 2
-        subgrid.addWidget(self.NameDirButton,     0, 2)
-        subgrid.addWidget(self.OpenButton,        1, 2)
-        subgrid.addWidget(self.detectMode,        3, 2)
-#        subgrid.addWidget(self.triggerLabel,       4, 2)
-#        subgrid.addWidget(self.triggerEdit,        5, 2)
-#        subgrid.addWidget(self.accelerationLabel,  6, 2)
-#        subgrid.addWidget(self.accelerationEdit,   7, 2)
-#        subgrid.addWidget(self.vueltaLabel,        8, 2)
-#        subgrid.addWidget(self.vueltaEdit,         9, 2)
-        subgrid.addWidget(self.VideoCheck,        10, 2)
-        subgrid.addWidget(self.Continouscheck,    11, 2)
-        subgrid.addWidget(self.graphcheck,        12, 2)
-        subgrid.addWidget(self.PSFMode,            15, 2)
 
+    # Columna 2
+        subgrid2.addWidget(self.NameDirButton,     0, 2)
+        subgrid2.addWidget(self.OpenButton,        1, 2)
+#        subgrid2.addWidget(self.triggerLabel,       4, 2)
+#        subgrid2.addWidget(self.triggerEdit,        5, 2)
+#        subgrid2.addWidget(self.accelerationLabel,  6, 2)
+#        subgrid2.addWidget(self.accelerationEdit,   7, 2)
+#        subgrid2.addWidget(self.vueltaLabel,        8, 2)
+#        subgrid2.addWidget(self.vueltaEdit,         9, 2)
+        subgrid2.addWidget(self.ROIButton,           2, 2)
+        subgrid2.addWidget(self.selectROIButton,     3, 2)
+        subgrid2.addWidget(self.ROIlineButton,       5, 2)
+        subgrid2.addWidget(self.selectlineROIButton, 6, 2)
+        subgrid2.addWidget(self.VideoCheck,         11, 2)
+        subgrid2.addWidget(label_save,              13, 2)
+        subgrid2.addWidget(self.edit_save,          14, 2)
+        subgrid2.addWidget(self.presetsMode,        15, 2)
+        subgrid2.addWidget(self.maxcountsLabel,     16, 2)
+        subgrid2.addWidget(self.maxcountsEdit,      17, 2,2,2)
 
     # Columna 3
 #        subgrid.addWidget(self.algobutton,        0, 3)
-        subgrid.addWidget(self.ROIButton,          0, 3)
-        subgrid.addWidget(self.selectROIButton,    1, 3)
-        subgrid.addWidget(self.ROIlineButton,       4, 3)
-        subgrid.addWidget(self.selectlineROIButton, 5, 3)
-        subgrid.addWidget(self.PointButton,          7, 3)
-        subgrid.addWidget(self.PointLabel,           8, 3)
-        subgrid.addWidget(self.plotLivebutton,       10, 3)
-#        subgrid.addWidget(self.CMcheck,               12, 3)
+        subgrid3.addWidget(self.ROIButton,          0, 3)
+        subgrid3.addWidget(self.selectROIButton,    1, 3)
+        subgrid3.addWidget(self.detectMode,         3, 3)
+        subgrid3.addWidget(self.ROIlineButton,       4, 3)
+        subgrid3.addWidget(self.selectlineROIButton, 5, 3)
+        subgrid3.addWidget(self.PointButton,          7, 3)
+        subgrid3.addWidget(self.PointLabel,           8, 3)
+        subgrid3.addWidget(self.graphcheck,           9, 3)
+        subgrid3.addWidget(self.plotLivebutton,      10, 3)
+#        subgrid3.addWidget(self.CMcheck,               12, 3)
 #        subgrid.addWidget(self.Gausscheck,            13, 3)
-        subgrid.addWidget(label_save,                 12, 3)
-        subgrid.addWidget(self.edit_save,             13, 3)
-        subgrid.addWidget(self.presetsMode,            15, 3)
-        subgrid.addWidget(self.maxcountsLabel,         16, 3)
-        subgrid.addWidget(self.maxcountsEdit,          17, 3,2,2)
+        subgrid3.addWidget(self.scanMode,              12, 3)
+        subgrid3.addWidget(self.PSFMode,                15, 3)
+
+
 
 # ---  Positioner part ---------------------------------
         # Axes control
@@ -571,9 +620,13 @@ class ScanWidget(QtGui.QFrame):
         posDock.addWidget(self.positioner)
         dockArea.addDock(posDock, 'left', gotoDock)
 
-#        scanDock2 = Dock('Other parameters', size=(1, 1))
-#        scanDock2.addWidget(self.paramWidget2)
-#        dockArea.addDock(scanDock2,'right')
+        scanDock3 = Dock('PMT Config', size=(1, 1))
+        scanDock3.addWidget(self.paramWidget3)
+        dockArea.addDock(scanDock3,'right')
+
+        scanDock2 = Dock('Other parameters', size=(1, 1))
+        scanDock2.addWidget(self.paramWidget2)
+        dockArea.addDock(scanDock2,'above',scanDock3)
 
         scanDock = Dock('Scan parameters', size=(1, 1))
         scanDock.addWidget(self.paramWidget)
@@ -596,8 +649,9 @@ class ScanWidget(QtGui.QFrame):
         imageWidget.setAspectLocked(True)
         self.hist = pg.HistogramLUTItem(image=self.img)
         self.hist.gradient.loadPreset('thermal')
+# 'thermal', 'flame', 'yellowy', 'bipolar', 'spectrum',
+# 'cyclic', 'greyclip', 'grey' # Solo son estos
         self.hist.vb.setLimits(yMin=0, yMax=66000)
-
 
         for tick in self.hist.gradient.ticks:
             tick.hide()
@@ -619,9 +673,27 @@ class ScanWidget(QtGui.QFrame):
 
         self.imageWidget = imageWidget
         #self.startRutine()  # que lea de algun lado la posicion y la setee como start x,y,z
+
+    # Agrego un atajo para que empieze tocando Ctrl+a
+        self.liveviewAction = QtGui.QAction(self)
+        self.liveviewAction.setShortcut('Ctrl+a')
+        QtGui.QShortcut(
+            QtGui.QKeySequence('Ctrl+a'), self, self.liveviewKey)
+#        self.liveviewAction.triggered.connect(self.liveviewKey)
+        self.liveviewAction.setEnabled(False)
+
         self.PreparePresets()
-#    def startRutine(self):
-#        read algo
+
+    def liveviewKey(self):
+        '''Triggered by the liveview shortcut.'''
+        if self.liveviewButton.isChecked():
+            self.liveviewStop()
+            self.liveviewButton.setChecked(False)
+        else:
+            self.liveviewButton.setChecked(True)
+            self.liveview()
+#            self.liveviewStart()
+
     def autoLevelset(self):
         if self.autoLevelscheck.isChecked():
             self.autoLevels = True

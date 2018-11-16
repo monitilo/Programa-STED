@@ -250,6 +250,7 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode.addItems(self.scanModes)
         self.scanMode.setCurrentIndex(1)
 #        self.scanMode.currentIndexChanged.connect(self.paramChanged)
+        self.scanMode.setToolTip('Elijo el modo de escaneo')
 
     # Presets simil inspector
         self.presetsMode = QtGui.QComboBox()
@@ -331,6 +332,10 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
 
+        self.pixelSizeLabel.setToolTip('Anda tambien en labels')
+        self.pixelSizeValue.setToolTip('y en los valores')
+
+
 #        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
 #        self.pixelSizeValue.setFont(newfont)
         
@@ -339,8 +344,6 @@ class ScanWidget(QtGui.QFrame):
         self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
-
-
 
         label_save = QtGui.QLabel('Nombre del archivo')
         label_save.resize(label_save.sizeHint())
@@ -482,6 +485,27 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(label_save,                 17, 2)#, 1, 2)
         subgrid2.addWidget(self.edit_save,             18, 2)#, 1, 2)
 
+        self.paramWidget3 = QtGui.QWidget()
+        subgrid3 = QtGui.QGridLayout()
+        self.paramWidget3.setLayout(subgrid3)
+
+    # Columna 3
+        subgrid3.addWidget(QtGui.QLabel('ROI BUTTON'),              0, 3)
+        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
+        subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
+        subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
+        subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
+        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+        subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
+        subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
+        subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
+        subgrid3.addWidget(QtGui.QLabel('presets desplegable'),    15, 3)
+        subgrid3.addWidget(QtGui.QLabel('Cuentas maximas (r/a)'),  16, 3)
+        subgrid3.addWidget(QtGui.QLabel('valor maximo'),       17, 3,2,2)
+
+
+
+
 # --- POSITIONERRRRR-------------------------------
 
         self.positioner = QtGui.QWidget()
@@ -541,7 +565,8 @@ class ScanWidget(QtGui.QFrame):
         self.xgotoLabel.setFixedWidth(tamaño)
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
-
+#--- fin POSITIONEERRRRRR---------------------------
+        
 #        self.CMxLabel = QtGui.QLabel('CM X')
 #        self.CMxValue = QtGui.QLabel('NaN')
 #        self.CMyLabel = QtGui.QLabel('CM Y')
@@ -669,9 +694,13 @@ class ScanWidget(QtGui.QFrame):
         posDock.addWidget(self.positioner)
         dockArea.addDock(posDock, 'left', gotoDock)
 
+        scanDock3 = Dock('PMT config', size=(1, 1))
+        scanDock3.addWidget(self.paramWidget3)
+        dockArea.addDock(scanDock3,'right')
+
         scanDock2 = Dock('Other parameters', size=(1, 1))
         scanDock2.addWidget(self.paramWidget2)
-        dockArea.addDock(scanDock2,'right')
+        dockArea.addDock(scanDock2,'above',scanDock3)
 
         scanDock = Dock('Scan parameters', size=(1, 1))
         scanDock.addWidget(self.paramWidget)
@@ -681,21 +710,6 @@ class ScanWidget(QtGui.QFrame):
         self.setLayout(hbox)
 
         self.setFixedHeight(550)
-
-#        self.setWindowTitle('Programa genial dockeado')
-#        self.resize(10000,500)
-#        dockArea = DockArea()
-
-#         #no se como hacerla andar con docks
-#        scanDock = Dock('Scan', size=(1, 1))
-#        scanDock.addWidget(self.paramWidget)
-#        dockArea.addDock(scanDock)
-#        posDock = Dock('positioner', size=(1, 1))
-#        posDock.addWidget(self.positioner)
-#        dockArea.addDock(posDock, 'above', scanDock)
-#        layout.addWidget(dockArea, 2, 3)
-
-#--- fin POSITIONEERRRRRR---------------------------
 
 #        self.paramWidget.setFixedHeight(500)
 
@@ -709,8 +723,8 @@ class ScanWidget(QtGui.QFrame):
         self.hist.gradient.loadPreset('thermal')  # thermal
 # 'thermal', 'flame', 'yellowy', 'bipolar', 'spectrum',
 # 'cyclic', 'greyclip', 'grey' # Solo son estos
-
         self.hist.vb.setLimits(yMin=0, yMax=66000)
+
 #        self.cubehelixCM = pg.ColorMap(np.arange(0, 1, 1/256),
 #                                       guitools.cubehelix().astype(int))
 #        self.hist.gradient.setColorMap(self.cubehelixCM)
@@ -723,36 +737,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.viewtimer = QtCore.QTimer()
         self.viewtimer.timeout.connect(self.updateView)
-        """
-        def donothing():
-           filewin = tk.Toplevel(root)
-           button = tk.Button(filewin, text="Do nothing button")
-           button.pack()
-#        # Actions in menubar
-        root = tk.Tk()
-        menubar = tk.Menu(root)
-        filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label="New", command=donothing)
-        filemenu.add_command(label="Open", command=donothing)
-        filemenu.add_command(label="Save", command=donothing)
-        filemenu.add_command(label="Save as...", command=donothing)
-        filemenu.add_command(label="Close", command=donothing)
 
-        filemenu.add_separator()
-
-        filemenu.add_command(label="Exit", command=root.quit)
-        menubar.add_cascade(label="File", menu=filemenu)
-        editmenu = tk.Menu(menubar, tearoff=0)
-        editmenu.add_command(label="Undo", command=donothing)
-
-        root.config(menu=menubar)
-        root.config(layout)
-        root.mainloop()
-#        """
-##        menubar = self.menuBar()
-#        fileMenu = menubar.addMenu('&File')
-#        fileMenu.addAction(self.savePresetAction)
-#        fileMenu.addSeparator()
         self.imageWidget=imageWidget
 
         self.liveviewAction = QtGui.QAction(self)
@@ -764,15 +749,15 @@ class ScanWidget(QtGui.QFrame):
         self.Presets()
 
     def PixelSizeChange(self):
-        self.scanRange = float(self.scanRangeEdit.text())
-        self.numberofPixels = int(self.numberofPixelsEdit.text())
-        self.pixelSize = self.scanRange/self.numberofPixels
+        scanRange = float(self.scanRangeEdit.text())
+        numberofPixels = int(self.numberofPixelsEdit.text())
+        self.pixelSize = scanRange/numberofPixels
         self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
 
     def NpixChange(self):
-        self.scanRange = float(self.scanRangeEdit.text())
-        self.pixelSize = float(self.pixelSizeValue.text())/1000
-        self.numberofPixelsEdit.setText('{}'.format(int(self.scanRange/self.pixelSize)))
+        scanRange = float(self.scanRangeEdit.text())
+        pixelSize = float(self.pixelSizeValue.text())/1000
+        self.numberofPixelsEdit.setText('{}'.format(int(scanRange/pixelSize)))
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
@@ -1418,14 +1403,12 @@ class ScanWidget(QtGui.QFrame):
 
     def liveviewKey(self):
         '''Triggered by the liveview shortcut.'''
-        
         if self.liveviewButton.isChecked():
             self.liveviewStop()
             self.liveviewButton.setChecked(False)
-        
         else:
             self.liveviewButton.setChecked(True)
-            self.liveview()
+#            self.liveview()
 #            self.liveviewStart()
 
 ## %% selectfolder
