@@ -12,7 +12,7 @@ this . tipo = tipo ;
 this . numeroCuenta = nCuenta ;
 this . titular = titular ;
 if ( tipo == CTA_CORRIENTE )
-this . descubiertoAcordado = descAcordado ;
+  this . descubiertoAcordado = descAcordado ;
 else this . descubiertoAcordado = 0 ;
 saldo = 0 ;
 }
@@ -31,11 +31,11 @@ saldo += monto ;
   
 public void extraer ( long monto ) throws RuntimeException {
 switch ( tipo ) {
-case CAJA_AHORRO : if ( monto > saldo )
-throw new RuntimeException ( "No hay dinero suficiente" );
-case CTA_CORRIENTE : if ( monto > saldo + descubiertoAcordado )
-throw new RuntimeException ( "No hay dinero suficiente" );
+  case CAJA_AHORRO : if ( monto > saldo )
+    throw new RuntimeException ( "No hay dinero suficiente" );
+  case CTA_CORRIENTE : if ( monto > saldo + descubiertoAcordado )
+    throw new RuntimeException ( "No hay dinero suficiente" );
 }
 saldo -= monto ;
 }
-}
+  }
