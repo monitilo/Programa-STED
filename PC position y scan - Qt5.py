@@ -356,7 +356,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.numberofPixelsEdit.textEdited.connect(self.PixelSizeChange)
         self.pixelSizeValue.textEdited.connect(self.NpixChange)
-        self.scanRangeEdit.textEdited.connect(self.NpixChange)
+        self.scanRangeEdit.textEdited.connect(self.PixelSizeChange)
 
 #        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
 ##        self.scanRangexEdit.textChanged.connect(self.squarex)
@@ -683,7 +683,7 @@ class ScanWidget(QtGui.QFrame):
 
         viewDock = Dock('viewbox', size=(500, 450))
         viewDock.addWidget(imageWidget)
-        viewDock.hideTitleBar()
+#        viewDock.hideTitleBar()
         dockArea.addDock(viewDock,'left')
 
         gotoDock = Dock('goto', size=(1, 1))
@@ -709,7 +709,7 @@ class ScanWidget(QtGui.QFrame):
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
 
-        self.setFixedHeight(550)
+#        self.setFixedHeight(550)
 
 #        self.paramWidget.setFixedHeight(500)
 
@@ -753,12 +753,17 @@ class ScanWidget(QtGui.QFrame):
         numberofPixels = int(self.numberofPixelsEdit.text())
         self.pixelSize = scanRange/numberofPixels
         self.pixelSizeValue.setText('{}'.format(np.around(1000 * self.pixelSize, 2)))
+        pixelTime = float(self.pixelTimeEdit.text()) / 10**3
+        self.timeTotalLabel.setText("Tiempo total (s) = " +'{}'.format(np.around(
+                         numberofPixels**2 * pixelTime, 2)))
 
     def NpixChange(self):
         scanRange = float(self.scanRangeEdit.text())
         pixelSize = float(self.pixelSizeValue.text())/1000
         self.numberofPixelsEdit.setText('{}'.format(int(scanRange/pixelSize)))
-
+        pixelTime = float(self.pixelTimeEdit.text()) / 10**3
+        self.timeTotalLabel.setText("Tiempo total (s) = " +'{}'.format(np.around(
+                         int(scanRange/pixelSize)**2 * pixelTime, 2)))
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
         a = [self.scanRange, self.numberofPixels, self.pixelTime,
