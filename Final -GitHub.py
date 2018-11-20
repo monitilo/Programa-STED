@@ -2258,11 +2258,10 @@ class ScanWidget(QtGui.QFrame):
 
 # %%  ROI cosas
     def ROImethod(self):
-        self.NofPixels = self.numberofPixels
         if self.roi is None:
 
-            ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
-            self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+            ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
+            self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
                                          handlePos=(1, 0),
                                          handleCenter=(0, 1),
                                          scaleSnap=True,
@@ -2272,8 +2271,8 @@ class ScanWidget(QtGui.QFrame):
             self.vb.removeItem(self.roi)
             self.roi.hide()
             if self.ROIButton.isChecked():
-                ROIpos = (0.5 * self.NofPixels - 64, 0.5 * self.NofPixels - 64)
-                self.roi = viewbox_tools.ROI(self.NofPixels, self.vb, ROIpos,
+                ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
+                self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
                                              handlePos=(1, 0),
                                              handleCenter=(0, 1),
                                              scaleSnap=True,
@@ -2281,23 +2280,15 @@ class ScanWidget(QtGui.QFrame):
 
     def selectROI(self):
         self.liveviewStop()
-        self.NofPixels = self.numberofPixels
-        self.pxSize = self.pixelSize
 
         array = self.roi.getArrayRegion(self.image, self.img)
         ROIpos = np.array(self.roi.pos())
-
         newPos_px = tools.ROIscanRelativePOS(ROIpos,
-                                             self.NofPixels,
+                                             self.numberofPixels,
                                              np.shape(array)[1])
-        #print(self.initialPosition)
-        newPos_µm = newPos_px * self.pxSize + self.initialPosition[0:2]
+        newPos_µm = newPos_px * self.pixelSize + self.initialPosition[0:2]
 
         newPos_µm = np.around(newPos_µm, 2)
-
-#        self.initialPosEdit.setText('{} {} {}'.format(newPos_µm[0],
-#                                                      newPos_µm[1],
-#                                                      self.initialPos[2]))
 
         print("estaba en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
@@ -2309,19 +2300,91 @@ class ScanWidget(QtGui.QFrame):
         print("ROI fue a", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()), "/n")
 
-#        self.xLabel.setText("{}".format((float(newPos_µm[0]))))
-#        self.yLabel.setText("{}".format((float(newPos_µm[1]))))
-#        self.zLabel.setText("{}".format((float(self.initialPosition[2]))))
-
-
         newRange_px = np.shape(array)[0]
-        newRange_µm = self.pxSize * newRange_px
+        newRange_µm = self.pixelSize * newRange_px
         newRange_µm = np.around(newRange_µm, 2)
 
         print("cambió el rango, de", self.scanRange)
         self.scanRangeEdit.setText('{}'.format(newRange_µm))
         print("hasta :", self.scanRange, "\n")
         self.paramChanged()
+
+# --- Creo el intregador de area
+    def integrateROI(self):
+#        self.liveviewStop()
+
+        array = self.roi.getArrayRegion(self.image, self.img)
+        ROIpos = np.array(self.roi.pos())
+        newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                             self.numberofPixels,
+                                             np.shape(array)[1])
+        newPos_µm = newPos_px * self.pixelSize + self.initialPosition[0:2]
+
+        newPos_µm = np.around(newPos_µm, 2)
+
+
+#
+#        self.moveto(float(newPos_µm[0]),
+#                    float(newPos_µm[1]),
+#                    float(self.initialPosition[2]))
+
+        newRange_px = np.shape(array)[0]
+        newRange_µm = self.pixelSize * newRange_px
+        newRange_µm = np.around(newRange_µm, 2)
+
+        if self.integratROIebutton.isChecked():
+            self.integrateZone()
+            print("midiendo")
+        else:
+            self.integrateZoneStop()
+            print("fin")
+
+    def integrateZoneStop(self):
+        self.pointtimer.stop()
+        self.pointtask.stop()
+        self.pointtask.close()
+        self.pointtask2.stop()
+        self.pointtask2.close()
+
+    def integrateZone(self):
+
+        self.tiempo = 400 # ms  # refresca el numero cada este tiempo
+#        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
+#        self.points2 = self.points
+
+        self.pointtask = nidaqmx.Task('pointtask')
+
+        # Configure the counter channel to read the APD
+        self.pointtask.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr{}'.format(COchans[0]),
+                            name_to_assign_to_channel=u'Line_counter',
+                            initial_count=0)
+        
+        self.pointtask2 = nidaqmx.Task('pointtask2')
+        # Configure the counter channel to read the APD
+        self.pointtask2.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr{}'.format(COchans[1]),
+                            name_to_assign_to_channel=u'Line_counter',
+                            initial_count=0)
+
+        self.pointtimer = QtCore.QTimer()
+        self.pointtimer.timeout.connect(self.updateZone)
+        self.pointtimer.start(self.tiempo)
+
+    def updateZone(self):
+        points = np.zeros(int((self.apdrate*(self.tiempo /10**3))))
+        points2 = points
+        N = len(points)
+        points[:] = self.pointtask.read(N)
+        points2[:] = self.pointtask.read(N)
+
+        m = np.mean(points)
+        m2 = np.mean(points2)
+#        #print("valor traza", m)
+        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+
+
+#        self.paramChanged()
 
 # %% Roi lineal
     def ROIlinear(self):

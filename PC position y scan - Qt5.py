@@ -24,6 +24,8 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 
+import tools
+import viewbox_toolsQT5
 
 
 from scipy import ndimage
@@ -398,8 +400,23 @@ class ScanWidget(QtGui.QFrame):
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
 #        self.plotLivebutton.clicked.connect(self.otroPlot)
-        
-        
+
+    # ROI buttons
+        self.roi = None
+        self.ROIButton = QtGui.QPushButton('ROI')
+        self.ROIButton.setCheckable(True)
+        self.ROIButton.clicked.connect(self.ROImethod)
+        self.ROIButton.setToolTip('Create/erase a ROI box in the liveview')
+
+        self.selectROIButton = QtGui.QPushButton('select ROI')
+        self.selectROIButton.clicked.connect(self.selectROI)
+        self.selectROIButton.setToolTip('go to the ROI selected coordenates')
+
+        self.histogramROIButton = QtGui.QPushButton('Histogram ROI')
+        self.histogramROIButton.setCheckable(True)
+        self.histogramROIButton.clicked.connect(self.histogramROI)
+        self.histogramROIButton.setToolTip('go to the ROI selected coordenates')
+
     # ROI Lineal
         self.roiline = None
         self.ROIlineButton = QtGui.QPushButton('lineROIline')
@@ -490,8 +507,8 @@ class ScanWidget(QtGui.QFrame):
         self.paramWidget3.setLayout(subgrid3)
 
     # Columna 3
-        subgrid3.addWidget(QtGui.QLabel('ROI BUTTON'),              0, 3)
-        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
+#        subgrid3.addWidget(QtGui.QLabel('ROI BUTTON'),              0, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
         subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
         subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
         subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
@@ -502,8 +519,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(QtGui.QLabel('presets desplegable'),    15, 3)
         subgrid3.addWidget(QtGui.QLabel('Cuentas maximas (r/a)'),  16, 3)
         subgrid3.addWidget(QtGui.QLabel('valor maximo'),       17, 3,2,2)
-
-
+        subgrid3.addWidget(self.ROIButton,           0, 3)
+        subgrid3.addWidget(self.selectROIButton,     1, 3)
+        subgrid3.addWidget(self.histogramROIButton,  2, 3)
 
 
 # --- POSITIONERRRRR-------------------------------
@@ -764,6 +782,7 @@ class ScanWidget(QtGui.QFrame):
         pixelTime = float(self.pixelTimeEdit.text()) / 10**3
         self.timeTotalLabel.setText("Tiempo total (s) = " +'{}'.format(np.around(
                          int(scanRange/pixelSize)**2 * pixelTime, 2)))
+
 # %%--- paramChanged / PARAMCHANGEDinitialize
     def paramChangedInitialize(self):
         a = [self.scanRange, self.numberofPixels, self.pixelTime,
@@ -974,7 +993,7 @@ class ScanWidget(QtGui.QFrame):
     def linea(self):
         Z=self.Z
         if self.step == 1:
-            self.cuentas = Z[self.i,:] * abs(np.random.normal(size=(1, self.numberofPixels))[0])
+            self.cuentas = Z[self.i,:] * abs(np.random.normal(size=(1, self.numberofPixels))[0])*20
             for i in range(self.numberofPixels):
                 borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
@@ -1484,6 +1503,101 @@ class ScanWidget(QtGui.QFrame):
         self.CMyValue.setText(str(ycm*Normal))
 
 # %%  ROI cosas
+    def ROImethod(self):
+        if self.roi is None:
+
+            ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
+            self.roi = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+
+        else:
+            self.vb.removeItem(self.roi)
+            self.roi.hide()
+            if self.ROIButton.isChecked():
+                ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
+                self.roi = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
+                                             handlePos=(1, 0),
+                                             handleCenter=(0, 1),
+                                             scaleSnap=True,
+                                             translateSnap=True)
+
+    def selectROI(self):
+        self.liveviewStop()
+
+        array = self.roi.getArrayRegion(self.image, self.img)
+        ROIpos = np.array(self.roi.pos())
+        newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                             self.numberofPixels,
+                                             np.shape(array)[1])
+        newPos_µm = newPos_px * self.pixelSize + self.initialPosition[0:2]
+
+        newPos_µm = np.around(newPos_µm, 2)
+
+        print("estaba en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
+
+        self.moveto(float(newPos_µm[0]),
+                    float(newPos_µm[1]),
+                    float(self.initialPosition[2]))
+
+        print("ROI fue a", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()), "/n")
+
+        newRange_px = np.shape(array)[0]
+        newRange_µm = self.pixelSize * newRange_px
+        newRange_µm = np.around(newRange_µm, 2)
+
+        print("cambió el rango, de", self.scanRange)
+        self.scanRangeEdit.setText('{}'.format(newRange_µm))
+        print("hasta :", self.scanRange, "\n")
+        self.paramChanged()
+
+# --- Creo el intregador de area histograma
+
+    def histogramROI(self):
+#        self.liveviewStop()
+        def updatehistogram():
+            array = self.roi.getArrayRegion(self.image, self.img)
+#            ROIpos = np.array(self.roi.pos())
+#            newPos_px = tools.ROIscanRelativePOS(ROIpos,
+#                                                 self.numberofPixels,
+#                                                 np.shape(array)[1])
+#            newRange_px = np.shape(array)[0]
+#
+#            ## compute standard histogram
+#            y,x = np.histogram(np.flip(self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+#                        int(newPos_px[1]):int(newPos_px[1]+newRange_px)],0),
+#                        bins=np.linspace(0, np.ceil(np.max(self.image)), np.ceil(np.max(self.image))+1))
+##            bins=np.linspace(0, int(np.max(self.image)), int(newRange_px)))
+#            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+##            self.curve.plot(x, y, stepMode=True)  # , fillLevel=0, brush=(0,0,255,150))
+            y,x = np.histogram(array, bins=np.linspace(0, np.ceil(np.max(self.image)),
+                                                       np.ceil(np.max(self.image))+1))
+            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+
+        if self.histogramROIButton.isChecked():
+
+            self.roi.sigRegionChanged.connect(updatehistogram)
+            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating histogram")
+            self.curve = self.p6.plot(open='y')
+        else:
+            self.imageWidget.removeItem(self.p6)
+            self.roi.disconnect()
+
+
+#        ## compute standard histogram
+#        y,x = np.histogram(self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+#                          int(newPos_px[1]):int(newPos_px[1]+newRange_px)])
+
+
+#        print("a")
+#        print(len(self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+#                          int(newPos_px[1]):int(newPos_px[1]+newRange_px)]))
+
+# %%  ROI LINEARL
     def ROIlinear(self):
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
@@ -1508,6 +1622,7 @@ class ScanWidget(QtGui.QFrame):
         ax.set_xlabel('Roi')
         ax.set_ylabel('Intensiti (N photons)')
         plt.show()
+
 
 # %% Presets copiados del inspector
     def Presets(self):
