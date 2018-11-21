@@ -337,6 +337,7 @@ class ScanWidget(QtGui.QFrame):
         self.pixelSizeLabel.setToolTip('Anda tambien en labels')
         self.pixelSizeValue.setToolTip('y en los valores')
 
+        self.algo = QtGui.QLineEdit('0.5')
 
 #        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
 #        self.pixelSizeValue.setFont(newfont)
@@ -412,10 +413,11 @@ class ScanWidget(QtGui.QFrame):
         self.selectROIButton.clicked.connect(self.selectROI)
         self.selectROIButton.setToolTip('go to the ROI selected coordenates')
 
+    # ROI Histogram
         self.histogramROIButton = QtGui.QPushButton('Histogram ROI')
         self.histogramROIButton.setCheckable(True)
         self.histogramROIButton.clicked.connect(self.histogramROI)
-        self.histogramROIButton.setToolTip('go to the ROI selected coordenates')
+        self.histogramROIButton.setToolTip('Visualize an histogram in the selected ROI area')
 
     # ROI Lineal
         self.roiline = None
@@ -900,6 +902,7 @@ class ScanWidget(QtGui.QFrame):
     def liveviewStart(self):
         if self.scanMode.currentText() in ["step scan", "ramp scan"]:
             #chanelopen step, channelopen rampa
+            self.tic = ptime.time()
             self.viewtimer.start(self.linetime)
         else:
             print("elegri step o ramp scan")
@@ -953,10 +956,12 @@ class ScanWidget(QtGui.QFrame):
 
         self.img.setImage(self.image, autoLevels=False)
 
+        time = (ptime.time()-self.tic)
+        self.algo.setText("{}".format(str(time)))
         if self.i < self.numberofPixels-self.step:
             self.i = self.i + self.step
         else:
-            print(self.i==self.numberofPixels-1,"i")
+#            print(self.i==self.numberofPixels-1,"i")
 #                self.i = 0
             if self.Alancheck.isChecked():
                 self.guardarimagen()  # para guardar siempre (Alan idea)
@@ -1516,6 +1521,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.roi)
             self.roi.hide()
+            self.roi.disconnect()
             if self.ROIButton.isChecked():
                 ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
                 self.roi = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
@@ -1558,44 +1564,40 @@ class ScanWidget(QtGui.QFrame):
 # --- Creo el intregador de area histograma
 
     def histogramROI(self):
-#        self.liveviewStop()
+        #----
         def updatehistogram():
-            array = self.roi.getArrayRegion(self.image, self.img)
-#            ROIpos = np.array(self.roi.pos())
-#            newPos_px = tools.ROIscanRelativePOS(ROIpos,
-#                                                 self.numberofPixels,
-#                                                 np.shape(array)[1])
-#            newRange_px = np.shape(array)[0]
-#
-#            ## compute standard histogram
-#            y,x = np.histogram(np.flip(self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
-#                        int(newPos_px[1]):int(newPos_px[1]+newRange_px)],0),
-#                        bins=np.linspace(0, np.ceil(np.max(self.image)), np.ceil(np.max(self.image))+1))
-##            bins=np.linspace(0, int(np.max(self.image)), int(newRange_px)))
-#            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
-##            self.curve.plot(x, y, stepMode=True)  # , fillLevel=0, brush=(0,0,255,150))
-            y,x = np.histogram(array, bins=np.linspace(0, np.ceil(np.max(self.image)),
-                                                       np.ceil(np.max(self.image))+1))
-            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+            array = self.roihist.getArrayRegion(self.image, self.img)
+            ROIpos = np.array(self.roihist.pos())
+            newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                                 self.numberofPixels,
+                                                 np.shape(array)[1])
+            newRange_px = np.shape(array)[0]
 
+            y,x = np.histogram((self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+                        self.numberofPixels-int(newPos_px[1]+newRange_px):self.numberofPixels-int(newPos_px[1])]),
+                        bins=np.linspace(0, np.ceil(np.max(self.image))+2, np.ceil(np.max(self.image))+3))
+
+            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+        #----
         if self.histogramROIButton.isChecked():
 
-            self.roi.sigRegionChanged.connect(updatehistogram)
+            ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
+            self.roihist = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+            self.roihist.sigRegionChanged.connect(updatehistogram)
             self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating histogram")
             self.curve = self.p6.plot(open='y')
+            self.algo.textChanged.connect(updatehistogram)
+
         else:
+            self.vb.removeItem(self.roihist)
+            self.roihist.hide()
             self.imageWidget.removeItem(self.p6)
-            self.roi.disconnect()
-
-
-#        ## compute standard histogram
-#        y,x = np.histogram(self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
-#                          int(newPos_px[1]):int(newPos_px[1]+newRange_px)])
-
-
-#        print("a")
-#        print(len(self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
-#                          int(newPos_px[1]):int(newPos_px[1]+newRange_px)]))
+            self.roihist.disconnect()
+            self.algo.disconnect()
 
 # %%  ROI LINEARL
     def ROIlinear(self):

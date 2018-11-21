@@ -157,7 +157,7 @@ class ScanWidget(QtGui.QFrame):
         self.CMcheck.setToolTip('makes a basic measurement of the center of mass')
 
     # 2D Gaussian fit to estimate the center of a NP
-        self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
+        self.Gausscheck = QtGui.QCheckBox('Gauss fit')
 #        self.Gausscheck.setChecked(False)
         self.Gausscheck.setCheckable(False)
         self.Gausscheck.clicked.connect(self.GaussFit)
@@ -275,6 +275,12 @@ class ScanWidget(QtGui.QFrame):
         self.selectROIButton = QtGui.QPushButton('select ROI')
         self.selectROIButton.clicked.connect(self.selectROI)
         self.selectROIButton.setToolTip('go to the ROI selected coordenates')
+
+    # ROI Histogram
+        self.histogramROIButton = QtGui.QPushButton('Histogram ROI')
+        self.histogramROIButton.setCheckable(True)
+        self.histogramROIButton.clicked.connect(self.histogramROI)
+        self.histogramROIButton.setToolTip('Visualize an histogram in the selected ROI area')
 
     # ROI Lineal
         self.roiline = None
@@ -410,11 +416,11 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid2.addWidget(self.vueltaLabel,         8, 2)
 #        subgrid2.addWidget(self.vueltaEdit,          9, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
-        subgrid2.addWidget(self.ROIButton,           3, 2)
-        subgrid2.addWidget(self.selectROIButton,     4, 2)
+        subgrid2.addWidget(self.detectMode,          3, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         4, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
-        subgrid2.addWidget(self.ROIlineButton,       6, 2)
-        subgrid2.addWidget(self.selectlineROIButton, 7, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         6, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         7, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         8, 2)
         subgrid2.addWidget(self.VideoCheck,          9, 2)
         subgrid2.addWidget(QtGui.QLabel(""),        10, 2)
@@ -428,15 +434,18 @@ class ScanWidget(QtGui.QFrame):
 
     # Columna 3
 #        subgrid.addWidget(self.algobutton,            0, 3)
-#        subgrid3.addWidget(self.ROIButton,            0, 3)
-#        subgrid3.addWidget(self.selectROIButton,      1, 3)
-        subgrid3.addWidget(QtGui.QLabel(""),          0, 3)
-        subgrid3.addWidget(QtGui.QLabel(""),          1, 3)
+        subgrid3.addWidget(self.ROIButton,            0, 3)
+        subgrid3.addWidget(self.selectROIButton,      1, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          2, 3)
-        subgrid3.addWidget(self.detectMode,           3, 3)
-        subgrid3.addWidget(QtGui.QLabel(""),          4, 3)
+        subgrid3.addWidget(self.ROIlineButton,        3, 3)
+        subgrid3.addWidget(self.selectlineROIButton,  4, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          5, 3)
-        subgrid3.addWidget(QtGui.QLabel(""),          6, 3)
+        subgrid3.addWidget(self.histogramROIButton,   6, 3)
+#        subgrid3.addWidget(QtGui.QLabel(""),          1, 3)
+#        subgrid3.addWidget(QtGui.QLabel(""),          2, 3)
+#        subgrid3.addWidget(QtGui.QLabel(""),          4, 3)
+#        subgrid3.addWidget(QtGui.QLabel(""),          5, 3)
+#        subgrid3.addWidget(QtGui.QLabel(""),          6, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          7, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          8, 3)
 #        subgrid3.addWidget(QtGui.QLabel(""),          9, 3)
@@ -538,7 +547,7 @@ class ScanWidget(QtGui.QFrame):
         self.zgotoLabel = QtGui.QLineEdit("0")
         self.gotoButton = QtGui.QPushButton("♫ G0 To ♪")
         self.gotoButton.pressed.connect(self.goto)
-        layout2.addWidget(self.gotoButton, 1, 5, 2, 2)
+        layout2.addWidget(self.gotoButton, 1, 3, 2, 2)
         layout2.addWidget(self.xgotoLabel, 1, 2)
         layout2.addWidget(self.ygotoLabel, 2, 2)
         layout2.addWidget(self.zgotoLabel, 3, 2)
@@ -550,8 +559,8 @@ class ScanWidget(QtGui.QFrame):
 
          #---------------- Botones que 'escondi' para no verlos
         layout3 = QtGui.QGridLayout()
-        self.gotoWidgetCM = QtGui.QWidget()
-        self.gotoWidgetCM.setLayout(layout2)
+        self.goCMWidget = QtGui.QWidget()
+        self.goCMWidget.setLayout(layout3)
         self.CMxLabel = QtGui.QLabel('CM X')
         self.CMxValue = QtGui.QLabel('NaN')
         self.CMyLabel = QtGui.QLabel('CM Y')
@@ -562,20 +571,20 @@ class ScanWidget(QtGui.QFrame):
         layout3.addWidget(self.CMyValue, 4, 2)
         self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
         self.goCMButton.pressed.connect(self.goCM)
-        layout3.addWidget(self.goCMButton, 1, 5, 2, 2)
+        layout3.addWidget(self.goCMButton, 1, 4, 2, 2)
         layout3.addWidget(self.CMcheck, 1, 1)
 
         self.GaussxLabel = QtGui.QLabel('Gauss X')
         self.GaussxValue = QtGui.QLabel('NaN')
         self.GaussyLabel = QtGui.QLabel('Gauss Y')
         self.GaussyValue = QtGui.QLabel('NaN')
-        layout3.addWidget(self.GaussxLabel, 3, 5)
-        layout3.addWidget(self.GaussxValue, 4, 5)
-        layout3.addWidget(self.GaussyLabel, 3, 6)
-        layout3.addWidget(self.GaussyValue, 4, 6)
-        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
-        layout3.addWidget(QtGui.QLabel(' '), 4, 0)
-        layout3.addWidget(QtGui.QLabel(' '), 4, 7)
+        layout3.addWidget(self.GaussxLabel, 3, 4)
+        layout3.addWidget(self.GaussxValue, 4, 4)
+        layout3.addWidget(self.GaussyLabel, 3, 5)
+        layout3.addWidget(self.GaussyValue, 4, 5)
+#        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
+#        layout3.addWidget(QtGui.QLabel(' '), 4, 0)
+#        layout3.addWidget(QtGui.QLabel(' '), 4, 7)
         layout3.addWidget(self.Gausscheck, 2, 1)
          #---------------- Botones que 'escondi' para no verlos
 #
@@ -634,7 +643,7 @@ class ScanWidget(QtGui.QFrame):
         dockArea.addDock(viewDock,'left')
 
         goCMDock = Dock('Cm and Gauss', size=(1, 1))
-        goCMDock.addWidget(self.gotoWidgetCM)
+        goCMDock.addWidget(self.goCMWidget)
         dockArea.addDock(goCMDock, 'bottom', viewDock)
 
         gotoDock = Dock('goto', size=(1, 1))
@@ -645,7 +654,7 @@ class ScanWidget(QtGui.QFrame):
         posDock.addWidget(self.positioner)
         dockArea.addDock(posDock, 'left', gotoDock)
 
-        scanDock3 = Dock('PMT Config', size=(1, 1))
+        scanDock3 = Dock('ROI Things', size=(1, 1))
         scanDock3.addWidget(self.paramWidget3)
         dockArea.addDock(scanDock3,'right')
 
@@ -2270,6 +2279,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.roi)
             self.roi.hide()
+            self.roi.disconnect()
             if self.ROIButton.isChecked():
                 ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
                 self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
@@ -2309,82 +2319,43 @@ class ScanWidget(QtGui.QFrame):
         print("hasta :", self.scanRange, "\n")
         self.paramChanged()
 
-# --- Creo el intregador de area
-    def integrateROI(self):
-#        self.liveviewStop()
+# --- Creo el intregador de area histograma
+    def histogramROI(self):
+        #----
+        def updatehistogram():
+            array = self.roihist.getArrayRegion(self.image, self.img)
+            ROIpos = np.array(self.roihist.pos())
+            newPos_px = tools.ROIscanRelativePOS(ROIpos,
+                                                 self.numberofPixels,
+                                                 np.shape(array)[1])
+            newRange_px = np.shape(array)[0]
 
-        array = self.roi.getArrayRegion(self.image, self.img)
-        ROIpos = np.array(self.roi.pos())
-        newPos_px = tools.ROIscanRelativePOS(ROIpos,
-                                             self.numberofPixels,
-                                             np.shape(array)[1])
-        newPos_µm = newPos_px * self.pixelSize + self.initialPosition[0:2]
+            y,x = np.histogram((self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+                        self.numberofPixels-int(newPos_px[1]+newRange_px):self.numberofPixels-int(newPos_px[1])]),
+                        bins=np.linspace(0, np.ceil(np.max(self.image))+2, np.ceil(np.max(self.image))+3))
 
-        newPos_µm = np.around(newPos_µm, 2)
+            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+        #----
+        if self.histogramROIButton.isChecked():
 
+            ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
+            self.roihist = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
+                                         handlePos=(1, 0),
+                                         handleCenter=(0, 1),
+                                         scaleSnap=True,
+                                         translateSnap=True)
+            self.roihist.sigRegionChanged.connect(updatehistogram)
+            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating histogram")
+            self.curve = self.p6.plot(open='y')
+            self.maxcountsEdit.textChanged.connect(updatehistogram)
 
-#
-#        self.moveto(float(newPos_µm[0]),
-#                    float(newPos_µm[1]),
-#                    float(self.initialPosition[2]))
-
-        newRange_px = np.shape(array)[0]
-        newRange_µm = self.pixelSize * newRange_px
-        newRange_µm = np.around(newRange_µm, 2)
-
-        if self.integratROIebutton.isChecked():
-            self.integrateZone()
-            print("midiendo")
         else:
-            self.integrateZoneStop()
-            print("fin")
+            self.vb.removeItem(self.roihist)
+            self.roihist.hide()
+            self.imageWidget.removeItem(self.p6)
+            self.roihist.disconnect()
+            self.maxcountsEdit.disconnect()
 
-    def integrateZoneStop(self):
-        self.pointtimer.stop()
-        self.pointtask.stop()
-        self.pointtask.close()
-        self.pointtask2.stop()
-        self.pointtask2.close()
-
-    def integrateZone(self):
-
-        self.tiempo = 400 # ms  # refresca el numero cada este tiempo
-#        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
-#        self.points2 = self.points
-
-        self.pointtask = nidaqmx.Task('pointtask')
-
-        # Configure the counter channel to read the APD
-        self.pointtask.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[0]),
-                            name_to_assign_to_channel=u'Line_counter',
-                            initial_count=0)
-        
-        self.pointtask2 = nidaqmx.Task('pointtask2')
-        # Configure the counter channel to read the APD
-        self.pointtask2.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[1]),
-                            name_to_assign_to_channel=u'Line_counter',
-                            initial_count=0)
-
-        self.pointtimer = QtCore.QTimer()
-        self.pointtimer.timeout.connect(self.updateZone)
-        self.pointtimer.start(self.tiempo)
-
-    def updateZone(self):
-        points = np.zeros(int((self.apdrate*(self.tiempo /10**3))))
-        points2 = points
-        N = len(points)
-        points[:] = self.pointtask.read(N)
-        points2[:] = self.pointtask.read(N)
-
-        m = np.mean(points)
-        m2 = np.mean(points2)
-#        #print("valor traza", m)
-        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
-
-
-#        self.paramChanged()
 
 # %% Roi lineal
     def ROIlinear(self):

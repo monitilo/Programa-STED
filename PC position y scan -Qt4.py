@@ -225,6 +225,9 @@ class ScanWidget(QtGui.QFrame):
         self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
 
+        self.algo = QtGui.QLineEdit('4')
+
+
         self.onlyInt = QtGui.QIntValidator(0,5000)
         self.numberofPixelsEdit.setValidator(self.onlyInt)
         self.onlypos = QtGui.QDoubleValidator(0, 1000,10)
@@ -639,6 +642,7 @@ y guarde la imagen"""
     def liveviewStart(self):
         if self.scanMode.currentText() in ["step scan", "ramp scan"]:
             #chanelopen step, channelopen rampa
+            self.time = ptime.time()
             self.viewtimer.start(self.linetime)
         else:
             print("elegri step o ramp scan")
@@ -711,7 +715,8 @@ y guarde la imagen"""
                 self.i = self.i + self.step
             else:
 #                self.i = 0
-
+                time = (ptime.time()-self.tic)
+                self.algo.setText("a{}".format(time))
                 if self.Alancheck.isChecked():
                     self.guardarimagen()  # para guardar siempre (Alan idea)
                 if self.CMcheck.isChecked():
