@@ -741,7 +741,8 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
         self.PreparePresets()
-
+        save()
+# %% Un monton de pequeñas cosas que agregé
     def liveviewKey(self):
         '''Triggered by the liveview shortcut.'''
         if self.liveviewButton.isChecked():

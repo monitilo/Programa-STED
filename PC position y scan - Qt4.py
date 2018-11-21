@@ -25,7 +25,7 @@ import re
 #from tkinter import filedialog
 
 import tools
-import viewbox_toolsQT5
+import viewbox_tools
 
 
 from scipy import ndimage
@@ -40,102 +40,6 @@ def makeRamp(start, end, samples):
     return np.linspace(start, end, num=samples)
 
 
-#import sys
-#from PyQt5 import QtCore, QtWidgets
-#from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
-#from PyQt5.QtCore import QSize
-#from PyQt5.QtGui import QIcon
-
-## %% Main Window
-#class MainWindow(QtWidgets.QMainWindow):
-#    def newCall(self):
-#        self.a = 0
-#        print('New')
-#
-#    def openCall(self):
-#        self.a = 1.5
-#        os.startfile(self.file_path)
-##        print('Open')
-#
-#    def exitCall(self):
-#        self.a = -1.5
-#        print('Exit app (no hace nada)')
-#
-#    def greenAPD(self):
-#        print('Green APD')
-#
-#    def redAPD(self):
-#        print('red APD')
-#
-#    def localDir(self):
-#        print('poner la carpeta donde trabajar')
-#        root = tk.Tk()
-#        root.withdraw()
-#        
-#        self.file_path = filedialog.askdirectory()
-#        print(self.file_path,"◄ dire")
-#        self.form_widget.NameDirValue.setText(self.file_path)
-#        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
-##        self.form_widget.paramChanged()
-#
-#
-#    def __init__(self):
-#        QtWidgets.QMainWindow.__init__(self)
-#        self.a = 0
-#        self.file_path = os.path.abspath("")
-## ----- MENU
-#        self.setMinimumSize(QtCore.QSize(500, 500))
-#        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
-#
-#        # Create new action
-##        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
-##        newAction.setShortcut('Ctrl+N')
-##        newAction.setStatusTip('New document')
-##        newAction.triggered.connect(self.newCall)
-#
-#        # Create new action
-#        openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)
-#        openAction.setShortcut('Ctrl+O')
-#        openAction.setStatusTip('Open document')
-#        openAction.triggered.connect(self.openCall)
-#
-#        # Create exit action
-#        exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
-#        exitAction.setShortcut('Ctrl+Q')
-#        exitAction.setStatusTip('Exit application')
-#        exitAction.triggered.connect(self.exitCall)
-#
-#        # Create de APD options Action
-#        greenAPDaction = QtWidgets.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
-#        greenAPDaction.setStatusTip('Uses the APD for canal green')
-#        greenAPDaction.triggered.connect(self.greenAPD)
-#        greenAPDaction.setShortcut('Ctrl+G')
-#        redAPDaction = QtWidgets.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
-#        redAPDaction.setStatusTip('Uses the APD for canal red')
-#        redAPDaction.setShortcut('Ctrl+R')
-#        redAPDaction.triggered.connect(self.redAPD)
-#
-#        # Create de file location action
-#        localDirAction = QtWidgets.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
-#        localDirAction.setStatusTip('Select the work folder')
-#        localDirAction.setShortcut('Ctrl+D')
-#        localDirAction.triggered.connect(self.localDir)
-#
-#        # Create menu bar and add action
-#        menuBar = self.menuBar()
-#        fileMenu = menuBar.addMenu('&File')
-#        fileMenu.addAction(localDirAction)
-#        fileMenu.addAction(openAction)
-#        fileMenu.addAction(exitAction)
-#        fileMenu2 = menuBar.addMenu('&APD')
-#        fileMenu2.addAction(greenAPDaction)
-#        fileMenu2.addAction(redAPDaction)
-##        fileMenu3 = menuBar.addMenu('&Local Folder')
-##        fileMenu3.addAction(localDiraction)
-#        fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
-#
-#        self.form_widget = ScanWidget(self, device)
-#        self.setCentralWidget(self.form_widget)
 # %% Scan Widget
 class ScanWidget(QtGui.QFrame):
 
@@ -496,9 +400,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(self.selectlineROIButton,   6, 2)
         subgrid2.addWidget(QtGui.QLabel(' '),          7, 2) #   
         subgrid2.addWidget(self.plotLivebutton,         8, 2)
-        subgrid2.addWidget(QtGui.QLabel(' '),           9, 2) #   
+#        subgrid2.addWidget(QtGui.QLabel(' '),           9, 2) #   
 #        subgrid2.addWidget(self.CMcheck,                 8, 2)
-        subgrid2.addWidget(QtGui.QLabel(' '),          10, 2) #   
+#        subgrid2.addWidget(QtGui.QLabel(' '),          10, 2) #   
         subgrid2.addWidget(self.Continouscheck,        11, 2)
         subgrid2.addWidget(QtGui.QLabel(' '),          12, 2) #   
         subgrid2.addWidget(self.presetsMode,            13, 2)
@@ -519,7 +423,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
         subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
         subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
-#        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
         subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
         subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
         subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
@@ -708,8 +612,8 @@ class ScanWidget(QtGui.QFrame):
         restoreBtn = QtGui.QPushButton('Restore dock state')
         restoreBtn.setEnabled(False)
 #        subgrid3.addWidget(label, row=0, col=0)
-        subgrid3.addWidget(saveBtn,    8, 3)
-        subgrid3.addWidget(restoreBtn, 9, 3)
+        subgrid2.addWidget(saveBtn,    9, 2)
+        subgrid2.addWidget(restoreBtn, 10, 2)
 #        d1.addWidget(w1)
         state = None
         def save():
@@ -1553,7 +1457,7 @@ class ScanWidget(QtGui.QFrame):
         if self.roi is None:
 
             ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
-            self.roi = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
+            self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
                                          handlePos=(1, 0),
                                          handleCenter=(0, 1),
                                          scaleSnap=True,
@@ -1565,7 +1469,7 @@ class ScanWidget(QtGui.QFrame):
             self.roi.disconnect()
             if self.ROIButton.isChecked():
                 ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
-                self.roi = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
+                self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
                                              handlePos=(1, 0),
                                              handleCenter=(0, 1),
                                              scaleSnap=True,
@@ -1627,7 +1531,7 @@ class ScanWidget(QtGui.QFrame):
         if self.histogramROIButton.isChecked():
 
             ROIpos = (0.5 * self.numberofPixels - 64, 0.5 * self.numberofPixels - 64)
-            self.roihist = viewbox_toolsQT5.ROI(self.numberofPixels, self.vb, ROIpos,
+            self.roihist = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
                                          handlePos=(1, 0),
                                          handleCenter=(0, 1),
                                          scaleSnap=True,
