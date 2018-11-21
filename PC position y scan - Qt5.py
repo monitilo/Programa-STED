@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
-#from pyqtgraph.dockarea import Dock, DockArea
+from pyqtgraph.dockarea import DockArea, Dock
 import pyqtgraph.ptime as ptime
 #
 from PIL import Image
@@ -520,7 +520,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
         subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
         subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
-        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
         subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
         subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
         subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
@@ -705,9 +705,26 @@ class ScanWidget(QtGui.QFrame):
 
 #        self.setLayout(hbox)
 
+        saveBtn = QtGui.QPushButton('Save dock state')
+        restoreBtn = QtGui.QPushButton('Restore dock state')
+        restoreBtn.setEnabled(False)
+#        subgrid3.addWidget(label, row=0, col=0)
+        subgrid3.addWidget(saveBtn,    8, 3)
+        subgrid3.addWidget(restoreBtn, 9, 3)
+#        d1.addWidget(w1)
+        state = None
+        def save():
+            global state
+            state = dockArea.saveState()
+            restoreBtn.setEnabled(True)
+        def load():
+            global state
+            dockArea.restoreState(state)
+        saveBtn.clicked.connect(save)
+        restoreBtn.clicked.connect(load)
+
 # ----DOCK cosas
         hbox = QtGui.QHBoxLayout(self)
-        from pyqtgraph.dockarea import DockArea, Dock
         dockArea = DockArea()
 
         viewDock = Dock('viewbox', size=(500, 450))
@@ -715,13 +732,17 @@ class ScanWidget(QtGui.QFrame):
 #        viewDock.hideTitleBar()
         dockArea.addDock(viewDock,'left')
 
-        gotoDock = Dock('goto', size=(1, 1))
-        gotoDock.addWidget(self.gotoWidget)
-        dockArea.addDock(gotoDock, 'bottom', viewDock)
+        self.otrosDock = Dock('Other things', size=(1, 1))
+#        self.otrosDock.addWidget(HistoWidget)
+        dockArea.addDock(self.otrosDock,'bottom')
 
         posDock = Dock('positioner', size=(1, 1))
         posDock.addWidget(self.positioner)
-        dockArea.addDock(posDock, 'left', gotoDock)
+        dockArea.addDock(posDock, 'above', self.otrosDock)
+
+        gotoDock = Dock('goto', size=(1, 1))
+        gotoDock.addWidget(self.gotoWidget)
+        dockArea.addDock(gotoDock, 'right', posDock)
 
         scanDock3 = Dock('PMT config', size=(1, 1))
         scanDock3.addWidget(self.paramWidget3)
@@ -734,6 +755,7 @@ class ScanWidget(QtGui.QFrame):
         scanDock = Dock('Scan parameters', size=(1, 1))
         scanDock.addWidget(self.paramWidget)
         dockArea.addDock(scanDock,'left', scanDock2)
+
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -994,8 +1016,6 @@ class ScanWidget(QtGui.QFrame):
         self.maxcountsEdit.setText("<strong> {}|{}".format(int(m),int(m2))+" \n"+" {}|{}".format(int(m3),int(m4)))
 #        if m >= (5000 * self.pixelTime*10**3) or m2 >= (5000 * self.pixelTime*10**3):
 #            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
-
-
 
 # %% Barridos
     def barridos(self):
@@ -1593,11 +1613,15 @@ class ScanWidget(QtGui.QFrame):
                                                  np.shape(array)[1])
             newRange_px = np.shape(array)[0]
 
-            y,x = np.histogram((self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
-                        self.numberofPixels-int(newPos_px[1]+newRange_px):self.numberofPixels-int(newPos_px[1])]),
-                        bins=np.linspace(0, np.ceil(np.max(self.image))+2, np.ceil(np.max(self.image))+3))
+            roizone = self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+                        self.numberofPixels-int(newPos_px[1]+newRange_px):self.numberofPixels-int(newPos_px[1])]
+            y,x = np.histogram(roizone, bins=np.linspace(-0.5, np.ceil(np.max(self.image))+2, np.ceil(np.max(self.image))+3))
 
-            self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
+            m = np.mean(roizone)
+            m2 = np.max(roizone)
+            text= "<strong> mean = {:.3} | max = {:.3}".format(float(m),float(m2))
+            self.p6.setLabel('top',text)
+            self.curve.setData(x,y,name=text, stepMode=True, fillLevel=0, brush=(0,0,255,150))
         #----
         if self.histogramROIButton.isChecked():
 
@@ -1608,14 +1632,22 @@ class ScanWidget(QtGui.QFrame):
                                          scaleSnap=True,
                                          translateSnap=True)
             self.roihist.sigRegionChanged.connect(updatehistogram)
-            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating histogram")
+
+            self.HistoWidget = pg.GraphicsLayoutWidget()
+            self.p6 = self.HistoWidget.addPlot(row=2,col=1)  # ,title="Updating histogram")
+            self.p6.showGrid(x=True, y=True)
+            self.p6.setLabel('left','Number of pixels with this counts')
+            self.p6.setLabel('bottom','counts')
+            self.p6.setLabel('right','')
             self.curve = self.p6.plot(open='y')
             self.algo.textChanged.connect(updatehistogram)
+            self.otrosDock.addWidget(self.HistoWidget)
 
         else:
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
-            self.imageWidget.removeItem(self.p6)
+#            self.otrosDock.removeWidget(self.HistoWidget)
+            self.HistoWidget.deleteLater()
             self.roihist.disconnect()
             self.algo.disconnect()
 
@@ -1630,12 +1662,16 @@ class ScanWidget(QtGui.QFrame):
             self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
-            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating plot")
+            
+            self.LinearWidget = pg.GraphicsLayoutWidget()
+            self.p6 = self.LinearWidget.addPlot(row=2,col=1,title="Updating plot")
+            self.p6.showGrid(x=True, y=True)
             self.curve = self.p6.plot(open='y')
+            self.otrosDock.addWidget(self.LinearWidget)
         else:
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
-            self.imageWidget.removeItem(self.p6)
+            self.LinearWidget.deleteLater()
 
     def selectLineROI(self):
         fig, ax = plt.subplots()

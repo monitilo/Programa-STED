@@ -418,8 +418,8 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
         subgrid2.addWidget(self.detectMode,          3, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         4, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),         6, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),         6, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         7, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         8, 2)
         subgrid2.addWidget(self.VideoCheck,          9, 2)
@@ -634,6 +634,23 @@ class ScanWidget(QtGui.QFrame):
 #        self.setLayout(hbox)
 # ---- fin positioner part----------
 
+        saveBtn = QtGui.QPushButton('Save dock state')
+        restoreBtn = QtGui.QPushButton('Restore dock state')
+        restoreBtn.setEnabled(False)
+#        subgrid3.addWidget(label, row=0, col=0)
+        subgrid2.addWidget(saveBtn,    5, 2)
+        subgrid2.addWidget(restoreBtn, 6, 2)
+#        d1.addWidget(w1)
+        state = None
+        def save():
+            global state
+            state = dockArea.saveState()
+            restoreBtn.setEnabled(True)
+        def load():
+            global state
+            dockArea.restoreState(state)
+        saveBtn.clicked.connect(save)
+        restoreBtn.clicked.connect(load)
 
 # ----DOCK cosas, mas comodo!
         hbox = QtGui.QHBoxLayout(self)
@@ -645,17 +662,21 @@ class ScanWidget(QtGui.QFrame):
         viewDock.hideTitleBar()
         dockArea.addDock(viewDock,'left')
 
+        self.otrosDock = Dock('Other things', size=(1, 1))
+#        self.otrosDock.addWidget(HistoWidget)
+        dockArea.addDock(self.otrosDock,'bottom')
+
+        posDock = Dock('positioner', size=(1, 1))
+        posDock.addWidget(self.positioner)
+        dockArea.addDock(posDock, 'above', self.otrosDock)
+
         goCMDock = Dock('Cm and Gauss', size=(1, 1))
         goCMDock.addWidget(self.goCMWidget)
-        dockArea.addDock(goCMDock, 'bottom', viewDock)
+        dockArea.addDock(goCMDock, 'right', posDock)
 
         gotoDock = Dock('goto', size=(1, 1))
         gotoDock.addWidget(self.gotoWidget)
         dockArea.addDock(gotoDock, 'above', goCMDock)
-
-        posDock = Dock('positioner', size=(1, 1))
-        posDock.addWidget(self.positioner)
-        dockArea.addDock(posDock, 'left', gotoDock)
 
         scanDock3 = Dock('ROI Things', size=(1, 1))
         scanDock3.addWidget(self.paramWidget3)
@@ -996,6 +1017,7 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels+1, 10)
         else:
             multi5 = np.arange(0, self.numberofPixels+1, 2)
+        multi5[-1] = self.numberofPixels-1
 
         if self.dy in multi5:
             if self.imagecheck.isChecked():
@@ -1065,6 +1087,7 @@ class ScanWidget(QtGui.QFrame):
             multi5 = np.arange(0, self.numberofPixels+1, 10)
         else:
             multi5 = np.arange(0, self.numberofPixels+1, 2)
+        multi5[-1] = self.numberofPixels-1
 
         if self.dy in multi5:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
@@ -2347,10 +2370,15 @@ class ScanWidget(QtGui.QFrame):
                                                  np.shape(array)[1])
             newRange_px = np.shape(array)[0]
 
-            y,x = np.histogram((self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
-                        self.numberofPixels-int(newPos_px[1]+newRange_px):self.numberofPixels-int(newPos_px[1])]),
-                        bins=np.linspace(0, np.ceil(np.max(self.image))+2, np.ceil(np.max(self.image))+3))
+            roizone = self.image[int(newPos_px[0]):int(newPos_px[0]+newRange_px),
+                        self.numberofPixels-int(newPos_px[1]+newRange_px):self.numberofPixels-int(newPos_px[1])]
 
+            y,x = np.histogram(roizone, bins=np.linspace(-0.5, np.ceil(np.max(self.image))+2, np.ceil(np.max(self.image))+3))
+
+            m = np.mean(roizone)
+            m2 = np.max(roizone)
+            text= "<strong> mean = {:.3} | max = {:.3}".format(float(m),float(m2))
+            self.p6.setLabel('top',text)
             self.curve.setData(x,y, stepMode=True, fillLevel=0, brush=(0,0,255,150))
         #----
         if self.histogramROIButton.isChecked():
@@ -2362,14 +2390,22 @@ class ScanWidget(QtGui.QFrame):
                                          scaleSnap=True,
                                          translateSnap=True)
             self.roihist.sigRegionChanged.connect(updatehistogram)
-            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating histogram")
+
+            self.HistoWidget = pg.GraphicsLayoutWidget()
+            self.p6 = self.HistoWidget.addPlot(row=2,col=1)  # ,title="Updating histogram")
+            self.p6.showGrid(x=True, y=True)
+            self.p6.setLabel('left','Number of pixels with this counts')
+            self.p6.setLabel('bottom','counts')
+            self.p6.setLabel('right','')
             self.curve = self.p6.plot(open='y')
             self.maxcountsEdit.textChanged.connect(updatehistogram)
+            self.otrosDock.addWidget(self.HistoWidget)
 
         else:
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
             self.imageWidget.removeItem(self.p6)
+            self.HistoWidget.deleteLater()
             self.roihist.disconnect()
             self.maxcountsEdit.disconnect()
 
@@ -2386,12 +2422,16 @@ class ScanWidget(QtGui.QFrame):
             self.linearROI = pg.LineSegmentROI([[10, 64], [largo,64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
-            self.p6 = self.imageWidget.addPlot(row=2,col=1,title="Updating plot")
+            
+            self.LinearWidget = pg.GraphicsLayoutWidget()
+            self.p6 = self.LinearWidget.addPlot(row=2,col=1,title="Updating plot")
+            self.p6.showGrid(x=True, y=True)
             self.curve = self.p6.plot(open='y')
+            self.otrosDock.addWidget(self.LinearWidget)
         else:
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
-            self.imageWidget.removeItem(self.p6)
+            self.LinearWidget.deleteLater()
 
     def selectLineROI(self):
         array = self.linearROI.getArrayRegion(self.image, self.img)
