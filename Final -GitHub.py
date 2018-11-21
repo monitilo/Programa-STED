@@ -557,7 +557,7 @@ class ScanWidget(QtGui.QFrame):
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
 
-         #---------------- Botones que 'escondi' para no verlos
+    #---------------- Botones que 'escondi' para no verlos
         layout3 = QtGui.QGridLayout()
         self.goCMWidget = QtGui.QWidget()
         self.goCMWidget.setLayout(layout3)
@@ -571,7 +571,7 @@ class ScanWidget(QtGui.QFrame):
         layout3.addWidget(self.CMyValue, 4, 2)
         self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
         self.goCMButton.pressed.connect(self.goCM)
-        layout3.addWidget(self.goCMButton, 1, 4, 2, 2)
+        layout3.addWidget(self.goCMButton, 1, 4)  # , 2, 2)
         layout3.addWidget(self.CMcheck, 1, 1)
 
         self.GaussxLabel = QtGui.QLabel('Gauss X')
@@ -585,8 +585,11 @@ class ScanWidget(QtGui.QFrame):
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 0)
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 7)
+        self.goCMButton = QtGui.QPushButton("♥ Go Gauss ♦")
+        self.goCMButton.pressed.connect(self.goGauss)
+        layout3.addWidget(self.goCMButton, 2, 4)  # , 2, 2)
         layout3.addWidget(self.Gausscheck, 2, 1)
-         #---------------- Botones que 'escondi' para no verlos
+    #---------------- Botones que 'escondi' para no verlos
 #
 ##    # interface comoda
 #        hbox = QtGui.QHBoxLayout(self)
@@ -1837,7 +1840,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.paramChanged()
 
-# %% Go Cm y go to
+# %% Go Cm, go Gauss y go to
     def goCM(self):
             self.zgotoLabel.setStyleSheet(" background-color: ")
             print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
@@ -1847,6 +1850,20 @@ class ScanWidget(QtGui.QFrame):
             startY = float(self.yLabel.text())
             self.moveto((float(self.CMxValue.text()) + startX) - (self.scanRange/2),
                         (float(self.CMyValue.text()) + startY) - (self.scanRange/2),
+                        float(self.zLabel.text()))
+
+            print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),
+                  float(self.zLabel.text()))
+
+    def goGauss(self):
+            self.zgotoLabel.setStyleSheet(" background-color: ")
+            print("arranco en",float(self.xLabel.text()), float(self.yLabel.text()),
+                  float(self.zLabel.text()))
+
+            startX = float(self.xLabel.text())
+            startY = float(self.yLabel.text())
+            self.moveto((float(self.GaussxValue.text()) + startX) - (self.scanRange/2),
+                        (float(self.GaussyValue.text()) + startY) - (self.scanRange/2),
                         float(self.zLabel.text()))
 
             print("termino en", float(self.xLabel.text()), float(self.yLabel.text()),

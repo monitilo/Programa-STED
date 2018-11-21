@@ -250,7 +250,7 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['step scan', 'ramp scan', 'otro scan']
         self.scanMode.addItems(self.scanModes)
-        self.scanMode.setCurrentIndex(1)
+        self.scanMode.setCurrentIndex(0)
 #        self.scanMode.currentIndexChanged.connect(self.paramChanged)
         self.scanMode.setToolTip('Elijo el modo de escaneo')
 
@@ -427,6 +427,12 @@ class ScanWidget(QtGui.QFrame):
         self.selectlineROIButton = QtGui.QPushButton('Plot line ROI')
         self.selectlineROIButton.clicked.connect(self.selectLineROI)
 
+    # Max counts
+        self.maxcountsLabel = QtGui.QLabel('Counts (max|mean)')
+        self.maxcountsEdit = QtGui.QLabel('<strong> 0|0')
+        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold) 
+        self.maxcountsEdit.setFont(newfont)
+
         self.paramChanged()
 
         self.paramWidget = QtGui.QWidget()
@@ -519,11 +525,14 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
         subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
         subgrid3.addWidget(QtGui.QLabel('presets desplegable'),    15, 3)
-        subgrid3.addWidget(QtGui.QLabel('Cuentas maximas (r/a)'),  16, 3)
-        subgrid3.addWidget(QtGui.QLabel('valor maximo'),       17, 3,2,2)
+#        subgrid3.addWidget(QtGui.QLabel('Cuentas maximas (r/a)'),  16, 3)
+#        subgrid3.addWidget(QtGui.QLabel('valor maximo'),       17, 3,2,2)
         subgrid3.addWidget(self.ROIButton,           0, 3)
         subgrid3.addWidget(self.selectROIButton,     1, 3)
         subgrid3.addWidget(self.histogramROIButton,  2, 3)
+
+        subgrid3.addWidget(self.maxcountsLabel,     16, 3)
+        subgrid3.addWidget(self.maxcountsEdit,      17, 2,2,3)
 
 
 # --- POSITIONERRRRR-------------------------------
@@ -955,6 +964,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.image[9, -self.i] = 333
 
         self.img.setImage(self.image, autoLevels=False)
+        self.MaxCounts()
 
         time = (ptime.time()-self.tic)
         self.algo.setText("{}".format(str(time)))
@@ -975,6 +985,16 @@ class ScanWidget(QtGui.QFrame):
                 self.liveviewStart()
             else:
                 self.liveviewStop()
+# %% MAX Counts
+    def MaxCounts(self):
+        m = np.max(self.image)
+        m2 = np.mean(self.image)
+        m3 = np.median(self.image)
+        m4 = np.min(self.image)
+        self.maxcountsEdit.setText("<strong> {}|{}".format(int(m),int(m2))+" \n"+" {}|{}".format(int(m3),int(m4)))
+#        if m >= (5000 * self.pixelTime*10**3) or m2 >= (5000 * self.pixelTime*10**3):
+#            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
+
 
 
 # %% Barridos
