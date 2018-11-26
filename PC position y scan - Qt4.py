@@ -21,8 +21,8 @@ from PIL import Image
 
 import re
 
-#import tkinter as tk
-#from tkinter import filedialog
+import tkinter as tk
+from tkinter import filedialog
 
 import tools
 import viewbox_tools
@@ -145,11 +145,14 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
-#        self.NameDirButton = QtGui.QPushButton('Open')
-#        self.NameDirButton.clicked.connect(self.openFolder)
+        self.NameDirButton = QtGui.QPushButton('select Dir')
+        self.NameDirButton.clicked.connect(self.selectFolder)
         self.file_path = os.path.abspath("")
-        # Defino el tipo de Scan que quiero
+        self.OpenButton = QtGui.QPushButton('open dir')
+        self.OpenButton.clicked.connect(self.openFolder)
 
+
+    # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
         self.scanModes = ['step scan', 'ramp scan', 'otro scan']
         self.scanMode.addItems(self.scanModes)
@@ -403,8 +406,8 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid2.addWidget(QtGui.QLabel(' '),           9, 2) #   
 #        subgrid2.addWidget(self.CMcheck,                 8, 2)
 #        subgrid2.addWidget(QtGui.QLabel(' '),          10, 2) #   
-        subgrid2.addWidget(self.Continouscheck,        11, 2)
-        subgrid2.addWidget(QtGui.QLabel(' '),          12, 2) #   
+        subgrid2.addWidget(self.Continouscheck,        12, 2)
+        subgrid2.addWidget(QtGui.QLabel(' '),          9, 2) #   
         subgrid2.addWidget(self.presetsMode,            13, 2)
         subgrid2.addWidget(self.XYcheck,                14, 2)
         subgrid2.addWidget(self.XZcheck,                15, 2)
@@ -420,8 +423,8 @@ class ScanWidget(QtGui.QFrame):
     # Columna 3
 #        subgrid3.addWidget(QtGui.QLabel('ROI BUTTON'),              0, 3)
 #        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
-        subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
-        subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
+#        subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
         subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
         subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
         subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
@@ -435,8 +438,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(self.histogramROIButton,  2, 3)
 
         subgrid3.addWidget(self.maxcountsLabel,     16, 3)
-        subgrid3.addWidget(self.maxcountsEdit,      17, 2,2,3)
+        subgrid3.addWidget(self.maxcountsEdit,      17, 3,2,3)
 
+        subgrid3.addWidget(self.NameDirButton,       4, 3,2,1)
+        subgrid3.addWidget(self.OpenButton,          5, 3,1,1)
 
 # --- POSITIONERRRRR-------------------------------
 
@@ -498,122 +503,13 @@ class ScanWidget(QtGui.QFrame):
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
 #--- fin POSITIONEERRRRRR---------------------------
-        
-#        self.CMxLabel = QtGui.QLabel('CM X')
-#        self.CMxValue = QtGui.QLabel('NaN')
-#        self.CMyLabel = QtGui.QLabel('CM Y')
-#        self.CMyValue = QtGui.QLabel('NaN')
-#        layout2.addWidget(self.CMxLabel, 4, 1)
-#        layout2.addWidget(self.CMxValue, 5, 1)
-#        layout2.addWidget(self.CMyLabel, 4, 2)
-#        layout2.addWidget(self.CMyValue, 5, 2)
-#        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
-#        self.goCMButton.pressed.connect(self.goCM)
-#        layout2.addWidget(self.goCMButton, 2, 5, 2, 2)
-#
-#        self.GaussxLabel = QtGui.QLabel('Gauss X')
-#        self.GaussxValue = QtGui.QLabel('NaN')
-#        self.GaussyLabel = QtGui.QLabel('Gauss Y')
-#        self.GaussyValue = QtGui.QLabel('NaN')
-#        layout2.addWidget(self.GaussxLabel, 4, 5)
-#        layout2.addWidget(self.GaussxValue, 5, 5)
-#        layout2.addWidget(self.GaussyLabel, 4, 6)
-#        layout2.addWidget(self.GaussyValue, 5, 6)
-#        layout2.addWidget(QtGui.QLabel(' '), 4, 4)
-#        layout2.addWidget(QtGui.QLabel(' '), 4, 0)
-#        layout2.addWidget(QtGui.QLabel(' '), 4, 7)
-
-##    # Nueva interface mas comoda!
-#        hbox = QtGui.QHBoxLayout(self)
-#        topleft=QtGui.QFrame()
-#        topleft.setFrameShape(QtGui.QFrame.StyledPanel)
-#        bottom = QtGui.QFrame()
-#        bottom.setFrameShape(QtGui.QFrame.StyledPanel)
-#        topleft.setLayout(grid)  # viewbox
-#        downright=QtGui.QFrame()
-#        downright.setFrameShape(QtGui.QFrame.StyledPanel)
-#        topright=QtGui.QFrame()
-#        topright.setFrameShape(QtGui.QFrame.StyledPanel)
-#        topright.setLayout(subgrid)  # menu con cosas
-#
-#        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-##        splitter1.addWidget(imageWidget)
-#        splitter1.addWidget(topleft)
-#        splitter1.addWidget(topright)
-#        splitter1.setSizes([10**6, 1])
-#
-#        splitter15 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        downright.setLayout(layout)  # positioner
-#        splitter15.addWidget(downright)
-##        splitter15.addWidget(self.positioner)
-#        bottom.setLayout(layout2)  # gotoWidget
-#        splitter15.addWidget(bottom)
-##        splitter15.addWidget(self.gotoWidget)
-#        splitter15.setSizes([10, 10])
-#
-#        splitter2 = QtGui.QSplitter(QtCore.Qt.Vertical)
-#        splitter2.addWidget(splitter1)
-#        splitter2.addWidget(splitter15)
-#        splitter2.setSizes([10**6, 1])
-#
-#        hbox.addWidget(splitter2)
-#
-#        self.setLayout(hbox)
-
-
-##    # Nueva interface mas comoda!
-#        hbox = QtGui.QHBoxLayout(self)
-#        ViewBox=QtGui.QFrame()
-#        ViewBox.setFrameShape(QtGui.QFrame.StyledPanel)
-#        ViewBox.setLayout(grid)  # viewbox
-#
-#        gotowidget = QtGui.QFrame()
-#        gotowidget.setFrameShape(QtGui.QFrame.StyledPanel)
-#        gotowidget.setLayout(layout2)  # gotoWidget
-#
-#        positionermenu=QtGui.QFrame()
-#        positionermenu.setFrameShape(QtGui.QFrame.StyledPanel)
-#        positionermenu.setLayout(layout)  # positioner
-#
-#        menuwidg=QtGui.QFrame()
-#        menuwidg.setFrameShape(QtGui.QFrame.StyledPanel)
-#        menuwidg.setLayout(subgrid)  # menu con cosas izquierda
-#
-#        menuwidg2=QtGui.QFrame()
-#        menuwidg2.setFrameShape(QtGui.QFrame.StyledPanel)
-#        menuwidg2.setLayout(subgrid2)  # menu con cosas derecha
-#
-#        splitter1 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        splitter1.addWidget(positionermenu)
-#        splitter1.addWidget(gotowidget)
-#        splitter1.setSizes([10, 10])
-#
-#        splitter15 = QtGui.QSplitter(QtCore.Qt.Vertical)
-#        splitter15.addWidget(ViewBox)
-#        splitter15.addWidget(splitter1)
-#        splitter15.setSizes([10**6, 1])
-#
-#        splitter2 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        splitter2.addWidget(splitter15)
-#        splitter2.addWidget(menuwidg)
-#        splitter2.setSizes([10**6, 1])
-#
-#        splitter3 = QtGui.QSplitter(QtCore.Qt.Horizontal)
-#        splitter3.addWidget(menuwidg2)
-#        splitter3.addWidget(splitter2)
-#        splitter3.setSizes([1, 10**6])
-
-#        #hbox.addWidget(splitter2)
-#        hbox.addWidget(splitter3)
-
-#        self.setLayout(hbox)
 
         saveBtn = QtGui.QPushButton('Save dock state')
         restoreBtn = QtGui.QPushButton('Restore dock state')
         restoreBtn.setEnabled(False)
 #        subgrid3.addWidget(label, row=0, col=0)
-        subgrid2.addWidget(saveBtn,    9, 2)
-        subgrid2.addWidget(restoreBtn, 10, 2)
+        subgrid2.addWidget(saveBtn,    10, 2)
+        subgrid2.addWidget(restoreBtn, 11, 2)
 #        d1.addWidget(w1)
         state = None
         def save():
@@ -794,24 +690,6 @@ class ScanWidget(QtGui.QFrame):
         self.image = self.blankImage
         self.i = 0
 
-# %% cosas para el save image
-#    def saveimage(self):
-#        """ la idea es que escanee la zona deseada (desde cero)
-#y guarde la imagen"""
-#        if self.saveimageButton.isChecked():
-#            self.save = True
-#            self.liveviewButton.setChecked(False)
-##            self.channelsOpen()
-#            self.MovetoStart()
-#            self.saveimageButton.setText('Abort')
-#            self.guarda = np.zeros((self.numberofPixels, self.numberofPixels))
-#            self.liveviewStart()
-#
-#        else:
-#            self.save = False
-#            print("Abort")
-#            self.saveimageButton.setText('reintentar')
-#            self.liveviewStop()
 
     def steptype(self):
         if self.stepcheck.isChecked():
@@ -1251,61 +1129,6 @@ class ScanWidget(QtGui.QFrame):
                 borrar = 2
 #            time.sleep(self.pixelTime*2*self.numberofPixels)
 
-
-#    def squareOrNot(self):
-#        if self.squareRadio.isChecked():
-#            self.square = True
-#            print("Escaneo cuadrado (x = y)")
-#        else:
-#            self.square = False
-#            print("Escaneo rectangular")
-#
-#    def squarex(self):
-#        if self.square:
-#            print("valores iguales, cuadrado")
-#            self.scanRangeyEdit = QtGui.QLineEdit(self.scanRangexEdit.text())
-#            self.scanRangexEdit.textChanged.connect(self.paramChanged)
-#        else:
-#            print("rectangulo")
-#            self.scanRangexEdit.textChanged.connect(self.paramChanged)
-#            self.scanRangeyEdit.textChanged.connect(self.paramChanged)
-#
-#    def squarey(self):
-#        if self.squareOrNot:
-#            self.scanRangexEdit = QtGui.QLineEdit(self.scanRangeyEdit.text())
-#            self.scanRangeyEdit.textChanged.connect(self.paramChanged)
-#        else:
-#            self.scanRangexEdit.textChanged.connect(self.paramChanged)
-#            self.scanRangeyEdit.textChanged.connect(self.paramChanged)
-
-# - - - ----------------------------------------
-
-#class InterfazGUI(QtGui.QMainWindow):
-#
-#    def __init__(self, *args, **kwargs):
-#        super().__init__(*args, **kwargs)
-#
-#        # Dock widget
-#        dockArea = DockArea()
-#    
-#        scanDock = Dock('Scan', size=(1, 1))
-#        scanWidget = ScanWidget()
-#        scanDock.addWidget(scanWidget)
-#        dockArea.addDock(scanDock)
-#    
-#        piezoDock = Dock('Piezo positioner', size=(1, 1))
-#        piezoWidget = Positionner(scanWidget)
-#        piezoDock.addWidget(piezoWidget)
-#        dockArea.addDock(scanDock, 'below', scanDock)
-#    
-#        self.setWindowTitle('ASDASDASDW')
-#        self.cwidget = QtGui.QWidget()
-#        self.setCentralWidget(self.cwidget)
-#        layout = QtGui.QGridLayout()
-#        self.cwidget.setLayout(layout)
-#        layout.addWidget(dockArea, 0, 0, 4, 1)
-
-
 # %%--- ploting in live
     def plotLive(self):
         texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
@@ -1385,32 +1208,6 @@ class ScanWidget(QtGui.QFrame):
 #            self.liveview()
 #            self.liveviewStart()
 
-## %% selectfolder
-#    def openFolder(self):
-#    # Quedo obsoleto con la barra de herramientas.
-#        print("tengoq ue sacarlo, no sirve mas")
-#        root = tk.Tk()
-#        root.withdraw()
-#        
-#        self.file_path = filedialog.askdirectory()
-#        print(self.file_path,2)
-#        self.NameDirValue.setText(self.file_path)
-#        try:
-#            if sys.platform == 'darwin':
-#                subprocess.check_call(['open', '', self.folderEdit.text()])
-#            elif sys.platform == 'linux':
-#                subprocess.check_call(
-#                    ['gnome-open', '', self.folderEdit.text()])
-#            elif sys.platform == 'win32':
-#                os.startfile(self.folderEdit.text())
-#
-#        except FileNotFoundError:
-#            if sys.platform == 'darwin':
-#                subprocess.check_call(['open', '', self.dataDir])
-#            elif sys.platform == 'linux':
-#                subprocess.check_call(['gnome-open', '', self.dataDir])
-#            elif sys.platform == 'win32':
-#                os.startfile(self.dataDir)
 
 # %% GaussMeasure 
     def GaussMeasure(self):
@@ -1433,6 +1230,19 @@ class ScanWidget(QtGui.QFrame):
         yy = y*Normal
         self.GaussxValue.setText(str(xx))
         self.GaussyValue.setText(str(yy))
+
+# %% buttos to open and select folder
+    def selectFolder(self):
+
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,2)
+        self.NameDirValue.setText(self.file_path)
+
+    def openFolder(self):
+        os.startfile(self.file_path)
 
 # %%--- CM measure
     def CMmeasure(self):
