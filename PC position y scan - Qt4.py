@@ -150,7 +150,8 @@ class ScanWidget(QtGui.QFrame):
         self.file_path = os.path.abspath("")
         self.OpenButton = QtGui.QPushButton('open dir')
         self.OpenButton.clicked.connect(self.openFolder)
-
+        self.create_day_Button = QtGui.QPushButton('Create daily dir')
+        self.create_day_Button.clicked.connect(self.create_daily_directory)
 
     # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
@@ -260,8 +261,8 @@ class ScanWidget(QtGui.QFrame):
         self.edit_save.resize(self.edit_save.sizeHint())
 
         self.edit_Name = str(self.edit_save.text())
-        self.edit_save.textEdited.connect(self.saveName)
-        self.saveName()
+        self.edit_save.textEdited.connect(self.save_name_update)
+        self.save_name_update()
 
         self.numberofPixelsEdit.textEdited.connect(self.PixelSizeChange)
         self.pixelSizeValue.textEdited.connect(self.NpixChange)
@@ -442,6 +443,8 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid3.addWidget(self.NameDirButton,       4, 3,2,1)
         subgrid3.addWidget(self.OpenButton,          5, 3,1,1)
+        subgrid3.addWidget(self.create_day_Button,   6, 3,1,1)
+
 
 # --- POSITIONERRRRR-------------------------------
 
@@ -512,15 +515,15 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(restoreBtn, 11, 2)
 #        d1.addWidget(w1)
         state = None
-        def save():
+        def save_docks():
             global state
             state = dockArea.saveState()
             restoreBtn.setEnabled(True)
-        def load():
+        def load_docks():
             global state
             dockArea.restoreState(state)
-        saveBtn.clicked.connect(save)
-        restoreBtn.clicked.connect(load)
+        saveBtn.clicked.connect(save_docks)
+        restoreBtn.clicked.connect(load_docks)
 
 # ----DOCK cosas
         hbox = QtGui.QHBoxLayout(self)
@@ -558,7 +561,8 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-
+        self.setGeometry(10, 40, 300, 800)
+        self.setWindowTitle('Py Py Python scan')
 #        self.setFixedHeight(550)
 
 #        self.paramWidget.setFixedHeight(500)
@@ -597,7 +601,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
         self.Presets()
-        save()
+        save_docks()
 
 # Cosas pequeñas que agregue
     def PixelSizeChange(self):
@@ -746,7 +750,7 @@ class ScanWidget(QtGui.QFrame):
             self.linearampa()
         if self.scanMode.currentText() not in ["step scan", "ramp scan"]:
             print("NO, QUE TOCASTE, ESE NO ANDAAAAAA\n AAAAAAAHH!!!")
-            time.sleep(0.1)
+            ptime.sleep(0.1)
 
 
         if self.XZcheck.isChecked():
@@ -822,16 +826,16 @@ class ScanWidget(QtGui.QFrame):
         Z=self.Z
         if self.step == 1:
             self.cuentas = Z[self.i,:] * abs(np.random.normal(size=(1, self.numberofPixels))[0])*20
-            for i in range(self.numberofPixels):
-                borrar = 2
+#            for i in range(self.numberofPixels):
+#                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
     #        print("linea")
 
         else:# para hacerlo de a lineas y que no sea de 2 en 2:
             self.cuentas = np.zeros((2 * self.numberofPixels))
             self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:]))  # np.random.normal(size=(1, 2*self.numberofPixels))[0]
-            for i in range(self.numberofPixels * 2):
-                borrar = 2
+#            for i in range(self.numberofPixels * 2):
+#                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels*2)
     #        print("linea")
 
@@ -840,15 +844,15 @@ class ScanWidget(QtGui.QFrame):
 #        self.inputImage = 1 * np.random.normal(
 #                    size=(self.numberofPixels, self.numberofPixels))
         t = self.moveTime
-        N = self.moveSamples
+#        N = self.moveSamples
         tic = ptime.time()
-        startY = float(self.initialPosition[1])
-        maximoy = startY + ((self.i+1) * self.pixelSize)
-        volviendoy = np.linspace(maximoy, startY, N)
-        volviendox = np.ones(len(volviendoy)) * float(self.initialPosition[0])
-        volviendoz = np.ones(len(volviendoy)) * float(self.initialPosition[2])
-        for i in range(len(volviendoy)):
-            borrar = volviendoy[i] + volviendox[i] + volviendoz[i]
+#        startY = float(self.initialPosition[1])
+#        maximoy = startY + ((self.i+1) * self.pixelSize)
+#        volviendoy = np.linspace(maximoy, startY, N)
+#        volviendox = np.ones(len(volviendoy)) * float(self.initialPosition[0])
+#        volviendoz = np.ones(len(volviendoy)) * float(self.initialPosition[2])
+#        for i in range(len(volviendoy)):
+#            borrar = volviendoy[i] + volviendox[i] + volviendoz[i]
 #            self.aotask.write(
 #                 [volviendox[i] / convFactors['x'],
 #                  volviendoy[i] / convFactors['y'],
@@ -858,11 +862,28 @@ class ScanWidget(QtGui.QFrame):
         self.i = 0
         self.Z = self.Z #+ np.random.choice([1,-1])*0.01
 
-# %%--- Guardar imagen
-    def saveName(self):
+# %%--- Guardar imagen SAVE
+    def save_name_update(self):
         self.edit_Name = str(self.edit_save.text())
         self.number = 0
         print("Actualizo el save name")
+
+    def create_daily_directory(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+
+        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+        newpath = self.file_path +"/"+ timestr
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        else:
+            print("Ya existe esa carpeta")
+        self.file_path = newpath
+        self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def guardarimagen(self):
 #        if self.XYcheck.isChecked():
@@ -896,8 +917,8 @@ class ScanWidget(QtGui.QFrame):
 
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
-        t = self.moveTime
-        N = self.moveSamples
+#        t = self.moveTime
+#        N = self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in self.activeChannels]
@@ -913,10 +934,10 @@ class ScanWidget(QtGui.QFrame):
 #                           convFactors['z']])[:, np.newaxis]
 #        fullSignal = fullPos/factors
         toc = ptime.time()
-        for i in range(self.nSamples):
+#        for i in range(self.nSamples):
 #            self.aotask.write(fullSignal, auto_start=True)
 #            time.sleep(t / N)
-            borrar = 1+1
+#            borrar = 1+1
 
         print("se mueve en", np.round(ptime.time() - toc, 3), "segs")
 
@@ -1008,8 +1029,8 @@ class ScanWidget(QtGui.QFrame):
 # --- moveto
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
-        t = self.moveTime * 3
-        N = self.moveSamples * 3
+#        t = self.moveTime * 3
+#        N = self.moveSamples * 3
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in self.activeChannels]
@@ -1021,8 +1042,8 @@ class ScanWidget(QtGui.QFrame):
 #        ramp = np.array((rampx, rampy, rampz))
 
         tuc = ptime.time()
-        for i in range(self.nSamples):
-            borrar = rampx[i] + rampy[i] + rampz[i]
+#        for i in range(self.nSamples):
+#            borrar = rampx[i] + rampy[i] + rampz[i]
 #            self.aotask.write([rampx[i] / convFactors['x'],
 #                               rampy[i] / convFactors['y'],
 #                               rampz[i] / convFactors['z']], auto_start=True)
@@ -1117,16 +1138,16 @@ class ScanWidget(QtGui.QFrame):
         if self.step==1:
             self.cuentas = np.zeros((self.numberofPixels))
             self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
-            for i in range(self.numberofPixels):
-                borrar = 2
+#            for i in range(self.numberofPixels):
+#                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
     #        print("linearampa")
     
         else:#para hacerlo de a lineas y que no sea de 2 en 2:
 
             self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:])) #np.random.normal(size=(1, 2*self.numberofPixels))[0]
-            for i in range(2*self.numberofPixels):
-                borrar = 2
+#            for i in range(2*self.numberofPixels):
+#                borrar = 2
 #            time.sleep(self.pixelTime*2*self.numberofPixels)
 
 # %%--- ploting in live
@@ -1139,6 +1160,7 @@ class ScanWidget(QtGui.QFrame):
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
         cb = fig.colorbar(p)
+        print(cb)
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         try:
@@ -1240,6 +1262,7 @@ class ScanWidget(QtGui.QFrame):
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
         self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def openFolder(self):
         os.startfile(self.file_path)
@@ -1250,7 +1273,7 @@ class ScanWidget(QtGui.QFrame):
         self.viewtimer.stop()
 
         I = self.image
-        N = len(I)  # numberfoPixels
+#        N = len(I)  # numberfoPixels
 
         xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
@@ -1368,13 +1391,14 @@ class ScanWidget(QtGui.QFrame):
 
 # %%  ROI LINEARL
     def ROIlinear(self):
+        largo = self.numberofPixels/1.5+10
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
             self.curve.setData(array)
 
         if self.ROIlineButton.isChecked():
 
-            self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
+            self.linearROI = pg.LineSegmentROI([[10, 64], [largo,64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
             

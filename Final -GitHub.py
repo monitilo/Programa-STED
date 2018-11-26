@@ -178,8 +178,8 @@ class ScanWidget(QtGui.QFrame):
         self.edit_save.setToolTip('Selec a name to save the image. The name automatically changes to not replace the previous one')
 
         self.edit_Name = str(self.edit_save.text())
-        self.edit_save.textEdited.connect(self.saveName)
-        self.saveName()
+        self.edit_save.textEdited.connect(self.save_name_update)
+        self.save_name_update()
 
         self.NameDirButton = QtGui.QPushButton('Select Dir')
         self.NameDirButton.clicked.connect(self.selectFolder)
@@ -192,6 +192,9 @@ class ScanWidget(QtGui.QFrame):
         self.OpenButton.clicked.connect(self.openFolder)
         self.NameDirButton.setToolTip('Select the folder where it saves')
         self.OpenButton.setToolTip('Open the folder where it saves')
+        self.create_day_Button = QtGui.QPushButton('Create daily dir')
+        self.create_day_Button.clicked.connect(self.create_daily_directory)
+        self.create_day_Button.setToolTip('Create a year-month-day named folder')
 
 
     # Select the wanted scan mode
@@ -409,13 +412,14 @@ class ScanWidget(QtGui.QFrame):
     # Columna 2
         subgrid2.addWidget(self.NameDirButton,       0, 2)
         subgrid2.addWidget(self.OpenButton,          1, 2)
+        subgrid2.addWidget(self.create_day_Button,   2, 2)
 #        subgrid2.addWidget(self.triggerLabel,        4, 2)
 #        subgrid2.addWidget(self.triggerEdit,         5, 2)
 #        subgrid2.addWidget(self.accelerationLabel,   6, 2)
 #        subgrid2.addWidget(self.accelerationEdit,    7, 2)
 #        subgrid2.addWidget(self.vueltaLabel,         8, 2)
 #        subgrid2.addWidget(self.vueltaEdit,          9, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
         subgrid2.addWidget(self.detectMode,          3, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         4, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
@@ -642,15 +646,15 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(restoreBtn, 6, 2)
 #        d1.addWidget(w1)
         state = None
-        def save():
+        def save_docks():
             global state
             state = dockArea.saveState()
             restoreBtn.setEnabled(True)
-        def load():
+        def load_docks():
             global state
             dockArea.restoreState(state)
-        saveBtn.clicked.connect(save)
-        restoreBtn.clicked.connect(load)
+        saveBtn.clicked.connect(save_docks)
+        restoreBtn.clicked.connect(load_docks)
 
 # ----DOCK cosas, mas comodo!
         hbox = QtGui.QHBoxLayout(self)
@@ -692,8 +696,9 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-
-        self.setFixedHeight(550)
+        self.setGeometry(10, 40, 300, 800)
+        self.setWindowTitle('Py Py Python scan')
+#        self.setFixedHeight(550)
 
         self.paramChanged()
         self.PixelSizeChange()
@@ -741,7 +746,7 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
         self.PreparePresets()
-        save()
+        save_docks()
 # %% Un monton de pequeñas cosas que agregé
     def liveviewKey(self):
         '''Triggered by the liveview shortcut.'''
@@ -2125,36 +2130,31 @@ class ScanWidget(QtGui.QFrame):
         print("\n tiempo Plotlive", toc-tic,"\n")
 
 # %%--- SaveFrame ---
-    def saveName(self):
+    def save_name_update(self):
         self.edit_Name = str(self.edit_save.text())
         self.NameNumber = 0
 
+    def create_daily_directory(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+
+        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+        newpath = self.file_path +"/"+ timestr
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        else:
+            print("Ya existe esa carpeta")
+
+        self.file_path = newpath
+        self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ; ")
+
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
-#        if self.PSFMode.currentText() == 'XY normal psf':
-#            psfmode = "-"
-#        elif self.PSFMode.currentText() == 'XZ':
-#            psfmode = "XZ-"
-#        elif self.PSFMode.currentText() == 'YZ':
-#            psfmode = "YZ-"
-##        filepath = self.main.file_path
-#        timestr = time.strftime("%Y%m%d-%H%M%S")
 
-#        if self.detectMode .currentText() == detectModes[-2]:
-#            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-#            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
-#            guardado.save(name)
-#            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-#            guardado = Image.fromarray(np.transpose(np.flip(self.image2,1)))  # np.flip(,1)
-#            guardado.save(name)
-#
-#        else:
-#            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-#            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
-#            guardado.save(name)
-
-#        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-#        timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
         name = str(self.file_path + "/" + str(self.edit_save.text()) + ".tiff")  # nombre con la fecha -hora
         if self.imagecheck.isChecked():
             guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
@@ -2405,7 +2405,6 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
-            self.imageWidget.removeItem(self.p6)
             self.HistoWidget.deleteLater()
             self.roihist.disconnect()
             self.maxcountsEdit.disconnect()
