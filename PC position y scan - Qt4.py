@@ -126,8 +126,7 @@ class ScanWidget(QtGui.QFrame):
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
-        # LiveView Button
-
+    # LiveView Button
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
         self.liveviewButton.clicked.connect(self.liveview)
@@ -136,8 +135,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
         self.liveviewButton.setToolTip('This is a tooltip message.')
 
-        # save image Button
-
+    # save image Button
         self.saveimageButton = QtGui.QPushButton('Save Frame')
         self.saveimageButton.setCheckable(False)
         self.saveimageButton.clicked.connect(self.guardarimagen)
@@ -204,8 +202,8 @@ class ScanWidget(QtGui.QFrame):
         self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
         self.Gausscheck.setChecked(False)
         self.Gausscheck.clicked.connect(self.GaussMeasure)
-    # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
 
+    # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
         self.stepcheck.clicked.connect(self.steptype)
         # botones para shutters (por ahora no hacen nada)
@@ -224,8 +222,14 @@ class ScanWidget(QtGui.QFrame):
 #       This boolean is set to True when open the nidaq channels
         self.ischannelopen = False
 
-        # Scanning parameters
+    # Point scan
+        self.PointButton = QtGui.QPushButton('Point scan')
+        self.PointButton.setCheckable(True)
+        self.PointButton.clicked.connect(self.PointStart)
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+        self.PointButton.setToolTip('continuously measures the APDs')
 
+    # Scanning parameters
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
 #        self.initialPositionEdit = QtGui.QLineEdit('1 2 3')  # no lo uso mas
         self.scanRangeLabel = QtGui.QLabel('Scan range x (µm)')
@@ -426,8 +430,10 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
 #        subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
 #        subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
-        subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
-        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+        subgrid3.addWidget(self.PointButton,          7, 3)
+        subgrid3.addWidget(self.PointLabel,           8, 3)
         subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
         subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
         subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
@@ -1449,6 +1455,108 @@ class ScanWidget(QtGui.QFrame):
         self.paramChanged()
 #        self.preseteado = True    creo que no lo voy a usar
 
+# %% Point scan (inaplicable aca)
+#"""
+    def PointStart(self):
+        if self.PointButton.isChecked():
+            self.PointScan()
+            print("midiendo")
+        else:
+            self.PointScanStop()
+            print("fin")
+
+    def PointScanStop(self):
+        self.pointtimer.stop()
+#        self.pointtask.stop()
+#        self.pointtask.close()
+#        self.pointtask2.stop()
+#        self.pointtask2.close()
+#        self.traza_Widget.deleteLater()
+        print("fin traza")
+
+    def PointScan(self):
+
+        self.tiempo = 40 # ms  # refresca el numero cada este tiempo
+#        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
+#        self.points2 = self.points
+
+#        self.pointtask = nidaqmx.Task('pointtask')
+
+        # Configure the counter channel to read the APD
+#        self.pointtask.ci_channels.add_ci_count_edges_chan(
+#                            counter='Dev1/ctr{}'.format(COchans[0]),
+#                            name_to_assign_to_channel=u'Line_counter',
+#                            initial_count=0)
+        
+#        self.pointtask2 = nidaqmx.Task('pointtask2')
+#        # Configure the counter channel to read the APD
+#        self.pointtask2.ci_channels.add_ci_count_edges_chan(
+#                            counter='Dev1/ctr{}'.format(COchans[1]),
+#                            name_to_assign_to_channel=u'Line_counter',
+#                            initial_count=0)
+        self.timeaxis = []
+
+        self.traza_Widget = pg.GraphicsLayoutWidget()
+        self.p6 = self.traza_Widget.addPlot(row=2,col=1,title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+#        self.otrosDock.addWidget(self.traza_Widget)
+        self.ptr1 = 0
+        self.data1 = []  # np.empty(100)
+#        self.data1 = np.zeros(300)
+
+
+        self.p7 = self.traza_Widget.addPlot(row=3,col=1,title="Traza")
+        self.p7.showGrid(x=True, y=True)
+        self.curve2 = self.p7.plot(open='y')
+        self.data2 = np.zeros(300)
+        self.timeaxis2 = np.zeros(300)
+        self.otrosDock.addWidget(self.traza_Widget)
+
+        self.pointtimer = QtCore.QTimer()
+        self.pointtimer.timeout.connect(self.updatePoint)
+        self.pointtimer.start(self.tiempo)
+
+    def updatePoint(self):
+        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
+        points2 = points
+        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
+        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+
+        m = np.mean(points)
+        m2 = np.mean(points2)
+        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+
+        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
+        self.data1.append(m + np.log(self.ptr1)+points[0])
+        self.ptr1 += 1
+        self.curve.setData(self.timeaxis, self.data1)
+#        self.curve.setPos(-self.ptr1, 0)
+
+#    def updatePointAA(self):
+#        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
+#        points2 = points
+##        N = len(points)
+#        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
+#        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+
+#        m = np.mean(points)
+#        m2 = np.mean(points2)
+#        #print("valor traza", m)
+#        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+
+#        self.ptr1 += 1
+        self.timeaxis2 = np.roll(self.timeaxis2,-1)
+        self.timeaxis2[-1] = (self.tiempo * 10**-3)*self.ptr1
+#        self.timeaxis2 = np.delete(self.timeaxis2,0)
+#        self.timeaxis2 = np.append(self.timeaxis2,(self.tiempo * 10**-3)*self.ptr1)
+#        self.data2[:-1] = self.data2[1:]  # shift data in the array one sample left
+        self.data2= np.roll(self.data2,-1)                        # (see also: np.roll)
+        self.data2[-1] = m + np.log(self.ptr1) + points[0]
+        self.curve2.setData(self.timeaxis2, self.data2)
+        self.curve2.setPos(self.timeaxis2[0], 0)
+#"""
+
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
@@ -1480,6 +1588,7 @@ def fitgaussian(data):
                                  data)
     p, success = optimize.leastsq(errorfunction, params)
     return p
+
 
 #%%  FIN
 

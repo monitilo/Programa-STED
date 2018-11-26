@@ -2259,17 +2259,8 @@ class ScanWidget(QtGui.QFrame):
         self.pointtask.close()
         self.pointtask2.stop()
         self.pointtask2.close()
-
+        self.traza_Widget.deleteLater()
     def PointScan(self):
-#        if self.detectMode .currentText() == detectModes[0]:
-##        if self.APDred.isChecked():
-#            c = COchans[0]
-#        elif self.detectMode .currentText() == detectModes[1]:
-##        elif self.APDgreen.isChecked():
-#            c = COchans[1]
-#        else:
-#            print("seleccionar algun apd")
-#        print(c)
 
         self.tiempo = 400 # ms  # refresca el numero cada este tiempo
 #        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
@@ -2290,6 +2281,15 @@ class ScanWidget(QtGui.QFrame):
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
 
+        self.traza_Widget = pg.GraphicsLayoutWidget()
+        self.p6 = self.traza_Widget.addPlot(row=2,col=1,title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+        self.otrosDock.addWidget(self.traza_Widget)
+        self.ptr1 = 0
+        self.data1 = []  # np.empty(100)
+#        self.data1 = np.zeros(300)
+
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
         self.pointtimer.start(self.tiempo)
@@ -2306,6 +2306,20 @@ class ScanWidget(QtGui.QFrame):
 #        #print("valor traza", m)
         self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
 
+        self.data1.append(m)
+        self.ptr1 += 1
+        self.curve.setData(self.data1)
+#        self.curve.setPos(-self.ptr1, 0)
+
+#==============================================================================
+#   Alternativa donde solo se ve la parte nueva (cambiar data1 antes)
+#         self.ptr1 += 1
+#         self.data1[:-1] = self.data1[1:]  # shift data in the array one sample left
+# #        self.data1= np.roll(self.data1,-1)                        # (see also: np.roll)
+#         self.data1[-1] = m + np.log(self.ptr1)
+#         self.curve.setData(self.data1)
+#         self.curve.setPos(self.ptr1, 0)
+#==============================================================================
 # %%  ROI cosas
     def ROImethod(self):
         if self.roi is None:
