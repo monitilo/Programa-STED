@@ -354,8 +354,6 @@ class ScanWidget(QtGui.QFrame):
 #        grid.addWidget(imageWidget, 0, 0)
 #        grid.addWidget(self.paramWidget, 2, 1)
 
-
-
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
 
@@ -916,8 +914,8 @@ class ScanWidget(QtGui.QFrame):
             self.number = self.number + 1
             self.edit_save.setText(self.edit_Name + str(self.number))
             print("\n Guardo la imagen\n")
-        except:
-            print("hay un error y no guardó")
+        except IOError as e:
+            print ("I/O error({0}): {1}".format(e.errno, e.strerror))
 
 
 # %%---Move----------------------------------------
@@ -1569,33 +1567,100 @@ class ScanWidget(QtGui.QFrame):
         self.w = MyPopup()
         self.w.setGeometry(QtCore.QRect(1050, 50, 500, 600))
         self.w.show()
+
 #"""
 class MyPopup(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
         self.ScanWidget = ScanWidget(device)
         self.traza_Widget2 = pg.GraphicsLayoutWidget()
+        self.running = False
         grid = QtGui.QGridLayout()
         self.setLayout(grid)
-        grid.addWidget(self.traza_Widget2, 0, 0)
-        self.PointScan()
 
-    def paintEvent(self, e):
-        dc = QtGui.QPainter(self)
-        dc.drawLine(0, 0, 100, 100)
-        dc.drawLine(100, 0, 0, 100)
+        self.p6 = self.traza_Widget2.addPlot(row=2,col=1,title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+
+    #  buttons
+        self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼')
+        self.play_pause_Button.setCheckable(True)
+        self.play_pause_Button.clicked.connect(self.play_pause)
+        self.play_pause_Button.setToolTip('Pausa y continua la traza')
+#        self.pause_Button.setStyleSheet(
+#                "QPushButton { background-color: rgb(200, 200, 10); }"
+#                "QPushButton:pressed { background-color: blue; }")
+
+        self.stop_Button = QtGui.QPushButton('Stop ◘')
+        self.stop_Button.setCheckable(False)
+        self.stop_Button.clicked.connect(self.stop)
+        self.stop_Button.setToolTip('Para la traza')
+
+        grid.addWidget(self.traza_Widget2,      0, 0)
+        grid.addWidget(self.play_pause_Button , 0, 3)
+        grid.addWidget(self.stop_Button ,       1, 3)
+        self.play_pause_Button.setChecked(True)
+        self.PointScan()
+#        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
+    def closeEvent(self, event):
+       reply = QtGui.QMessageBox.question(self, 'Quit', 'Are You Sure to Quit?',
+                                          QtGui.QMessageBox.No | QtGui.QMessageBox.Yes)
+       if reply == QtGui.QMessageBox.Yes:
+           print("YES")
+           event.accept()
+       else:
+          event.ignore()
+          print("NOOOO")
+
+
+# TODO: a seguir mejorando esta parte
+#==============================================================================
+#     def play(self):
+#         if self.play_Button.isChecked():
+#             if self.running == True:
+#                 self.pointtimer.start(self.tiempo)
+#             else:
+#                 self.PointScan()
+#         else:
+#             self.pointtimer.stop()
+#==============================================================================
+
+    def play_pause(self):
+        if self.play_pause_Button.isChecked():
+#            self.pause_Button.setStyleSheet(
+#                    "QPushButton { background-color: ; }")
+            if self.running == True:
+                self.pointtimer.start(self.tiempo)
+            else:
+                self.PointScan()
+        else:
+            self.pointtimer.stop()
+#            self.pause_Button.setStyleSheet(
+#                    "QPushButton { background-color: red; }")
+
+    def stop(self):
+
+        try:
+            self.pointtimer.stop()
+        except IOError as e:
+            print ("I/O error({0}): {1}".format(e.errno, e.strerror))
+        self.running = False
+        self.play_pause_Button.setChecked(False)
+
+#    def paintEvent(self, e):
+#        dc = QtGui.QPainter(self)
+#        dc.drawLine(0, 0, 100, 100)
+#        dc.drawLine(100, 0, 0, 100)
 
     def PointScan(self):
-
+        self.running = True
         self.tiempo = 10 # ms  # refresca el numero cada este tiempo
 
         self.timeaxis = []
 #        try: self.traza_Widget2.deleteLater()
 #        except: pass
 #        self.traza_Widget2 = pg.GraphicsLayoutWidget()
-        self.p6 = self.traza_Widget2.addPlot(row=2,col=1,title="Traza")
-        self.p6.showGrid(x=True, y=True)
-        self.curve = self.p6.plot(open='y')
+
 #        self.otrosDock.addWidget(self.traza_Widget)
         self.ptr1 = 0
         self.data1 = []  # np.empty(100)
