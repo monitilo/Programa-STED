@@ -1097,6 +1097,7 @@ class ScanWidget(QtGui.QFrame):
 #            self.number = 0
 
         try:
+#            filepath = self.main.file_path
             filepath = self.file_path
     #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
 #            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
