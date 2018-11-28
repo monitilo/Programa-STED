@@ -178,8 +178,8 @@ class ScanWidget(QtGui.QFrame):
         self.edit_save.setToolTip('Selec a name to save the image. The name automatically changes to not replace the previous one')
 
         self.edit_Name = str(self.edit_save.text())
-        self.edit_save.textEdited.connect(self.saveName)
-        self.saveName()
+        self.edit_save.textEdited.connect(self.save_name_update)
+        self.save_name_update()
 
         self.NameDirButton = QtGui.QPushButton('Select Dir')
         self.NameDirButton.clicked.connect(self.selectFolder)
@@ -192,6 +192,9 @@ class ScanWidget(QtGui.QFrame):
         self.OpenButton.clicked.connect(self.openFolder)
         self.NameDirButton.setToolTip('Select the folder where it saves')
         self.OpenButton.setToolTip('Open the folder where it saves')
+        self.create_day_Button = QtGui.QPushButton('Create daily dir')
+        self.create_day_Button.clicked.connect(self.create_daily_directory)
+        self.create_day_Button.setToolTip('Create a year-month-day named folder')
 
 
     # Select the wanted scan mode
@@ -409,13 +412,14 @@ class ScanWidget(QtGui.QFrame):
     # Columna 2
         subgrid2.addWidget(self.NameDirButton,       0, 2)
         subgrid2.addWidget(self.OpenButton,          1, 2)
+        subgrid2.addWidget(self.create_day_Button,   2, 2)
 #        subgrid2.addWidget(self.triggerLabel,        4, 2)
 #        subgrid2.addWidget(self.triggerEdit,         5, 2)
 #        subgrid2.addWidget(self.accelerationLabel,   6, 2)
 #        subgrid2.addWidget(self.accelerationEdit,    7, 2)
 #        subgrid2.addWidget(self.vueltaLabel,         8, 2)
 #        subgrid2.addWidget(self.vueltaEdit,          9, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
         subgrid2.addWidget(self.detectMode,          3, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         4, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
@@ -642,15 +646,15 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(restoreBtn, 6, 2)
 #        d1.addWidget(w1)
         state = None
-        def save():
+        def save_docks():
             global state
             state = dockArea.saveState()
             restoreBtn.setEnabled(True)
-        def load():
+        def load_docks():
             global state
             dockArea.restoreState(state)
-        saveBtn.clicked.connect(save)
-        restoreBtn.clicked.connect(load)
+        saveBtn.clicked.connect(save_docks)
+        restoreBtn.clicked.connect(load_docks)
 
 # ----DOCK cosas, mas comodo!
         hbox = QtGui.QHBoxLayout(self)
@@ -692,8 +696,9 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-
-        self.setFixedHeight(550)
+        self.setGeometry(10, 40, 300, 800)
+        self.setWindowTitle('Py Py Python scan')
+#        self.setFixedHeight(550)
 
         self.paramChanged()
         self.PixelSizeChange()
@@ -741,7 +746,7 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
         self.PreparePresets()
-        save()
+        save_docks()
 # %% Un monton de pequeñas cosas que agregé
     def liveviewKey(self):
         '''Triggered by the liveview shortcut.'''
@@ -2125,36 +2130,31 @@ class ScanWidget(QtGui.QFrame):
         print("\n tiempo Plotlive", toc-tic,"\n")
 
 # %%--- SaveFrame ---
-    def saveName(self):
+    def save_name_update(self):
         self.edit_Name = str(self.edit_save.text())
         self.NameNumber = 0
 
+    def create_daily_directory(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+
+        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+        newpath = self.file_path +"/"+ timestr
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        else:
+            print("Ya existe esa carpeta")
+
+        self.file_path = newpath
+        self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ; ")
+
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
-#        if self.PSFMode.currentText() == 'XY normal psf':
-#            psfmode = "-"
-#        elif self.PSFMode.currentText() == 'XZ':
-#            psfmode = "XZ-"
-#        elif self.PSFMode.currentText() == 'YZ':
-#            psfmode = "YZ-"
-##        filepath = self.main.file_path
-#        timestr = time.strftime("%Y%m%d-%H%M%S")
 
-#        if self.detectMode .currentText() == detectModes[-2]:
-#            name = str(self.file_path + "/" + detectModes[0] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-#            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
-#            guardado.save(name)
-#            name = str(self.file_path + "/" + detectModes[1] + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-#            guardado = Image.fromarray(np.transpose(np.flip(self.image2,1)))  # np.flip(,1)
-#            guardado.save(name)
-#
-#        else:
-#            name = str(self.file_path + "/" + self.detectMode .currentText() + "-" + psfmode + timestr + ".tiff")  # nombre con la fecha -hora
-#            guardado = Image.fromarray(np.transpose(np.flip(self.image,1)))  # f
-#            guardado.save(name)
-
-#        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
-#        timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
         name = str(self.file_path + "/" + str(self.edit_save.text()) + ".tiff")  # nombre con la fecha -hora
         if self.imagecheck.isChecked():
             guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
@@ -2259,17 +2259,8 @@ class ScanWidget(QtGui.QFrame):
         self.pointtask.close()
         self.pointtask2.stop()
         self.pointtask2.close()
-
+        self.traza_Widget.deleteLater()
     def PointScan(self):
-#        if self.detectMode .currentText() == detectModes[0]:
-##        if self.APDred.isChecked():
-#            c = COchans[0]
-#        elif self.detectMode .currentText() == detectModes[1]:
-##        elif self.APDgreen.isChecked():
-#            c = COchans[1]
-#        else:
-#            print("seleccionar algun apd")
-#        print(c)
 
         self.tiempo = 400 # ms  # refresca el numero cada este tiempo
 #        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
@@ -2290,6 +2281,15 @@ class ScanWidget(QtGui.QFrame):
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
 
+        self.traza_Widget = pg.GraphicsLayoutWidget()
+        self.p6 = self.traza_Widget.addPlot(row=2,col=1,title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+        self.otrosDock.addWidget(self.traza_Widget)
+        self.ptr1 = 0
+        self.data1 = []  # np.empty(100)
+#        self.data1 = np.zeros(300)
+
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
         self.pointtimer.start(self.tiempo)
@@ -2306,6 +2306,20 @@ class ScanWidget(QtGui.QFrame):
 #        #print("valor traza", m)
         self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
 
+        self.data1.append(m)
+        self.ptr1 += 1
+        self.curve.setData(self.data1)
+#        self.curve.setPos(-self.ptr1, 0)
+
+#==============================================================================
+#   Alternativa donde solo se ve la parte nueva (cambiar data1 antes)
+#         self.ptr1 += 1
+#         self.data1[:-1] = self.data1[1:]  # shift data in the array one sample left
+# #        self.data1= np.roll(self.data1,-1)                        # (see also: np.roll)
+#         self.data1[-1] = m + np.log(self.ptr1)
+#         self.curve.setData(self.data1)
+#         self.curve.setPos(self.ptr1, 0)
+#==============================================================================
 # %%  ROI cosas
     def ROImethod(self):
         if self.roi is None:
@@ -2405,7 +2419,6 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
-            self.imageWidget.removeItem(self.p6)
             self.HistoWidget.deleteLater()
             self.roihist.disconnect()
             self.maxcountsEdit.disconnect()

@@ -121,13 +121,13 @@ class ScanWidget(QtGui.QFrame):
         self.xStepUnit.setFixedWidth(tamaño)
         self.yStepUnit.setFixedWidth(tamaño)
         self.zStepUnit.setFixedWidth(tamaño)
+
 # ---- fin 1ra parte del positioner ----------
         self.step = 1
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
-        # LiveView Button
-
+    # LiveView Button
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
         self.liveviewButton.setCheckable(True)
         self.liveviewButton.clicked.connect(self.liveview)
@@ -136,8 +136,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
         self.liveviewButton.setToolTip('This is a tooltip message.')
 
-        # save image Button
-
+    # save image Button
         self.saveimageButton = QtGui.QPushButton('Save Frame')
         self.saveimageButton.setCheckable(False)
         self.saveimageButton.clicked.connect(self.guardarimagen)
@@ -150,7 +149,8 @@ class ScanWidget(QtGui.QFrame):
         self.file_path = os.path.abspath("")
         self.OpenButton = QtGui.QPushButton('open dir')
         self.OpenButton.clicked.connect(self.openFolder)
-
+        self.create_day_Button = QtGui.QPushButton('Create daily dir')
+        self.create_day_Button.clicked.connect(self.create_daily_directory)
 
     # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
@@ -203,8 +203,8 @@ class ScanWidget(QtGui.QFrame):
         self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
         self.Gausscheck.setChecked(False)
         self.Gausscheck.clicked.connect(self.GaussMeasure)
-    # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
 
+    # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
         self.stepcheck.clicked.connect(self.steptype)
         # botones para shutters (por ahora no hacen nada)
@@ -223,8 +223,14 @@ class ScanWidget(QtGui.QFrame):
 #       This boolean is set to True when open the nidaq channels
         self.ischannelopen = False
 
-        # Scanning parameters
+    # Point scan
+        self.PointButton = QtGui.QPushButton('Point scan')
+        self.PointButton.setCheckable(True)
+        self.PointButton.clicked.connect(self.PointStart)
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+        self.PointButton.setToolTip('continuously measures the APDs')
 
+    # Scanning parameters
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
 #        self.initialPositionEdit = QtGui.QLineEdit('1 2 3')  # no lo uso mas
         self.scanRangeLabel = QtGui.QLabel('Scan range x (µm)')
@@ -260,8 +266,8 @@ class ScanWidget(QtGui.QFrame):
         self.edit_save.resize(self.edit_save.sizeHint())
 
         self.edit_Name = str(self.edit_save.text())
-        self.edit_save.textEdited.connect(self.saveName)
-        self.saveName()
+        self.edit_save.textEdited.connect(self.save_name_update)
+        self.save_name_update()
 
         self.numberofPixelsEdit.textEdited.connect(self.PixelSizeChange)
         self.pixelSizeValue.textEdited.connect(self.NpixChange)
@@ -348,8 +354,6 @@ class ScanWidget(QtGui.QFrame):
 #        grid.addWidget(imageWidget, 0, 0)
 #        grid.addWidget(self.paramWidget, 2, 1)
 
-
-
         subgrid = QtGui.QGridLayout()
         self.paramWidget.setLayout(subgrid)
 
@@ -425,8 +429,10 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
 #        subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
 #        subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
-        subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
-        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
+#        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
+        subgrid3.addWidget(self.PointButton,          7, 3)
+        subgrid3.addWidget(self.PointLabel,           8, 3)
         subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
         subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
         subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
@@ -442,6 +448,8 @@ class ScanWidget(QtGui.QFrame):
 
         subgrid3.addWidget(self.NameDirButton,       4, 3,2,1)
         subgrid3.addWidget(self.OpenButton,          5, 3,1,1)
+        subgrid3.addWidget(self.create_day_Button,   6, 3,1,1)
+
 
 # --- POSITIONERRRRR-------------------------------
 
@@ -512,15 +520,15 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(restoreBtn, 11, 2)
 #        d1.addWidget(w1)
         state = None
-        def save():
+        def save_docks():
             global state
             state = dockArea.saveState()
             restoreBtn.setEnabled(True)
-        def load():
+        def load_docks():
             global state
             dockArea.restoreState(state)
-        saveBtn.clicked.connect(save)
-        restoreBtn.clicked.connect(load)
+        saveBtn.clicked.connect(save_docks)
+        restoreBtn.clicked.connect(load_docks)
 
 # ----DOCK cosas
         hbox = QtGui.QHBoxLayout(self)
@@ -558,7 +566,8 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-
+        self.setGeometry(10, 40, 300, 800)
+        self.setWindowTitle('Py Py Python scan')
 #        self.setFixedHeight(550)
 
 #        self.paramWidget.setFixedHeight(500)
@@ -597,7 +606,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
         self.Presets()
-        save()
+        save_docks()
 
 # Cosas pequeñas que agregue
     def PixelSizeChange(self):
@@ -746,7 +755,7 @@ class ScanWidget(QtGui.QFrame):
             self.linearampa()
         if self.scanMode.currentText() not in ["step scan", "ramp scan"]:
             print("NO, QUE TOCASTE, ESE NO ANDAAAAAA\n AAAAAAAHH!!!")
-            time.sleep(0.1)
+            ptime.sleep(0.1)
 
 
         if self.XZcheck.isChecked():
@@ -822,16 +831,16 @@ class ScanWidget(QtGui.QFrame):
         Z=self.Z
         if self.step == 1:
             self.cuentas = Z[self.i,:] * abs(np.random.normal(size=(1, self.numberofPixels))[0])*20
-            for i in range(self.numberofPixels):
-                borrar = 2
+#            for i in range(self.numberofPixels):
+#                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
     #        print("linea")
 
         else:# para hacerlo de a lineas y que no sea de 2 en 2:
             self.cuentas = np.zeros((2 * self.numberofPixels))
             self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:]))  # np.random.normal(size=(1, 2*self.numberofPixels))[0]
-            for i in range(self.numberofPixels * 2):
-                borrar = 2
+#            for i in range(self.numberofPixels * 2):
+#                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels*2)
     #        print("linea")
 
@@ -840,15 +849,15 @@ class ScanWidget(QtGui.QFrame):
 #        self.inputImage = 1 * np.random.normal(
 #                    size=(self.numberofPixels, self.numberofPixels))
         t = self.moveTime
-        N = self.moveSamples
+#        N = self.moveSamples
         tic = ptime.time()
-        startY = float(self.initialPosition[1])
-        maximoy = startY + ((self.i+1) * self.pixelSize)
-        volviendoy = np.linspace(maximoy, startY, N)
-        volviendox = np.ones(len(volviendoy)) * float(self.initialPosition[0])
-        volviendoz = np.ones(len(volviendoy)) * float(self.initialPosition[2])
-        for i in range(len(volviendoy)):
-            borrar = volviendoy[i] + volviendox[i] + volviendoz[i]
+#        startY = float(self.initialPosition[1])
+#        maximoy = startY + ((self.i+1) * self.pixelSize)
+#        volviendoy = np.linspace(maximoy, startY, N)
+#        volviendox = np.ones(len(volviendoy)) * float(self.initialPosition[0])
+#        volviendoz = np.ones(len(volviendoy)) * float(self.initialPosition[2])
+#        for i in range(len(volviendoy)):
+#            borrar = volviendoy[i] + volviendox[i] + volviendoz[i]
 #            self.aotask.write(
 #                 [volviendox[i] / convFactors['x'],
 #                  volviendoy[i] / convFactors['y'],
@@ -858,11 +867,28 @@ class ScanWidget(QtGui.QFrame):
         self.i = 0
         self.Z = self.Z #+ np.random.choice([1,-1])*0.01
 
-# %%--- Guardar imagen
-    def saveName(self):
+# %%--- Guardar imagen SAVE
+    def save_name_update(self):
         self.edit_Name = str(self.edit_save.text())
         self.number = 0
         print("Actualizo el save name")
+
+    def create_daily_directory(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+
+        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+        newpath = self.file_path +"/"+ timestr
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        else:
+            print("Ya existe esa carpeta")
+        self.file_path = newpath
+        self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def guardarimagen(self):
 #        if self.XYcheck.isChecked():
@@ -888,16 +914,16 @@ class ScanWidget(QtGui.QFrame):
             self.number = self.number + 1
             self.edit_save.setText(self.edit_Name + str(self.number))
             print("\n Guardo la imagen\n")
-        except:
-            print("hay un error y no guardó")
+        except IOError as e:
+            print ("I/O error({0}): {1}".format(e.errno, e.strerror))
 
 
 # %%---Move----------------------------------------
 
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
-        t = self.moveTime
-        N = self.moveSamples
+#        t = self.moveTime
+#        N = self.moveSamples
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in self.activeChannels]
@@ -913,10 +939,10 @@ class ScanWidget(QtGui.QFrame):
 #                           convFactors['z']])[:, np.newaxis]
 #        fullSignal = fullPos/factors
         toc = ptime.time()
-        for i in range(self.nSamples):
+#        for i in range(self.nSamples):
 #            self.aotask.write(fullSignal, auto_start=True)
 #            time.sleep(t / N)
-            borrar = 1+1
+#            borrar = 1+1
 
         print("se mueve en", np.round(ptime.time() - toc, 3), "segs")
 
@@ -1008,8 +1034,8 @@ class ScanWidget(QtGui.QFrame):
 # --- moveto
     def moveto(self, x, y, z):
         """moves the position along the axis to a specified point."""
-        t = self.moveTime * 3
-        N = self.moveSamples * 3
+#        t = self.moveTime * 3
+#        N = self.moveSamples * 3
         # read initial position for all channels
         texts = [getattr(self, ax + "Label").text()
                  for ax in self.activeChannels]
@@ -1021,8 +1047,8 @@ class ScanWidget(QtGui.QFrame):
 #        ramp = np.array((rampx, rampy, rampz))
 
         tuc = ptime.time()
-        for i in range(self.nSamples):
-            borrar = rampx[i] + rampy[i] + rampz[i]
+#        for i in range(self.nSamples):
+#            borrar = rampx[i] + rampy[i] + rampz[i]
 #            self.aotask.write([rampx[i] / convFactors['x'],
 #                               rampy[i] / convFactors['y'],
 #                               rampz[i] / convFactors['z']], auto_start=True)
@@ -1117,16 +1143,16 @@ class ScanWidget(QtGui.QFrame):
         if self.step==1:
             self.cuentas = np.zeros((self.numberofPixels))
             self.cuentas = Z[self.i,:]  # np.random.normal(size=(1, self.numberofPixels))[0]
-            for i in range(self.numberofPixels):
-                borrar = 2
+#            for i in range(self.numberofPixels):
+#                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
     #        print("linearampa")
     
         else:#para hacerlo de a lineas y que no sea de 2 en 2:
 
             self.cuentas = np.concatenate((Z[self.i,:],Z[self.i+1,:])) #np.random.normal(size=(1, 2*self.numberofPixels))[0]
-            for i in range(2*self.numberofPixels):
-                borrar = 2
+#            for i in range(2*self.numberofPixels):
+#                borrar = 2
 #            time.sleep(self.pixelTime*2*self.numberofPixels)
 
 # %%--- ploting in live
@@ -1139,6 +1165,7 @@ class ScanWidget(QtGui.QFrame):
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
         cb = fig.colorbar(p)
+        print(cb)
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         try:
@@ -1240,6 +1267,7 @@ class ScanWidget(QtGui.QFrame):
         self.file_path = filedialog.askdirectory()
         print(self.file_path,2)
         self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def openFolder(self):
         os.startfile(self.file_path)
@@ -1250,7 +1278,7 @@ class ScanWidget(QtGui.QFrame):
         self.viewtimer.stop()
 
         I = self.image
-        N = len(I)  # numberfoPixels
+#        N = len(I)  # numberfoPixels
 
         xcm, ycm = ndimage.measurements.center_of_mass(I)  # Los calculo y da lo mismo
         print("Xcm=", xcm,"\nYcm=", ycm)
@@ -1368,13 +1396,14 @@ class ScanWidget(QtGui.QFrame):
 
 # %%  ROI LINEARL
     def ROIlinear(self):
+        largo = self.numberofPixels/1.5+10
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
             self.curve.setData(array)
 
         if self.ROIlineButton.isChecked():
 
-            self.linearROI = pg.LineSegmentROI([[10, 64], [120,64]], pen='m')
+            self.linearROI = pg.LineSegmentROI([[10, 64], [largo,64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
             
@@ -1425,6 +1454,272 @@ class ScanWidget(QtGui.QFrame):
         self.paramChanged()
 #        self.preseteado = True    creo que no lo voy a usar
 
+# %% Point scan (inaplicable aca)
+#"""
+    def PointStart(self):
+
+        if self.PointButton.isChecked():
+            try: self.w.close()
+            except: pass
+            self.doit()
+#            self.PointScan()
+            print("midiendo")
+        else:
+            self.PointScanStop()
+#            self.w.close()
+            print("fin")
+
+    def PointScanStop(self):
+        self.w.pointtimer.stop()
+#        self.pointtimer.stop()
+##        self.pointtask.stop()
+##        self.pointtask.close()
+##        self.pointtask2.stop()
+##        self.pointtask2.close()
+        print("fin traza")
+#
+#    def PointScan(self):
+#
+#        self.tiempo = 40 # ms  # refresca el numero cada este tiempo
+##        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
+##        self.points2 = self.points
+#
+##        self.pointtask = nidaqmx.Task('pointtask')
+#
+#        # Configure the counter channel to read the APD
+##        self.pointtask.ci_channels.add_ci_count_edges_chan(
+##                            counter='Dev1/ctr{}'.format(COchans[0]),
+##                            name_to_assign_to_channel=u'Line_counter',
+##                            initial_count=0)
+#        
+##        self.pointtask2 = nidaqmx.Task('pointtask2')
+##        # Configure the counter channel to read the APD
+##        self.pointtask2.ci_channels.add_ci_count_edges_chan(
+##                            counter='Dev1/ctr{}'.format(COchans[1]),
+##                            name_to_assign_to_channel=u'Line_counter',
+##                            initial_count=0)
+#        self.timeaxis = []
+#        try: self.traza_Widget.deleteLater()
+#        except: pass
+#        self.traza_Widget = pg.GraphicsLayoutWidget()
+#        self.p6 = self.traza_Widget.addPlot(row=2,col=1,title="Traza")
+#        self.p6.showGrid(x=True, y=True)
+#        self.curve = self.p6.plot(open='y')
+##        self.otrosDock.addWidget(self.traza_Widget)
+#        self.ptr1 = 0
+#        self.data1 = []  # np.empty(100)
+##        self.data1 = np.zeros(300)
+#
+#
+#        self.p7 = self.traza_Widget.addPlot(row=3,col=1,title="Traza")
+#        self.p7.showGrid(x=True, y=True)
+#        self.curve2 = self.p7.plot(open='y')
+#        self.data2 = np.zeros(300)
+#        self.timeaxis2 = np.zeros(300)
+#        self.otrosDock.addWidget(self.traza_Widget)
+#
+#        self.pointtimer = QtCore.QTimer()
+#        self.pointtimer.timeout.connect(self.updatePoint)
+#        self.pointtimer.start(self.tiempo)
+#
+#    def updatePoint(self):
+#        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
+#        points2 = points
+#        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
+#        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+#
+#        m = np.mean(points)
+#        m2 = np.mean(points2)
+##        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+#
+#        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
+#        self.data1.append(m + np.log(self.ptr1)+points[0])
+#        self.ptr1 += 1
+#        self.curve.setData(self.timeaxis, self.data1)
+##        self.curve.setPos(-self.ptr1, 0)
+#
+##    def updatePointAA(self):
+##        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
+##        points2 = points
+###        N = len(points)
+##        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
+##        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+#
+##        m = np.mean(points)
+##        m2 = np.mean(points2)
+##        #print("valor traza", m)
+##        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+#
+##        self.ptr1 += 1
+#        self.timeaxis2 = np.roll(self.timeaxis2,-1)
+#        self.timeaxis2[-1] = (self.tiempo * 10**-3)*self.ptr1
+##        self.timeaxis2 = np.delete(self.timeaxis2,0)
+##        self.timeaxis2 = np.append(self.timeaxis2,(self.tiempo * 10**-3)*self.ptr1)
+##        self.data2[:-1] = self.data2[1:]  # shift data in the array one sample left
+#        self.data2= np.roll(self.data2,-1)                        # (see also: np.roll)
+#        self.data2[-1] = m + np.log(self.ptr1) + points[0]
+#        self.curve2.setData(self.timeaxis2, self.data2)
+#        self.curve2.setPos(self.timeaxis2[0], 0)
+
+
+    def doit(self):
+        print ("Opening a new popup window...")
+        self.w = MyPopup()
+        self.w.setGeometry(QtCore.QRect(1050, 50, 500, 600))
+        self.w.show()
+
+#"""
+class MyPopup(QtGui.QWidget):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.ScanWidget = ScanWidget(device)
+        self.traza_Widget2 = pg.GraphicsLayoutWidget()
+        self.running = False
+        grid = QtGui.QGridLayout()
+        self.setLayout(grid)
+
+        self.p6 = self.traza_Widget2.addPlot(row=2,col=1,title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+
+    #  buttons
+        self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼')
+        self.play_pause_Button.setCheckable(True)
+        self.play_pause_Button.clicked.connect(self.play_pause)
+        self.play_pause_Button.setToolTip('Pausa y continua la traza')
+#        self.pause_Button.setStyleSheet(
+#                "QPushButton { background-color: rgb(200, 200, 10); }"
+#                "QPushButton:pressed { background-color: blue; }")
+
+        self.stop_Button = QtGui.QPushButton('Stop ◘')
+        self.stop_Button.setCheckable(False)
+        self.stop_Button.clicked.connect(self.stop)
+        self.stop_Button.setToolTip('Para la traza')
+
+        grid.addWidget(self.traza_Widget2,      0, 0)
+        grid.addWidget(self.play_pause_Button , 0, 3)
+        grid.addWidget(self.stop_Button ,       1, 3)
+        self.play_pause_Button.setChecked(True)
+        self.PointScan()
+#        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
+    def closeEvent(self, event):
+       reply = QtGui.QMessageBox.question(self, 'Quit', 'Are You Sure to Quit?',
+                                          QtGui.QMessageBox.No | QtGui.QMessageBox.Yes)
+       if reply == QtGui.QMessageBox.Yes:
+           print("YES")
+           event.accept()
+       else:
+          event.ignore()
+          print("NOOOO")
+
+
+# TODO: a seguir mejorando esta parte
+#==============================================================================
+#     def play(self):
+#         if self.play_Button.isChecked():
+#             if self.running == True:
+#                 self.pointtimer.start(self.tiempo)
+#             else:
+#                 self.PointScan()
+#         else:
+#             self.pointtimer.stop()
+#==============================================================================
+
+    def play_pause(self):
+        if self.play_pause_Button.isChecked():
+#            self.pause_Button.setStyleSheet(
+#                    "QPushButton { background-color: ; }")
+            if self.running == True:
+                self.pointtimer.start(self.tiempo)
+            else:
+                self.PointScan()
+        else:
+            self.pointtimer.stop()
+#            self.pause_Button.setStyleSheet(
+#                    "QPushButton { background-color: red; }")
+
+    def stop(self):
+
+        try:
+            self.pointtimer.stop()
+        except IOError as e:
+            print ("I/O error({0}): {1}".format(e.errno, e.strerror))
+        self.running = False
+        self.play_pause_Button.setChecked(False)
+
+#    def paintEvent(self, e):
+#        dc = QtGui.QPainter(self)
+#        dc.drawLine(0, 0, 100, 100)
+#        dc.drawLine(100, 0, 0, 100)
+
+    def PointScan(self):
+        self.running = True
+        self.tiempo = 10 # ms  # refresca el numero cada este tiempo
+
+        self.timeaxis = []
+#        try: self.traza_Widget2.deleteLater()
+#        except: pass
+#        self.traza_Widget2 = pg.GraphicsLayoutWidget()
+
+#        self.otrosDock.addWidget(self.traza_Widget)
+        self.ptr1 = 0
+        self.data1 = []  # np.empty(100)
+#        self.data1 = np.zeros(300)
+
+
+        self.p7 = self.traza_Widget2.addPlot(row=3,col=1,title="Traza")
+        self.p7.showGrid(x=True, y=True)
+        self.curve2 = self.p7.plot(open='y')
+        self.data2 = np.zeros(300)
+        self.timeaxis2 = np.zeros(300)
+#        self.otrosDock.addWidget(self.traza_Widget)
+
+        self.pointtimer = QtCore.QTimer()
+        self.pointtimer.timeout.connect(self.updatePoint)
+        self.pointtimer.start(self.tiempo)
+
+    def updatePoint(self):
+        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
+        points2 = points
+        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
+        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+
+        m = np.mean(points)
+        m2 = np.mean(points2)
+        self.ScanWidget.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+
+        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
+        self.data1.append(m + np.log(self.ptr1)+points[0])
+        self.ptr1 += 1
+        self.curve.setData(self.timeaxis, self.data1)
+#        self.curve.setPos(-self.ptr1, 0)
+
+#    def updatePointAA(self):
+#        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
+#        points2 = points
+##        N = len(points)
+#        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
+#        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+
+#        m = np.mean(points)
+#        m2 = np.mean(points2)
+#        #print("valor traza", m)
+#        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+
+#        self.ptr1 += 1
+        self.timeaxis2 = np.roll(self.timeaxis2,-1)
+        self.timeaxis2[-1] = (self.tiempo * 10**-3)*self.ptr1
+#        self.timeaxis2 = np.delete(self.timeaxis2,0)
+#        self.timeaxis2 = np.append(self.timeaxis2,(self.tiempo * 10**-3)*self.ptr1)
+#        self.data2[:-1] = self.data2[1:]  # shift data in the array one sample left
+        self.data2= np.roll(self.data2,-1)                        # (see also: np.roll)
+        self.data2[-1] = m + np.log(self.ptr1) + points[0]
+#        self.curve2.setData(self.timeaxis2, self.data2)
+        self.curve2.setData(np.linspace(0,3,300),self.data2)
+        self.curve2.setPos(self.timeaxis2[0], 0)
+
+
+
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
@@ -1456,6 +1751,7 @@ def fitgaussian(data):
                                  data)
     p, success = optimize.leastsq(errorfunction, params)
     return p
+
 
 #%%  FIN
 
