@@ -89,13 +89,20 @@ class MainWindow(QtGui.QMainWindow):
         self.form_widget.NameDirValue.setText(self.file_path)
         self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
 
+    def save_docks(self):
+        self.form_widget.state = self.form_widget.dockArea.saveState()
+
+    def load_docks(self):
+        self.form_widget.dockArea.restoreState(self.form_widget.state)
+
+
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         self.a = 0
         self.file_path = os.path.abspath("")
 # ----- MENU
         self.setMinimumSize(QtCore.QSize(500, 500))
-        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
+        self.setWindowTitle("PyPrintingPy")
 
         # Create new action
 #        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
@@ -137,6 +144,18 @@ class MainWindow(QtGui.QMainWindow):
         dailyAction.setShortcut('Ctrl+D')
         dailyAction.triggered.connect(self.create_daily_directory)
 
+        # Create de create daily directory action
+        save_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'), '&Save Docks', self) 
+        save_docks_Action.setStatusTip('Saves the Actual Docks configuration')
+        save_docks_Action.setShortcut('Ctrl+p')
+        save_docks_Action.triggered.connect(self.save_docks)
+
+        # Create de create daily directory action
+        load_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'), '&Load Docks', self) 
+        load_docks_Action.setStatusTip('Load a previous Docks configuration')
+        load_docks_Action.setShortcut('Ctrl+l')
+        load_docks_Action.triggered.connect(self.load_docks)
+
         # Create menu bar and add action
         menuBar = self.menuBar()
         fileMenu = menuBar.addMenu('&File')
@@ -148,6 +167,8 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu2 = menuBar.addMenu('&APD')
         fileMenu2.addAction(greenAPDaction)
         fileMenu2.addAction(redAPDaction)
+        fileMenu2.addAction(save_docks_Action)
+        fileMenu2.addAction(load_docks_Action)
 #        fileMenu3 = menuBar.addMenu('&Local Folder')
 #        fileMenu3.addAction(localDiraction)
         fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
@@ -155,6 +176,7 @@ class MainWindow(QtGui.QMainWindow):
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
         self.setGeometry(10, 40, 900, 600)  # (PosX, PosY, SizeX, SizeY)
+        self.save_docks()
 
 # %% Scan Widget
 class ScanWidget(QtGui.QFrame):
@@ -641,23 +663,27 @@ class ScanWidget(QtGui.QFrame):
         self.zgotoLabel.setFixedWidth(tamaño)
 #--- fin POSITIONEERRRRRR---------------------------
 
-        saveBtn = QtGui.QPushButton('Save dock state')
-        restoreBtn = QtGui.QPushButton('Restore dock state')
-        restoreBtn.setEnabled(False)
-#        subgrid3.addWidget(label, row=0, col=0)
-        subgrid2.addWidget(saveBtn,    10, 2)
-        subgrid2.addWidget(restoreBtn, 11, 2)
-#        d1.addWidget(w1)
-        state = None
-        def save_docks():
-            global state
-            state = dockArea.saveState()
-            restoreBtn.setEnabled(True)
-        def load_docks():
-            global state
-            dockArea.restoreState(state)
-        saveBtn.clicked.connect(save_docks)
-        restoreBtn.clicked.connect(load_docks)
+
+
+        self.state = None
+#==============================================================================
+#         saveBtn = QtGui.QPushButton('Save dock state')
+#         restoreBtn = QtGui.QPushButton('Restore dock state')
+#         restoreBtn.setEnabled(False)
+# 
+#         subgrid2.addWidget(saveBtn,    10, 2)
+#         subgrid2.addWidget(restoreBtn, 11, 2)
+# 
+# 
+#    Lo mande mas arriba
+#         def save_docks():
+#             self.state = dockArea.saveState()
+#             restoreBtn.setEnabled(True)
+#         def load_docks():
+#             dockArea.restoreState(self.state)
+#         saveBtn.clicked.connect(save_docks)
+#         restoreBtn.clicked.connect(load_docks)
+#==============================================================================
 
 # ----DOCK cosas
         hbox = QtGui.QHBoxLayout(self)
@@ -735,7 +761,9 @@ class ScanWidget(QtGui.QFrame):
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
         self.liveviewAction.setEnabled(False)
         self.Presets()
-        save_docks()
+#        save_docks()
+        self.dockArea = dockArea
+
 
 # Cosas pequeñas que agregue
     def PixelSizeChange(self):
