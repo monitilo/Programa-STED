@@ -15,7 +15,9 @@ import pyqtgraph.ptime as ptime
 from pyqtgraph.dockarea import Dock, DockArea
 
 from PIL import Image
+
 from scipy import ndimage
+from scipy import optimize
 
 import re
 
@@ -162,19 +164,20 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(dailyAction)
         fileMenu.addAction(exitAction)
 
-        fileMenu2 = menuBar.addMenu('&APD')
+        fileMenu2 = menuBar.addMenu('&Docks confih')
         fileMenu2.addAction(save_docks_Action)
         fileMenu2.addAction(load_docks_Action)
 #        fileMenu3 = menuBar.addMenu('&Local Folder')
 #        fileMenu3.addAction(localDiraction)
         fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
+        fileMenu4.addAction(openAction)
 
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
         self.setGeometry(10, 40, 900, 600)  # (PosX, PosY, SizeX, SizeY)
         self.save_docks()
 
-        
+
 # %% ScanWidget
 class ScanWidget(QtGui.QFrame):
     def imageplot(self):
@@ -442,7 +445,11 @@ class ScanWidget(QtGui.QFrame):
         self.PointButton.setCheckable(False)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        self.PointButton.setToolTip('continuously measures the APDs')
+        self.PointButton.setToolTip('continuously measures the APDs (Ctrl+T)')
+
+        self.PiontAction = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('Ctrl+T'), self, self.PointStart)
 
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Max Counts (red|green)')
@@ -813,11 +820,11 @@ class ScanWidget(QtGui.QFrame):
 
     # Agrego un atajo para que empieze tocando Ctrl+a
         self.liveviewAction = QtGui.QAction(self)
-        self.liveviewAction.setShortcut('Ctrl+a')
+#        self.liveviewAction.setShortcut('Ctrl+a')
         QtGui.QShortcut(
             QtGui.QKeySequence('Ctrl+a'), self, self.liveviewKey)
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
-        self.liveviewAction.setEnabled(False)
+#        self.liveviewAction.setEnabled(False)
 
         self.PreparePresets()
         self.dockArea = dockArea
@@ -1337,11 +1344,12 @@ class ScanWidget(QtGui.QFrame):
 
 #  puede fallar en la primer y/o ultima fila.
 
-#        try:  No necesito hacer el try, como mucho hace las cuentas con una matriz de ceros
+#        try:  No necesito hacer el try, como mucho hace las cuentas con ceros
 #            if self.pixelsoffL == 0:
 #                self.counts2[0] = self.APD2[Napd-1] - self.APD2[0]
 #            else:
-#                self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]-self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
+#                self.counts2[0] = self.APD2[(Napd*(1+self.pixelsoffL))-1]
+#                 -self.APD2[(Napd*(1+self.pixelsoffL-1))-1]
 #
 #            for i in range(1, self.numberofPixels):
 #                ei = ((self.pixelsoffL+i)   * Napd)-1
@@ -1979,20 +1987,21 @@ class ScanWidget(QtGui.QFrame):
               float(self.zLabel.text()))
 
     def goGauss(self):
-            self.zgotoLabel.setStyleSheet(" background-color: ")
-            print("arranco en", float(self.xLabel.text()),
-                  float(self.yLabel.text()),
-                  float(self.zLabel.text()))
+        rango2 = self.scanRange/2
+        self.zgotoLabel.setStyleSheet(" background-color: ")
+        print("arranco en", float(self.xLabel.text()),
+              float(self.yLabel.text()),
+              float(self.zLabel.text()))
 
-            startX = float(self.xLabel.text())
-            startY = float(self.yLabel.text())
-            self.moveto((float(self.GaussxValue.text()) + startX) - rango2,
-                        (float(self.GaussyValue.text()) + startY) - rango2,
-                        float(self.zLabel.text()))
+        startX = float(self.xLabel.text())
+        startY = float(self.yLabel.text())
+        self.moveto((float(self.GaussxValue.text()) + startX) - rango2,
+                    (float(self.GaussyValue.text()) + startY) - rango2,
+                    float(self.zLabel.text()))
 
-            print("termino en", float(self.xLabel.text()),
-                  float(self.yLabel.text()),
-                  float(self.zLabel.text()))
+        print("termino en", float(self.xLabel.text()),
+              float(self.yLabel.text()),
+              float(self.zLabel.text()))
 
 # ---goto. Para ir a una posicion especifica
     def goto(self):
@@ -2285,10 +2294,13 @@ class ScanWidget(QtGui.QFrame):
         (height, x, y, width_x, width_y) = params
         self.xGauss = x
         self.yGauss = y
-#        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+#        Channels = self.activeChannels
+#        texts = [getattr(self, ax + "Label").text() for ax in Channels]
 #        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-#        xv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[0])
-#        yv = np.linspace(0, self.scanRange, self.numberofPixels) + float(initPos[1])
+#        xv = np.linspace(0, self.scanRange,
+#                         self.numberofPixels) + float(initPos[0])
+#        yv = np.linspace(0, self.scanRange,
+#                         self.numberofPixels) + float(initPos[1])
 
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         xx = x*Normal
@@ -2457,7 +2469,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %% Roi lineal
     def ROIlinear(self):
-        largo = self.numberofPixels/1.5+10
+        larg = self.numberofPixels/1.5+10
 
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
@@ -2465,7 +2477,7 @@ class ScanWidget(QtGui.QFrame):
 
         if self.ROIlineButton.isChecked():
 
-            self.linearROI = pg.LineSegmentROI([[10, 64], [largo, 64]], pen='m')
+            self.linearROI = pg.LineSegmentROI([[10, 64], [larg, 64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
 
@@ -2601,18 +2613,29 @@ class Traza(QtGui.QWidget):
         self.curve2 = self.p7.plot(open='y')
 
     #  buttons
-        self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼')
+        self.play_pause_Button = QtGui.QPushButton('► Play / Pause || (1)')
         self.play_pause_Button.setCheckable(True)
         self.play_pause_Button.clicked.connect(self.play_pause)
-        self.play_pause_Button.setToolTip('Pausa y continua la traza')
+        self.play_pause_Button.setToolTip('Pausa y continua la traza (F1)')
 #        self.pause_Button.setStyleSheet(
 #                "QPushButton { background-color: rgb(200, 200, 10); }"
 #                "QPushButton:pressed { background-color: blue; }")
 
-        self.stop_Button = QtGui.QPushButton('Stop ◘')
+        self.stop_Button = QtGui.QPushButton('Stop ◘ (F2)')
         self.stop_Button.setCheckable(False)
         self.stop_Button.clicked.connect(self.stop)
-        self.stop_Button.setToolTip('Para la traza')
+        self.stop_Button.setToolTip('Para la traza (F2)')
+
+        self.play_pause_Action = QtGui.QAction(self)
+#        self.play_pause_Action.setShortcut('Ctrl+L')
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F1'), self, self.play_pause_active)
+#        self.play_pause_Action.triggered.connect(self.play_pause_active)
+#        self.play_pause_Action.setEnabled(True)
+
+        self.stop_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F2'), self, self.stop)
 
         grid.addWidget(self.traza_Widget2,      0, 0)
         grid.addWidget(self.play_pause_Button,  0, 3)

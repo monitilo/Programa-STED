@@ -41,6 +41,7 @@ apdrate = 10**5
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
+    """
     def closeEvent(self, event):
         reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
                                            QtGui.QMessageBox.No |
@@ -53,6 +54,7 @@ class MainWindow(QtGui.QMainWindow):
         else:
             event.ignore()
             print("NOOOO")
+#    """
 
     def newCall(self):
         self.a = 0
@@ -66,12 +68,6 @@ class MainWindow(QtGui.QMainWindow):
     def exitCall(self):
         self.a = -1.5
         print('Exit app (no hace nada)')
-
-    def greenAPD(self):
-        print('Green APD')
-
-    def redAPD(self):
-        print('red APD')
 
     def localDir(self):
         print('poner la carpeta donde trabajar')
@@ -126,16 +122,6 @@ class MainWindow(QtGui.QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(self.exitCall)
 
-    # Create de APD options Action
-        greenAPDaction = QtGui.QAction(QtGui.QIcon('gren.png'), '&Green', self)
-        greenAPDaction.setStatusTip('Uses the APD for canal green')
-        greenAPDaction.triggered.connect(self.greenAPD)
-        greenAPDaction.setShortcut('Ctrl+G')
-        redAPDaction = QtGui.QAction(QtGui.QIcon('redAPD.png'), '&Red', self)
-        redAPDaction.setStatusTip('Uses the APD for canal red')
-        redAPDaction.setShortcut('Ctrl+R')
-        redAPDaction.triggered.connect(self.redAPD)
-
     # Create de file location action
         localDirAction = QtGui.QAction(QtGui.QIcon('Dir.png'),
                                        '&Select Dir', self)
@@ -144,24 +130,24 @@ class MainWindow(QtGui.QMainWindow):
         localDirAction.triggered.connect(self.localDir)
 
     # Create de create daily directory action
-        dailyAction = QtGui.QAction(QtGui.QIcon('algo.png'),
+        dailyAction = QtGui.QAction(QtGui.QIcon('create.png'),
                                     '&Create daily Dir', self)
         dailyAction.setStatusTip('Create the work folder')
         dailyAction.setShortcut('Ctrl+D')
         dailyAction.triggered.connect(self.create_daily_directory)
 
     # Create de create daily directory action
-        save_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'),
+        save_docks_Action = QtGui.QAction(QtGui.QIcon('save.png'),
                                           '&Save Docks', self)
         save_docks_Action.setStatusTip('Saves the Actual Docks configuration')
         save_docks_Action.setShortcut('Ctrl+p')
         save_docks_Action.triggered.connect(self.save_docks)
 
     # Create de create daily directory action
-        load_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'),
+        load_docks_Action = QtGui.QAction(QtGui.QIcon('load.png'),
                                           '&Load Docks', self)
         load_docks_Action.setStatusTip('Load a previous Docks configuration')
-        load_docks_Action.setShortcut('Ctrl+l')
+        load_docks_Action.setShortcut('F11')
         load_docks_Action.triggered.connect(self.load_docks)
 
     # Create menu bar and add action
@@ -172,14 +158,13 @@ class MainWindow(QtGui.QMainWindow):
         fileMenu.addAction(dailyAction)
         fileMenu.addAction(exitAction)
 
-        fileMenu2 = menuBar.addMenu('&APD')
-        fileMenu2.addAction(greenAPDaction)
-        fileMenu2.addAction(redAPDaction)
+        fileMenu2 = menuBar.addMenu('&Docs config')
         fileMenu2.addAction(save_docks_Action)
         fileMenu2.addAction(load_docks_Action)
 #        fileMenu3 = menuBar.addMenu('&Local Folder')
 #        fileMenu3.addAction(localDiraction)
         fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
+        fileMenu4.addAction(openAction)
 
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
@@ -380,7 +365,11 @@ class ScanWidget(QtGui.QFrame):
         self.PointButton.setCheckable(False)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        self.PointButton.setToolTip('continuously measures the APDs')
+        self.PointButton.setToolTip('continuously measures the APDs (Ctrl+T)')
+
+        self.PiontAction = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('Ctrl+T'), self, self.PointStart)
 
     # Scanning parameters
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
@@ -722,11 +711,12 @@ class ScanWidget(QtGui.QFrame):
         self.imageWidget = imageWidget
 
         self.liveviewAction = QtGui.QAction(self)
-        self.liveviewAction.setShortcut('Ctrl+a')
+#        self.liveviewAction.setShortcut('Ctrl+a')
         QtGui.QShortcut(
             QtGui.QKeySequence('Ctrl+a'), self, self.liveviewKey)
 #        self.liveviewAction.triggered.connect(self.liveviewKey)
-        self.liveviewAction.setEnabled(False)
+#        self.liveviewAction.setEnabled(True)
+
         self.Presets()
 #        save_docks()
         self.dockArea = dockArea
@@ -1257,7 +1247,8 @@ class ScanWidget(QtGui.QFrame):
 
 # %%--- ploting in live
     def plotLive(self):
-        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        Channels = self.activeChannels
+        texts = [getattr(self, ax + "Label").text() for ax in Channels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 
         xv = np.linspace(0, self.scanRange,
@@ -1303,7 +1294,8 @@ class ScanWidget(QtGui.QFrame):
         plt.show()
 
     def otroPlot(self):
-        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+        Channels = self.activeChannels
+        texts = [getattr(self, ax + "Label").text() for ax in Channels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
         xv = np.linspace(0, self.scanRange,
                          self.numberofPixels) + float(initPos[0])
@@ -1337,7 +1329,7 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewButton.setChecked(False)
         else:
             self.liveviewButton.setChecked(True)
-#            self.liveview()
+            self.liveview()
 #            self.liveviewStart()
 
 # %% GaussMeasure
@@ -1351,7 +1343,8 @@ class ScanWidget(QtGui.QFrame):
 
         tac = ptime.time()
         print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
-#        texts = [getattr(self, ax + "Label").text() for ax in self.activeChannels]
+#        Channels = self.activeChannels
+#        texts = [getattr(self, ax + "Label").text() for ax in Channels]
 #        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 #        xv = np.linspace(0, self.scanRange,
 #                         self.numberofPixels) + float(initPos[0])
@@ -1510,7 +1503,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %%  ROI LINEARL
     def ROIlinear(self):
-        largo = self.numberofPixels/1.5+10
+        larg = self.numberofPixels/1.5+10
 
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
@@ -1518,7 +1511,7 @@ class ScanWidget(QtGui.QFrame):
 
         if self.ROIlineButton.isChecked():
 
-            self.linearROI = pg.LineSegmentROI([[10, 64], [largo, 64]], pen='m')
+            self.linearROI = pg.LineSegmentROI([[10, 64], [larg, 64]], pen='m')
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
 
@@ -1571,9 +1564,6 @@ class ScanWidget(QtGui.QFrame):
 # %% Point scan (inaplicable aca)
 # """
     def PointStart(self):
-#        if self.PointButton.isChecked():
-#            try: self.w.close()
-#            except: pass
         self.doit()
 #            self.PointScan()
         print("midiendo")
@@ -1643,7 +1633,8 @@ class ScanWidget(QtGui.QFrame):
 #
 #        m = np.mean(points)
 #        m2 = np.mean(points2)
-# #        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+# #        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
+#                                   float(m),float(m2)))
 #
 #        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
 #        self.data1.append(m + np.log(self.ptr1)+points[0])
@@ -1661,14 +1652,16 @@ class ScanWidget(QtGui.QFrame):
 # #        m = np.mean(points)
 # #        m2 = np.mean(points2)
 # #        #print("valor traza", m)
-# #        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
+# #        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
+#                                   float(m),float(m2)))
 #
 # #        self.ptr1 += 1
 #        self.timeaxis2 = np.roll(self.timeaxis2,-1)
 #        self.timeaxis2[-1] = (self.tiempo * 10**-3)*self.ptr1
 # #        self.timeaxis2 = np.delete(self.timeaxis2,0)
-# #        self.timeaxis2 = np.append(self.timeaxis2,(self.tiempo * 10**-3)*self.ptr1)
-# #        self.data2[:-1] = self.data2[1:]  # shift data in the array one sample left
+# #        self.timeaxis2 = np.append(self.timeaxis2,(
+#                                     self.tiempo * 10**-3)*self.ptr1)
+# #        self.data2[:-1] = self.data2[1:]  # shift  one sample left
 #        self.data2= np.roll(self.data2,-1)             # (see also: np.roll)
 #        self.data2[-1] = m + np.log(self.ptr1) + points[0]
 #        self.curve2.setData(self.timeaxis2, self.data2)
@@ -1708,18 +1701,29 @@ class MyPopup(QtGui.QWidget):
         self.curve2 = self.p7.plot(open='y')
 
     #  buttons
-        self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼')
+        self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼ (F1)')
         self.play_pause_Button.setCheckable(True)
         self.play_pause_Button.clicked.connect(self.play_pause)
-        self.play_pause_Button.setToolTip('Pausa y continua la traza')
+        self.play_pause_Button.setToolTip('Pausa y continua la traza (F1)')
 #        self.pause_Button.setStyleSheet(
 #                "QPushButton { background-color: rgb(200, 200, 10); }"
 #                "QPushButton:pressed { background-color: blue; }")
 
-        self.stop_Button = QtGui.QPushButton('Stop ◘')
+        self.stop_Button = QtGui.QPushButton('Stop ◘ (F2)')
         self.stop_Button.setCheckable(False)
         self.stop_Button.clicked.connect(self.stop)
-        self.stop_Button.setToolTip('Para la traza')
+        self.stop_Button.setToolTip('Para la traza (F2)')
+
+        self.play_pause_Action = QtGui.QAction(self)
+#        self.play_pause_Action.setShortcut('Ctrl+L')
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F1'), self, self.play_pause_active)
+#        self.play_pause_Action.triggered.connect(self.play_pause_active)
+#        self.play_pause_Action.setEnabled(True)
+
+        self.stop_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F2'), self, self.stop)
 
         grid.addWidget(self.traza_Widget2,      0, 0)
         grid.addWidget(self.play_pause_Button,  0, 3)
@@ -1738,7 +1742,16 @@ class MyPopup(QtGui.QWidget):
 #         else:
 #             self.pointtimer.stop()
 
+    def play_pause_active(self):
+        '''Triggered by the play_pause_Action shortcut.'''
+        if self.play_pause_Button.isChecked():
+            self.play_pause_Button.setChecked(False)
+        else:
+            self.play_pause_Button.setChecked(True)
+        self.play_pause()
+
     def play_pause(self):
+        print("play")
         if self.play_pause_Button.isChecked():
             # self.pause_Button.setStyleSheet(
             #        "QPushButton { background-color: ; }")
@@ -1752,7 +1765,7 @@ class MyPopup(QtGui.QWidget):
             #        "QPushButton { background-color: red; }")
 
     def stop(self):
-
+        print("stop")
         try:
             self.pointtimer.stop()
         except IOError as e:
@@ -1778,7 +1791,6 @@ class MyPopup(QtGui.QWidget):
         self.ptr1 = 0
         self.data1 = []  # np.empty(100)
 #        self.data1 = np.zeros(300)
-
 
         self.data2 = np.zeros(300)
         self.timeaxis2 = np.zeros(300)
