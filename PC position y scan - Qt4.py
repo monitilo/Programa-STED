@@ -41,6 +41,19 @@ apdrate = 10**5
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
+    def closeEvent(self, event):
+        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
+                                           QtGui.QMessageBox.No |
+                                           QtGui.QMessageBox.Yes)
+        if reply == QtGui.QMessageBox.Yes:
+            print("YES")
+            event.accept()
+            self.close()
+            self.liveviewStop()
+        else:
+            event.ignore()
+            print("NOOOO")
+
     def newCall(self):
         self.a = 0
         print('New')
@@ -189,19 +202,6 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewButton.setChecked()
             self.liveview()
 
-    def closeEvent(self, event):
-        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
-                                           QtGui.QMessageBox.No |
-                                           QtGui.QMessageBox.Yes)
-        if reply == QtGui.QMessageBox.Yes:
-            print("YES")
-            event.accept()
-            self.close()
-            self.liveviewStop()
-        else:
-            event.ignore()
-            print("NOOOO")
-
     def __init__(self, main, device, *args, **kwargs):  # main
 
         super().__init__(*args, **kwargs)
@@ -290,13 +290,25 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
-        self.NameDirButton = QtGui.QPushButton('select Dir')
-        self.NameDirButton.clicked.connect(self.selectFolder)
+        label_save = QtGui.QLabel('Nombre del archivo')
+        label_save.resize(label_save.sizeHint())
+        self.edit_save = QtGui.QLineEdit('imagenScan')
+        self.edit_save.resize(self.edit_save.sizeHint())
+
+        self.edit_Name = str(self.edit_save.text())
+        self.edit_save.textEdited.connect(self.save_name_update)
+        self.save_name_update()
+
+#        self.NameDirButton = QtGui.QPushButton('select Dir')
+#        self.NameDirButton.clicked.connect(self.selectFolder)
         self.file_path = os.path.abspath("")
-        self.OpenButton = QtGui.QPushButton('open dir')
-        self.OpenButton.clicked.connect(self.openFolder)
-        self.create_day_Button = QtGui.QPushButton('Create daily dir')
-        self.create_day_Button.clicked.connect(self.create_daily_directory)
+#        self.OpenButton = QtGui.QPushButton('open dir')
+#        self.OpenButton.clicked.connect(self.openFolder)
+#        self.create_day_Button = QtGui.QPushButton('Create daily dir')
+#        self.create_day_Button.clicked.connect(self.create_daily_directory)
+        self.NameDirValue = QtGui.QLabel('')
+        self.NameDirValue.setText(self.file_path)
+        self.NameDirValue.setStyleSheet(" background-color: red; ")
 
     # Defino el tipo de Scan que quiero
         self.scanMode = QtGui.QComboBox()
@@ -320,12 +332,6 @@ class ScanWidget(QtGui.QFrame):
     # to run continuously
         self.Continouscheck = QtGui.QCheckBox('Continous')
         self.Continouscheck.setChecked(False)
-
-        # no lo quiero cuadrado
-
-#        self.squareRadio = QtGui.QRadioButton('Cuadrado')
-#        self.squareRadio.clicked.connect(self.squareOrNot)
-#        self.squareRadio.setChecked(True)
 
     # XZ PSF scan
         self.XYcheck = QtGui.QRadioButton('XZ psf scan')
@@ -371,7 +377,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Point scan
         self.PointButton = QtGui.QPushButton('Point scan')
-        self.PointButton.setCheckable(True)
+        self.PointButton.setCheckable(False)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
         self.PointButton.setToolTip('continuously measures the APDs')
@@ -406,22 +412,9 @@ class ScanWidget(QtGui.QFrame):
         self.pixelTimeEdit.setValidator(self.onlypos)
         self.scanRangeEdit.setValidator(self.onlypos)
 
-        label_save = QtGui.QLabel('Nombre del archivo')
-        label_save.resize(label_save.sizeHint())
-        self.edit_save = QtGui.QLineEdit('imagenScan')
-        self.edit_save.resize(self.edit_save.sizeHint())
-
-        self.edit_Name = str(self.edit_save.text())
-        self.edit_save.textEdited.connect(self.save_name_update)
-        self.save_name_update()
-
         self.numberofPixelsEdit.textEdited.connect(self.PixelSizeChange)
         self.pixelSizeValue.textEdited.connect(self.NpixChange)
         self.scanRangeEdit.textEdited.connect(self.PixelSizeChange)
-
-        self.NameDirValue = QtGui.QLabel('')
-        self.NameDirValue.setText(self.file_path)
-        self.NameDirValue.setStyleSheet(" background-color: red; ")
 
         self.CMxLabel = QtGui.QLabel('CM X')
         self.CMxValue = QtGui.QLabel('NaN')
@@ -574,9 +567,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(self.maxcountsLabel,     16, 3)
         subgrid3.addWidget(self.maxcountsEdit,      17, 3, 2, 3)
 
-        subgrid3.addWidget(self.NameDirButton,       4, 3, 2, 1)
-        subgrid3.addWidget(self.OpenButton,          5, 3, 1, 1)
-        subgrid3.addWidget(self.create_day_Button,   6, 3, 1, 1)
+#        subgrid3.addWidget(self.NameDirButton,       4, 3, 2, 1)
+#        subgrid3.addWidget(self.OpenButton,          5, 3, 1, 1)
+#        subgrid3.addWidget(self.create_day_Button,   6, 3, 1, 1)
 
 
 # --- POSITIONERRRRR-------------------------------
@@ -1518,6 +1511,7 @@ class ScanWidget(QtGui.QFrame):
 # %%  ROI LINEARL
     def ROIlinear(self):
         largo = self.numberofPixels/1.5+10
+
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
             self.curve.setData(array)
@@ -1560,13 +1554,13 @@ class ScanWidget(QtGui.QFrame):
             self.scanRangeEdit.setText('100')
             self.pixelTimeEdit.setText('0.2')
             self.numberofPixelsEdit.setText('128')
-            self.presetsMode.setStyleSheet("QComboBox{color: rgb(153,153,10);}\n")
+            self.presetsMode.setStyleSheet("QComboBox{color:rgb(153,153,10);}")
 
         elif self.presetsMode .currentText() == self.presetsModes[2]:
             self.scanRangeEdit.setText('50')
             self.pixelTimeEdit.setText('0.05')
             self.numberofPixelsEdit.setText('250')
-            self.presetsMode.setStyleSheet("QComboBox{color: rgb(76,0,153);}\n")
+            self.presetsMode.setStyleSheet("QComboBox{color:rgb(76,0,153);}\n")
 
         else:
             print("nunca tiene que entrar aca")
@@ -1577,7 +1571,6 @@ class ScanWidget(QtGui.QFrame):
 # %% Point scan (inaplicable aca)
 # """
     def PointStart(self):
-        self.PointButton.setCheckable(False)
 #        if self.PointButton.isChecked():
 #            try: self.w.close()
 #            except: pass
@@ -1690,6 +1683,12 @@ class ScanWidget(QtGui.QFrame):
 
 # """
 class MyPopup(QtGui.QWidget):
+
+    def closeEvent(self, event):
+        self.pointtimer.stop()
+        self.running = False
+        print("flor de relozzz")
+
     def __init__(self, main, *args, **kwargs):
         QtGui.QWidget.__init__(self)
         super().__init__(*args, **kwargs)
@@ -1703,6 +1702,10 @@ class MyPopup(QtGui.QWidget):
         self.p6 = self.traza_Widget2.addPlot(row=2, col=1, title="Traza")
         self.p6.showGrid(x=True, y=True)
         self.curve = self.p6.plot(open='y')
+
+        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
+        self.p7.showGrid(x=True, y=True)
+        self.curve2 = self.p7.plot(open='y')
 
     #  buttons
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼')
@@ -1724,11 +1727,6 @@ class MyPopup(QtGui.QWidget):
         self.play_pause_Button.setChecked(True)
         self.PointScan()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
-
-    def closeEvent(self, event):
-        self.pointtimer.stop()
-        self.running = False
-        print("flor de relozzz")
 
 # TODO: a seguir mejorando esta parte
 #     def play(self):
@@ -1781,9 +1779,7 @@ class MyPopup(QtGui.QWidget):
         self.data1 = []  # np.empty(100)
 #        self.data1 = np.zeros(300)
 
-        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
-        self.p7.showGrid(x=True, y=True)
-        self.curve2 = self.p7.plot(open='y')
+
         self.data2 = np.zeros(300)
         self.timeaxis2 = np.zeros(300)
 #        self.otrosDock.addWidget(self.traza_Widget)

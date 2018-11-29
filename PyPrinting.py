@@ -26,7 +26,7 @@ import nidaqmx
 
 device = nidaqmx.system.System.local().devices['Dev1']
 
-convFactors = {'x': 25, 'y': 25, 'z': 1.683}
+convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # TODO: CAMBIAR!!!!!
 # la calibracion es 1 µm = 40 mV en x,y (galvos);
 # en z, 0.17 µm = 0.1 V  ==> 1 µm = 0.58 V
 # 1.68 um = 1 V ==> 1 um = 0.59V  # asi que promedie, y lo puse a ojo.
@@ -44,7 +44,137 @@ scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
 
 shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 
+apdrate = 10**5
 
+
+# %% Main Window
+class MainWindow(QtGui.QMainWindow):
+    def closeEvent(self, event):
+        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
+                                           QtGui.QMessageBox.No |
+                                           QtGui.QMessageBox.Yes)
+        if reply == QtGui.QMessageBox.Yes:
+            print("YES")
+            event.accept()
+            self.close()
+            self.liveviewStop()
+        else:
+            event.ignore()
+            print("NOOOO")
+
+    def newCall(self):
+        print('New')
+
+    def openCall(self):
+        os.startfile(self.file_path)
+        print('Open: ', self.file_path)
+
+    def exitCall(self):
+        self.a = -1.5
+        print('Exit app (no hace nada)')
+
+    def localDir(self):
+        print('poner la carpeta donde trabajar')
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path, "◄ dire")
+        self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
+#        self.form_widget.paramChanged()
+
+    def create_daily_directory(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+
+        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+        newpath = self.file_path + "/" + timestr
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        else:
+            print("Ya existe esa carpeta")
+        self.file_path = newpath
+        self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
+
+    def save_docks(self):
+        self.form_widget.state = self.form_widget.dockArea.saveState()
+
+    def load_docks(self):
+        self.form_widget.dockArea.restoreState(self.form_widget.state)
+
+    def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+        self.a = 0
+        self.file_path = os.path.abspath("")
+        self.setMinimumSize(QtCore.QSize(500, 500))
+        self.setWindowTitle("PyPrintingPy")
+
+    # Create new action
+        openAction = QtGui.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Open document')
+        openAction.triggered.connect(self.openCall)
+
+    # Create exit action
+        exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.exitCall)
+
+    # Create de file location action
+        localDirAction = QtGui.QAction(QtGui.QIcon('Dir.png'),
+                                       '&Select Dir', self)
+        localDirAction.setStatusTip('Select the work folder')
+        localDirAction.setShortcut('Ctrl+S')
+        localDirAction.triggered.connect(self.localDir)
+
+    # Create de create daily directory action
+        dailyAction = QtGui.QAction(QtGui.QIcon('algo.png'),
+                                    '&Create daily Dir', self)
+        dailyAction.setStatusTip('Create the work folder')
+        dailyAction.setShortcut('Ctrl+D')
+        dailyAction.triggered.connect(self.create_daily_directory)
+
+    # Create de create daily directory action
+        save_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'),
+                                          '&Save Docks', self)
+        save_docks_Action.setStatusTip('Saves the Actual Docks configuration')
+        save_docks_Action.setShortcut('Ctrl+p')
+        save_docks_Action.triggered.connect(self.save_docks)
+
+    # Create de create daily directory action
+        load_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'),
+                                          '&Load Docks', self)
+        load_docks_Action.setStatusTip('Load a previous Docks configuration')
+        load_docks_Action.setShortcut('Ctrl+l')
+        load_docks_Action.triggered.connect(self.load_docks)
+
+    # Create menu bar and add action
+        menuBar = self.menuBar()
+        fileMenu = menuBar.addMenu('&File')
+        fileMenu.addAction(localDirAction)
+        fileMenu.addAction(openAction)
+        fileMenu.addAction(dailyAction)
+        fileMenu.addAction(exitAction)
+
+        fileMenu2 = menuBar.addMenu('&APD')
+        fileMenu2.addAction(save_docks_Action)
+        fileMenu2.addAction(load_docks_Action)
+#        fileMenu3 = menuBar.addMenu('&Local Folder')
+#        fileMenu3.addAction(localDiraction)
+        fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
+
+        self.form_widget = ScanWidget(self, device)
+        self.setCentralWidget(self.form_widget)
+        self.setGeometry(10, 40, 900, 600)  # (PosX, PosY, SizeX, SizeY)
+        self.save_docks()
+
+        
 # %% ScanWidget
 class ScanWidget(QtGui.QFrame):
     def imageplot(self):
@@ -104,10 +234,11 @@ class ScanWidget(QtGui.QFrame):
 #        plt.plot(self.onerampy[1,:],'k')
         plt.show()
 
-    def __init__(self, device, *args, **kwargs):  # agregue device
+    def __init__(self, main, device, *args, **kwargs):  # agregue device
 
         super().__init__(*args, **kwargs)
 
+        self.main = main
         self.nidaq = device  # esto tiene que ir
 
         imageWidget = pg.GraphicsLayoutWidget()
@@ -133,7 +264,7 @@ class ScanWidget(QtGui.QFrame):
         self.PSFMode.activated.connect(self.PSFYZ)
         self.PSFMode.setToolTip('Change the scan axes')
 
-    # Presets simil inspector
+    # Presets for shutters
         self.presetsMode = QtGui.QComboBox()
         self.presetsModes = ['Red', 'Yellow', 'STED', 'STED + Yell',
                              'STED + Red', 'nada']
@@ -186,20 +317,21 @@ class ScanWidget(QtGui.QFrame):
         self.edit_save.textEdited.connect(self.save_name_update)
         self.save_name_update()
 
-        self.NameDirButton = QtGui.QPushButton('Select Dir')
-        self.NameDirButton.clicked.connect(self.selectFolder)
+#        self.NameDirButton = QtGui.QPushButton('Select Dir')
+#        self.NameDirButton.clicked.connect(self.selectFolder)
 #        filepath = main.file_path  # os.path.abspath("")
         self.file_path = os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(self.file_path)
         self.NameDirValue.setStyleSheet(" background-color: red; ")
-        self.OpenButton = QtGui.QPushButton('open dir')
-        self.OpenButton.clicked.connect(self.openFolder)
-        self.NameDirButton.setToolTip('Select the folder where it saves')
-        self.OpenButton.setToolTip('Open the folder where it saves')
-        self.create_day_Button = QtGui.QPushButton('Create daily dir')
-        self.create_day_Button.clicked.connect(self.create_daily_directory)
-        self.create_day_Button.setToolTip('Create a year-mon-day named folder')
+
+#        self.OpenButton = QtGui.QPushButton('open dir')
+#        self.OpenButton.clicked.connect(self.openFolder)
+#        self.NameDirButton.setToolTip('Select the folder where it saves')
+#        self.OpenButton.setToolTip('Open the folder where it saves')
+#        self.create_day_Button = QtGui.QPushButton('Create daily dir')
+#        self.create_day_Button.clicked.connect(self.create_daily_directory)
+#        self.create_day_Button.setToolTip('Create a year-mon-day name folder')
 
     # Select the wanted scan mode
         self.scanMode = QtGui.QComboBox()
@@ -213,6 +345,7 @@ class ScanWidget(QtGui.QFrame):
         self.graphcheck.clicked.connect(self.graphplot)
         self.step = False
         self.graphcheck.setToolTip('plot the voltage ramps (developer only)')
+
     # Plot ramps scan button
         self.imagecheck = QtGui.QCheckBox('Image change')
         self.imagecheck.clicked.connect(self.imageplot)
@@ -306,7 +439,7 @@ class ScanWidget(QtGui.QFrame):
 
     # Point scan
         self.PointButton = QtGui.QPushButton('Point scan')
-        self.PointButton.setCheckable(True)
+        self.PointButton.setCheckable(False)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
         self.PointButton.setToolTip('continuously measures the APDs')
@@ -365,25 +498,8 @@ class ScanWidget(QtGui.QFrame):
         self.pixelSizeValue.textEdited.connect(self.NpixChange)
         self.scanRangeEdit.textEdited.connect(self.PixelSizeChange)
 
-
-#        self.numberofPixelsEdit.textChanged.connect(self.paramChanged)
-#        self.numberofPixelsEdit.textChanged.connect(self.zeroImage)
-
-#        self.scanRangeEdit.textChanged.connect(self.paramChanged)
-#        self.pixelTimeEdit.textChanged.connect(self.paramChanged)
-#        self.accelerationEdit.textChanged.connect(self.paramChanged)
-#        self.vueltaEdit.textChanged.connect(self.paramChanged)
-
-#        self.scanMode.activated.connect(self.done)
         self.scanMode.activated.connect(self.SlalomMode)
-#
-#        self.detectMode.activated.connect(self.done)
-#        self.detectMode.activated.connect(self.paramChanged)
-#
-#        self.PSFMode.activated.connect(self.done)
-#        self.PSFMode.activated.connect(self.paramChanged)
 
-#        self.presetsMode.activated.connect(self.done)
         self.presetsMode.activated.connect(self.PreparePresets)
 
         self.paramWidget = QtGui.QWidget()
@@ -598,33 +714,19 @@ class ScanWidget(QtGui.QFrame):
         layout3.addWidget(self.GaussyLabel, 3, 5)
         layout3.addWidget(self.GaussyValue, 4, 5)
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
-#        layout3.addWidget(QtGui.QLabel(' '), 4, 0)
-#        layout3.addWidget(QtGui.QLabel(' '), 4, 7)
         self.goCMButton = QtGui.QPushButton("♥ Go Gauss ♦")
         self.goCMButton.pressed.connect(self.goGauss)
         layout3.addWidget(self.goCMButton, 2, 4)  # , 2, 2)
         layout3.addWidget(self.Gausscheck, 2, 1)
 # ---- fin positioner part----------
 
-        saveBtn = QtGui.QPushButton('Save dock state')
-        restoreBtn = QtGui.QPushButton('Restore dock state')
-        restoreBtn.setEnabled(False)
-#        subgrid3.addWidget(label, row=0, col=0)
-        subgrid2.addWidget(saveBtn,    5, 2)
-        subgrid2.addWidget(restoreBtn, 6, 2)
-#        d1.addWidget(w1)
-        state = None
+#        saveBtn = QtGui.QPushButton('Save dock state')
+#        restoreBtn = QtGui.QPushButton('Restore dock state')
+#        restoreBtn.setEnabled(False)
+#        subgrid2.addWidget(saveBtn,    5, 2)
+#        subgrid2.addWidget(restoreBtn, 6, 2)
 
-        def save_docks():
-            global state
-            state = dockArea.saveState()
-            restoreBtn.setEnabled(True)
-
-        def load_docks():
-            global state
-            dockArea.restoreState(state)
-        saveBtn.clicked.connect(save_docks)
-        restoreBtn.clicked.connect(load_docks)
+        self.state = None
 
 # ----DOCK cosas, mas comodo!
         hbox = QtGui.QHBoxLayout(self)
@@ -665,8 +767,8 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-        self.setGeometry(10, 40, 300, 800)
-        self.setWindowTitle('Py Py Python scan')
+#        self.setGeometry(10, 40, 300, 800)
+#        self.setWindowTitle('Py Py Python scan')
 #        self.setFixedHeight(550)
 
         self.paramChanged()
@@ -705,6 +807,7 @@ class ScanWidget(QtGui.QFrame):
         self.dy = 0
 
         self.imageWidget = imageWidget
+
         # self.startRutine()
         # TODO: # que lea de algun lado la posicion y la setee como start x,y,z
 
@@ -717,7 +820,7 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewAction.setEnabled(False)
 
         self.PreparePresets()
-        save_docks()
+        self.dockArea = dockArea
 
 # %% Un monton de pequeñas cosas que agregé
     def liveviewKey(self):
@@ -2123,49 +2226,54 @@ class ScanWidget(QtGui.QFrame):
         self.edit_Name = str(self.edit_save.text())
         self.NameNumber = 0
 
-    def create_daily_directory(self):
-        root = tk.Tk()
-        root.withdraw()
-
-        self.file_path = filedialog.askdirectory()
-
-        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
-
-        newpath = self.file_path + "/" + timestr
-        if not os.path.exists(newpath):
-            os.makedirs(newpath)
-        else:
-            print("Ya existe esa carpeta")
-
-        self.file_path = newpath
-        self.NameDirValue.setText(self.file_path)
-        self.NameDirValue.setStyleSheet(" background-color: ; ")
+#    def create_daily_directory(self):
+#        root = tk.Tk()
+#        root.withdraw()
+#
+#        self.file_path = filedialog.askdirectory()
+#
+#        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+#
+#        newpath = self.file_path + "/" + timestr
+#        if not os.path.exists(newpath):
+#            os.makedirs(newpath)
+#        else:
+#            print("Ya existe esa carpeta")
+#
+#        self.file_path = newpath
+#        self.NameDirValue.setText(self.file_path)
+#        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
+        try:
+            filepath = self.main.file_path
+            # nombre con la fecha -hora
+            name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")
+            if self.imagecheck.isChecked():
+                guardado = Image.fromarray(
+                                         np.transpose(np.flip(self.image2, 1)))
+            else:
+                guardado = Image.fromarray(
+                                         np.transpose(np.flip(self.image, 1)))
 
-        # nombre con la fecha -hora
-        name = str(self.file_path + "/" + str(self.edit_save.text()) + ".tiff")
-        if self.imagecheck.isChecked():
-            guardado = Image.fromarray(np.transpose(np.flip(self.image2, 1)))
-        else:
-            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-
-        guardado.save(name)
-        self.NameNumber = self.NameNumber + 1
-        self.edit_save.setText(self.edit_Name + str(self.NameNumber))
-        print("\n Image saved\n")
-
-    def selectFolder(self):
-        root = tk.Tk()
-        root.withdraw()
-        self.file_path = filedialog.askdirectory()
-        # print(self.file_path,2)
-        self.NameDirValue.setText(self.file_path)
-        self.NameDirValue.setStyleSheet(" background-color: ")
-
-    def openFolder(self):
-        os.startfile(self.file_path)
+            guardado.save(name)
+            self.NameNumber = self.NameNumber + 1
+            self.edit_save.setText(self.edit_Name + str(self.NameNumber))
+            print("\n Image saved\n")
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#
+#    def selectFolder(self):
+#        root = tk.Tk()
+#        root.withdraw()
+#        self.file_path = filedialog.askdirectory()
+#        # print(self.file_path,2)
+#        self.NameDirValue.setText(self.file_path)
+#        self.NameDirValue.setStyleSheet(" background-color: ")
+#
+#    def openFolder(self):
+#        os.startfile(self.file_path)
 
 # %% GaussFit
     def GaussFit(self):
@@ -2232,82 +2340,6 @@ class ScanWidget(QtGui.QFrame):
         self.img.setImage((np.array(mapa)), autoLevels=True)
 #        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
-# %% Point scan ---+--- Hay que elegir APD
-    def PointStart(self):
-        if self.PointButton.isChecked():
-            self.PointScan()
-            print("midiendo")
-        else:
-            self.PointScanStop()
-            print("fin")
-
-    def PointScanStop(self):
-        self.pointtimer.stop()
-        self.pointtask.stop()
-        self.pointtask.close()
-        self.pointtask2.stop()
-        self.pointtask2.close()
-        self.traza_Widget.deleteLater()
-
-    def PointScan(self):
-        self.tiempo = 400  # ms  # refresca el numero cada este tiempo
-#        self.points = np.zeros(int((self.apdrate*(tiempo /10**3))))
-#        self.points2 = self.points
-
-        self.pointtask = nidaqmx.Task('pointtask')
-        # Configure the counter channel to read the APD
-        self.pointtask.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[0]),
-                            name_to_assign_to_channel=u'Line_counter',
-                            initial_count=0)
-
-        self.pointtask2 = nidaqmx.Task('pointtask2')
-        # Configure the counter channel to read the APD
-        self.pointtask2.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[1]),
-                            name_to_assign_to_channel=u'Line_counter',
-                            initial_count=0)
-
-        self.traza_Widget = pg.GraphicsLayoutWidget()
-        self.p6 = self.traza_Widget.addPlot(row=2, col=1, title="Traza")
-        self.p6.showGrid(x=True, y=True)
-        self.curve = self.p6.plot(open='y')
-        self.otrosDock.addWidget(self.traza_Widget)
-        self.ptr1 = 0
-        self.data1 = []  # np.empty(100)
-#        self.data1 = np.zeros(300)
-
-        self.pointtimer = QtCore.QTimer()
-        self.pointtimer.timeout.connect(self.updatePoint)
-        self.pointtimer.start(self.tiempo)
-
-    def updatePoint(self):
-        points = np.zeros(int((self.apdrate * (self.tiempo / 10**3))))
-        points2 = points
-        N = len(points)
-        points[:] = self.pointtask.read(N)
-        points2[:] = self.pointtask.read(N)
-
-        m = np.mean(points)
-        m2 = np.mean(points2)
-#        #print("valor traza", m)
-        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
-                                float(m), float(m2)))
-
-        self.data1.append(m)
-        self.ptr1 += 1
-        self.curve.setData(self.data1)
-#        self.curve.setPos(-self.ptr1, 0)
-
-# ==============================================================================
-#   Alternativa donde solo se ve la parte nueva (cambiar data1 antes)
-#         self.ptr1 += 1
-#         self.data1[:-1] = self.data1[1:]  # shift data one sample left
-# #        self.data1= np.roll(self.data1,-1)    # (see also: np.roll)
-#         self.data1[-1] = m + np.log(self.ptr1)
-#         self.curve.setData(self.data1)
-#         self.curve.setPos(self.ptr1, 0)
-# ==============================================================================
 # %%  ROI cosas
     def ROImethod(self):
         if self.roi is None:
@@ -2365,7 +2397,7 @@ class ScanWidget(QtGui.QFrame):
         print("hasta :", self.scanRange, "\n")
         self.paramChanged()
 
-# --- Creo el intregador de area histograma
+# %% Roi Histogram
     def histogramROI(self):
         # ----
         def updatehistogram():
@@ -2456,6 +2488,7 @@ class ScanWidget(QtGui.QFrame):
         ax.set_ylabel('Intensity (N photons)')
         plt.show()
 
+# %% Presets, shutters
         # otra idea de presets. abrir los shutters que se quieran
     def PreparePresets(self):
         # presetsModes = ['Red','Yellow','STED','Yell+STED','Red+STED','nada']
@@ -2531,6 +2564,143 @@ class ScanWidget(QtGui.QFrame):
 
         toc = ptime.time()
         print("\n tiempo getInitPos", toc-tic, "\n")
+
+# %% Point scan ---+--- Hay que elegir APD
+    def PointStart(self):
+        print("Opening a new popup window...")
+        self.w = Traza(self.main)
+        self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
+        self.w.show()
+
+
+# %% Clase para TRAZA
+class Traza(QtGui.QWidget):
+
+    def closeEvent(self, event):
+        self.pointtimer.stop()
+        self.running = False
+        print("flor de relozzz")
+
+    def __init__(self, main, *args, **kwargs):
+        QtGui.QWidget.__init__(self)
+        super().__init__(*args, **kwargs)
+        self.main = main
+        self.ScanWidget = ScanWidget(main, device)
+#        self.form_widget = ScanWidget(self, device)
+        self.traza_Widget2 = pg.GraphicsLayoutWidget()
+        self.running = False
+        grid = QtGui.QGridLayout()
+        self.setLayout(grid)
+
+        self.p6 = self.traza_Widget2.addPlot(row=2, col=1, title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+
+        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
+        self.p7.showGrid(x=True, y=True)
+        self.curve2 = self.p7.plot(open='y')
+
+    #  buttons
+        self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼')
+        self.play_pause_Button.setCheckable(True)
+        self.play_pause_Button.clicked.connect(self.play_pause)
+        self.play_pause_Button.setToolTip('Pausa y continua la traza')
+#        self.pause_Button.setStyleSheet(
+#                "QPushButton { background-color: rgb(200, 200, 10); }"
+#                "QPushButton:pressed { background-color: blue; }")
+
+        self.stop_Button = QtGui.QPushButton('Stop ◘')
+        self.stop_Button.setCheckable(False)
+        self.stop_Button.clicked.connect(self.stop)
+        self.stop_Button.setToolTip('Para la traza')
+
+        grid.addWidget(self.traza_Widget2,      0, 0)
+        grid.addWidget(self.play_pause_Button,  0, 3)
+        grid.addWidget(self.stop_Button,        1, 3)
+        self.play_pause_Button.setChecked(True)
+        self.PointScan()
+#        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
+
+# TODO: a seguir mejorando esta parte
+#     def play(self):
+#         if self.play_Button.isChecked():
+#             if self.running == True:
+#                 self.pointtimer.start(self.tiempo)
+#             else:
+#                 self.PointScan()
+#         else:
+#             self.pointtimer.stop()
+
+    def play_pause(self):
+        if self.play_pause_Button.isChecked():
+            # self.pause_Button.setStyleSheet(
+            #        "QPushButton { background-color: ; }")
+            if self.running:
+                self.pointtimer.start(self.tiempo)
+            else:
+                self.PointScan()
+        else:
+            self.pointtimer.stop()
+            # self.pause_Button.setStyleSheet(
+            #        "QPushButton { background-color: red; }")
+
+    def stop(self):
+
+        try:
+            self.pointtimer.stop()
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        self.running = False
+        self.play_pause_Button.setChecked(False)
+
+    def PointScan(self):
+        self.running = True
+        self.tiempo = 400  # ms  # refresca el numero cada este tiempo
+        self.points = np.zeros(int((apdrate * (self.tiempo / 10**3))))
+        self.points2 = np.copy(self.points)
+
+        self.pointtask = nidaqmx.Task('pointtask')
+        # Configure the counter channel to read the APD
+        self.pointtask.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr{}'.format(COchans[0]),
+                            name_to_assign_to_channel=u'Line_counter',
+                            initial_count=0)
+
+        self.pointtask2 = nidaqmx.Task('pointtask2')
+        # Configure the counter channel to read the APD
+        self.pointtask2.ci_channels.add_ci_count_edges_chan(
+                            counter='Dev1/ctr{}'.format(COchans[1]),
+                            name_to_assign_to_channel=u'Line_counter',
+                            initial_count=0)
+        self.ptr1 = 0
+        self.timeaxis = []
+        self.data1 = []  # np.empty(100)
+        self.data2 = []  # np.empty(300)
+
+        self.pointtimer = QtCore.QTimer()
+        self.pointtimer.timeout.connect(self.updatePoint)
+        self.pointtimer.start(self.tiempo)
+
+    def updatePoint(self):
+        N = len(self.points)
+        self.points[:] = self.pointtask.read(N)
+        self.points2[:] = self.pointtask2.read(N)
+
+        m = np.mean(self.points)
+        m2 = np.mean(self.points2)
+#        #print("valor traza", m)
+        self.ScanWidget.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
+                                           float(m), float(m2)))
+
+        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
+        self.data1.append(m)
+        self.ptr1 += 1
+        self.curve.setData(self.timeaxis, self.data1)
+
+        self.data2 = np.roll(self.data2, -1)            # (see also: np.roll)
+        self.data2.append(m2)
+        self.curve2.setData(self.timeaxis, self.data2)
+#        self.curve2.setPos(self.timeaxis[0], 0)
 
 
 # %% Otras Funciones
