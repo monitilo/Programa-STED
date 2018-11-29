@@ -399,12 +399,15 @@ Created on Wed Nov 28 11:00:54 2018
 #%% 
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
-
+import numpy as np
 import sys
 #from PyQt4.Qt import *
+import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 #from PyQt4.Qt import QWidget, QPainter, QMainWindow,QRect,QPushButton,SIGNAL,QApplication
-
+from PIL import Image
+im = Image.open('Z:/German/FACU/Doctorado/Carpeta donde guardo las cosas/imagenScan.tiff')
+#im.show()
 #from PyQt5 import QtCore, QtWidgets
 #from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
 #from PyQt5.QtCore import QSize
@@ -413,6 +416,19 @@ from pyqtgraph.Qt import QtCore, QtGui
 class MyPopup(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
+
+        self.traza_Widget2 = pg.GraphicsLayoutWidget()
+
+        grid = QtGui.QGridLayout()
+        self.setLayout(grid)
+
+        self.p6 = self.traza_Widget2.addPlot(row=2,col=1,title="Traza")
+        self.p6.showGrid(x=True, y=True)
+        self.curve = self.p6.plot(open='y')
+
+        self.curve.setData(np.array(im)[10])
+
+        grid.addWidget(self.traza_Widget2,      0, 0)
 
     def paintEvent(self, e):
         dc = QtGui.QPainter(self)
@@ -428,6 +444,8 @@ class MainWindow(QtGui.QMainWindow):
         self.btn1.setGeometry(QtCore.QRect(0, 0, 100, 30))
         self.connect(self.btn1, QtCore.SIGNAL("clicked()"), self.doit)
         self.w = None
+
+
 
     def doit(self):
         print ("Opening a new popup window...")

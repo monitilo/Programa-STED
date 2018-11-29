@@ -36,9 +36,125 @@ convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
 # la de z es 1 um = 0.59 V
 apdrate = 10**5
 
-def makeRamp(start, end, samples):
-    return np.linspace(start, end, num=samples)
+#def makeramps(start, end, samples):
+#    return np.linspace(start, end, num=samples)
 
+
+# %% Main Window
+class MainWindow(QtGui.QMainWindow):
+    def newCall(self):
+        self.a = 0
+        print('New')
+
+    def openCall(self):
+        self.a = 1.5
+        os.startfile(self.file_path)
+#        print('Open')
+
+    def exitCall(self):
+        self.a = -1.5
+        print('Exit app (no hace nada)')
+
+    def greenAPD(self):
+        print('Green APD')
+
+    def redAPD(self):
+        print('red APD')
+
+    def localDir(self):
+        print('poner la carpeta donde trabajar')
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,"◄ dire")
+        self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
+#        self.form_widget.paramChanged()
+
+    def create_daily_directory(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        self.file_path = filedialog.askdirectory()
+
+        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+        newpath = self.file_path +"/"+ timestr
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        else:
+            print("Ya existe esa carpeta")
+        self.file_path = newpath
+        self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
+
+    def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+        self.a = 0
+        self.file_path = os.path.abspath("")
+# ----- MENU
+        self.setMinimumSize(QtCore.QSize(500, 500))
+        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
+
+        # Create new action
+#        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
+#        newAction.setShortcut('Ctrl+N')
+#        newAction.setStatusTip('New document')
+#        newAction.triggered.connect(self.newCall)
+
+        # Create new action
+        openAction = QtGui.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Open document')
+        openAction.triggered.connect(self.openCall)
+
+        # Create exit action
+        exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.exitCall)
+
+        # Create de APD options Action
+        greenAPDaction = QtGui.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
+        greenAPDaction.setStatusTip('Uses the APD for canal green')
+        greenAPDaction.triggered.connect(self.greenAPD)
+        greenAPDaction.setShortcut('Ctrl+G')
+        redAPDaction = QtGui.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
+        redAPDaction.setStatusTip('Uses the APD for canal red')
+        redAPDaction.setShortcut('Ctrl+R')
+        redAPDaction.triggered.connect(self.redAPD)
+
+        # Create de file location action
+        localDirAction = QtGui.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
+        localDirAction.setStatusTip('Select the work folder')
+        localDirAction.setShortcut('Ctrl+S')
+        localDirAction.triggered.connect(self.localDir)
+
+        # Create de create daily directory action
+        dailyAction = QtGui.QAction(QtGui.QIcon('algo.png'), '&Create daily Dir', self) 
+        dailyAction.setStatusTip('Create the work folder')
+        dailyAction.setShortcut('Ctrl+D')
+        dailyAction.triggered.connect(self.create_daily_directory)
+
+        # Create menu bar and add action
+        menuBar = self.menuBar()
+        fileMenu = menuBar.addMenu('&File')
+        fileMenu.addAction(localDirAction)
+        fileMenu.addAction(openAction)
+        fileMenu.addAction(dailyAction)
+        fileMenu.addAction(exitAction)
+
+        fileMenu2 = menuBar.addMenu('&APD')
+        fileMenu2.addAction(greenAPDaction)
+        fileMenu2.addAction(redAPDaction)
+#        fileMenu3 = menuBar.addMenu('&Local Folder')
+#        fileMenu3.addAction(localDiraction)
+        fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
+
+        self.form_widget = ScanWidget(self, device)
+        self.setCentralWidget(self.form_widget)
+        self.setGeometry(10, 40, 900, 600)  # (PosX, PosY, SizeX, SizeY)
 
 # %% Scan Widget
 class ScanWidget(QtGui.QFrame):
@@ -56,11 +172,24 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewButton.setChecked()
             self.liveview()
 
-    def __init__(self, device, *args, **kwargs):  # main
+    def closeEvent(self, event):
+       reply = QtGui.QMessageBox.question(self, 'Quit', 'Are You Sure to Quit?',
+                                          QtGui.QMessageBox.No | QtGui.QMessageBox.Yes)
+       if reply == QtGui.QMessageBox.Yes:
+           print("YES")
+           event.accept()
+           self.close()
+           self.liveviewStop()
+
+       else:
+           event.ignore()
+           print("NOOOO")
+
+    def __init__(self, main, device, *args, **kwargs):  # main
 
         super().__init__(*args, **kwargs)
 
-#        self.main=main
+        self.main=main
         self.device = device
 # ---  Positioner metido adentro
 
@@ -566,8 +695,8 @@ class ScanWidget(QtGui.QFrame):
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
-        self.setGeometry(10, 40, 300, 800)
-        self.setWindowTitle('Py Py Python scan')
+#        self.setGeometry(10, 40, 300, 800)  # (PosX, PosY, SizeX, SizeY)
+#        self.setWindowTitle('Py Py Python scan')
 #        self.setFixedHeight(550)
 
 #        self.paramWidget.setFixedHeight(500)
@@ -777,6 +906,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.image[25, self.i] = 333
 #        self.image[9, -self.i] = 333
 
+
         self.img.setImage(self.image, autoLevels=False)
         self.MaxCounts()
 
@@ -905,7 +1035,8 @@ class ScanWidget(QtGui.QFrame):
 #            self.number = 0
 
         try:
-            filepath = self.file_path
+#            filepath = self.file_path
+            filepath = self.main.file_path
     #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
 #            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
             name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")  # nombre con la fecha -hora
@@ -932,7 +1063,7 @@ class ScanWidget(QtGui.QFrame):
         fullPos = np.repeat(initPos, self.nSamples, axis=1)
 
         # make position ramp for moving axis
-        ramp = makeRamp(0, dist, self.nSamples)
+        ramp = np.linspace(0, dist, self.nSamples)
         fullPos[self.activeChannels.index(axis)] += ramp
 
 #        factors = np.array([convFactors['x'], convFactors['y'],
@@ -1041,9 +1172,9 @@ class ScanWidget(QtGui.QFrame):
                  for ax in self.activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 
-        rampx = makeRamp(float(initPos[0]), x, self.nSamples)# / convFactors['x']
-        rampy = makeRamp(float(initPos[1]), y, self.nSamples)# / convFactors['y']
-        rampz = makeRamp(float(initPos[2]), z, self.nSamples)# / convFactors['z']
+        rampx = np.linspace(float(initPos[0]), x, self.nSamples)# / convFactors['x']
+        rampy = np.linspace(float(initPos[1]), y, self.nSamples)# / convFactors['y']
+        rampz = np.linspace(float(initPos[2]), z, self.nSamples)# / convFactors['z']
 #        ramp = np.array((rampx, rampy, rampz))
 
         tuc = ptime.time()
@@ -1457,17 +1588,17 @@ class ScanWidget(QtGui.QFrame):
 # %% Point scan (inaplicable aca)
 #"""
     def PointStart(self):
-
-        if self.PointButton.isChecked():
-            try: self.w.close()
-            except: pass
-            self.doit()
+        self.PointButton.setCheckable(False)
+#        if self.PointButton.isChecked():
+#            try: self.w.close()
+#            except: pass
+        self.doit()
 #            self.PointScan()
-            print("midiendo")
-        else:
-            self.PointScanStop()
-#            self.w.close()
-            print("fin")
+        print("midiendo")
+#        else:
+#            self.PointScanStop()
+##            self.w.close()
+#            print("fin")
 
     def PointScanStop(self):
         self.w.pointtimer.stop()
@@ -1564,15 +1695,17 @@ class ScanWidget(QtGui.QFrame):
 
     def doit(self):
         print ("Opening a new popup window...")
-        self.w = MyPopup()
-        self.w.setGeometry(QtCore.QRect(1050, 50, 500, 600))
+        self.w = MyPopup(self.main)
+        self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
         self.w.show()
 
 #"""
 class MyPopup(QtGui.QWidget):
-    def __init__(self):
+    def __init__(self, main, *args, **kwargs):
         QtGui.QWidget.__init__(self)
-        self.ScanWidget = ScanWidget(device)
+        super().__init__(*args, **kwargs)
+        self.main = main
+        self.ScanWidget = ScanWidget(main,device)
         self.traza_Widget2 = pg.GraphicsLayoutWidget()
         self.running = False
         grid = QtGui.QGridLayout()
@@ -1603,15 +1736,9 @@ class MyPopup(QtGui.QWidget):
         self.PointScan()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
     def closeEvent(self, event):
-       reply = QtGui.QMessageBox.question(self, 'Quit', 'Are You Sure to Quit?',
-                                          QtGui.QMessageBox.No | QtGui.QMessageBox.Yes)
-       if reply == QtGui.QMessageBox.Yes:
-           print("YES")
-           event.accept()
-       else:
-          event.ignore()
-          print("NOOOO")
-
+       self.pointtimer.stop()
+       self.running = False
+       print("flor de relozzz")
 
 # TODO: a seguir mejorando esta parte
 #==============================================================================
@@ -1758,8 +1885,8 @@ def fitgaussian(data):
 if __name__ == '__main__':
 
     app = QtGui.QApplication([])
-    win = ScanWidget(device)
-#    win = MainWindow()
+#    win = ScanWidget(device)
+    win = MainWindow()
     win.show()
 
 #    app.exec_()

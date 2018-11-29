@@ -21,11 +21,11 @@ from PIL import Image
 
 import re
 
-#import tkinter as tk
-#from tkinter import filedialog
+import tkinter as tk
+from tkinter import filedialog
 
 import tools
-import viewbox_toolsQT5
+import viewbox_tools
 
 
 from scipy import ndimage
@@ -46,96 +46,96 @@ def makeRamp(start, end, samples):
 #from PyQt5.QtCore import QSize
 #from PyQt5.QtGui import QIcon
 
-## %% Main Window
-#class MainWindow(QtWidgets.QMainWindow):
-#    def newCall(self):
-#        self.a = 0
-#        print('New')
-#
-#    def openCall(self):
-#        self.a = 1.5
-#        os.startfile(self.file_path)
-##        print('Open')
-#
-#    def exitCall(self):
-#        self.a = -1.5
-#        print('Exit app (no hace nada)')
-#
-#    def greenAPD(self):
-#        print('Green APD')
-#
-#    def redAPD(self):
-#        print('red APD')
-#
-#    def localDir(self):
-#        print('poner la carpeta donde trabajar')
-#        root = tk.Tk()
-#        root.withdraw()
-#        
-#        self.file_path = filedialog.askdirectory()
-#        print(self.file_path,"◄ dire")
-#        self.form_widget.NameDirValue.setText(self.file_path)
-#        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
-##        self.form_widget.paramChanged()
-#
-#
-#    def __init__(self):
-#        QtWidgets.QMainWindow.__init__(self)
-#        self.a = 0
-#        self.file_path = os.path.abspath("")
-## ----- MENU
-#        self.setMinimumSize(QtCore.QSize(500, 500))
-#        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
-#
-#        # Create new action
-##        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
-##        newAction.setShortcut('Ctrl+N')
-##        newAction.setStatusTip('New document')
-##        newAction.triggered.connect(self.newCall)
-#
-#        # Create new action
-#        openAction = QtWidgets.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)
-#        openAction.setShortcut('Ctrl+O')
-#        openAction.setStatusTip('Open document')
-#        openAction.triggered.connect(self.openCall)
-#
-#        # Create exit action
-#        exitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
-#        exitAction.setShortcut('Ctrl+Q')
-#        exitAction.setStatusTip('Exit application')
-#        exitAction.triggered.connect(self.exitCall)
-#
-#        # Create de APD options Action
-#        greenAPDaction = QtWidgets.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
-#        greenAPDaction.setStatusTip('Uses the APD for canal green')
-#        greenAPDaction.triggered.connect(self.greenAPD)
-#        greenAPDaction.setShortcut('Ctrl+G')
-#        redAPDaction = QtWidgets.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
-#        redAPDaction.setStatusTip('Uses the APD for canal red')
-#        redAPDaction.setShortcut('Ctrl+R')
-#        redAPDaction.triggered.connect(self.redAPD)
-#
-#        # Create de file location action
-#        localDirAction = QtWidgets.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
-#        localDirAction.setStatusTip('Select the work folder')
-#        localDirAction.setShortcut('Ctrl+D')
-#        localDirAction.triggered.connect(self.localDir)
-#
-#        # Create menu bar and add action
-#        menuBar = self.menuBar()
-#        fileMenu = menuBar.addMenu('&File')
-#        fileMenu.addAction(localDirAction)
-#        fileMenu.addAction(openAction)
-#        fileMenu.addAction(exitAction)
-#        fileMenu2 = menuBar.addMenu('&APD')
-#        fileMenu2.addAction(greenAPDaction)
-#        fileMenu2.addAction(redAPDaction)
-##        fileMenu3 = menuBar.addMenu('&Local Folder')
-##        fileMenu3.addAction(localDiraction)
-#        fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
-#
-#        self.form_widget = ScanWidget(self, device)
-#        self.setCentralWidget(self.form_widget)
+# %% Main Window
+class MainWindow(QtGui.QMainWindow):
+    def newCall(self):
+        self.a = 0
+        print('New')
+
+    def openCall(self):
+        self.a = 1.5
+        os.startfile(self.file_path)
+#        print('Open')
+
+    def exitCall(self):
+        self.a = -1.5
+        print('Exit app (no hace nada)')
+
+    def greenAPD(self):
+        print('Green APD')
+
+    def redAPD(self):
+        print('red APD')
+
+    def localDir(self):
+        print('poner la carpeta donde trabajar')
+        root = tk.Tk()
+        root.withdraw()
+        
+        self.file_path = filedialog.askdirectory()
+        print(self.file_path,"◄ dire")
+        self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
+#        self.form_widget.paramChanged()
+
+
+    def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+        self.a = 0
+        self.file_path = os.path.abspath("")
+# ----- MENU
+        self.setMinimumSize(QtCore.QSize(500, 500))
+        self.setWindowTitle("AAAAAAAAAAABBBBBBBBBBBBB")
+
+        # Create new action
+#        newAction = QtWidgets.QAction(QtGui.QIcon('new.png'), '&New', self)
+#        newAction.setShortcut('Ctrl+N')
+#        newAction.setStatusTip('New document')
+#        newAction.triggered.connect(self.newCall)
+
+        # Create new action
+        openAction = QtGui.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Open document')
+        openAction.triggered.connect(self.openCall)
+
+        # Create exit action
+        exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.exitCall)
+
+        # Create de APD options Action
+        greenAPDaction = QtGui.QAction(QtGui.QIcon('greenAPD.png'), '&Green', self) 
+        greenAPDaction.setStatusTip('Uses the APD for canal green')
+        greenAPDaction.triggered.connect(self.greenAPD)
+        greenAPDaction.setShortcut('Ctrl+G')
+        redAPDaction = QtGui.QAction(QtGui.QIcon('redAPD.png'), '&Red', self) 
+        redAPDaction.setStatusTip('Uses the APD for canal red')
+        redAPDaction.setShortcut('Ctrl+R')
+        redAPDaction.triggered.connect(self.redAPD)
+
+        # Create de file location action
+        localDirAction = QtGui.QAction(QtGui.QIcon('Dir.png'), '&Select Dir', self) 
+        localDirAction.setStatusTip('Select the work folder')
+        localDirAction.setShortcut('Ctrl+D')
+        localDirAction.triggered.connect(self.localDir)
+
+        # Create menu bar and add action
+        menuBar = self.menuBar()
+        fileMenu = menuBar.addMenu('&File')
+        fileMenu.addAction(localDirAction)
+        fileMenu.addAction(openAction)
+        fileMenu.addAction(exitAction)
+        fileMenu2 = menuBar.addMenu('&APD')
+        fileMenu2.addAction(greenAPDaction)
+        fileMenu2.addAction(redAPDaction)
+#        fileMenu3 = menuBar.addMenu('&Local Folder')
+#        fileMenu3.addAction(localDiraction)
+        fileMenu4 = menuBar.addMenu('&<--Selecciono la carpeta desde aca!')
+
+        self.form_widget = ScanWidget(self, device)
+        self.setCentralWidget(self.form_widget)
 # %% Scan Widget
 class ScanWidget(QtGui.QFrame):
 
@@ -152,11 +152,11 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewButton.setChecked()
             self.liveview()
 
-    def __init__(self, device, *args, **kwargs):  # main
+    def __init__(self, main, device, *args, **kwargs):  # main
 
         super().__init__(*args, **kwargs)
 
-#        self.main=main
+        self.main=main
         self.device = device
 # ---  Positioner metido adentro
 
@@ -1097,8 +1097,8 @@ class ScanWidget(QtGui.QFrame):
 #            self.number = 0
 
         try:
-#            filepath = self.main.file_path
-            filepath = self.file_path
+            filepath = self.main.file_path
+#            filepath = self.file_path
     #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/Guardando tiff/"
 #            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
             name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")  # nombre con la fecha -hora
@@ -1749,8 +1749,8 @@ def fitgaussian(data):
 if __name__ == '__main__':
 
     app = QtGui.QApplication([])
-    win = ScanWidget(device)
-#    win = MainWindow()
+#    win = ScanWidget(device)
+    win = MainWindow()
     win.show()
 
 #    app.exec_()
