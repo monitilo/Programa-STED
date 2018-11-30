@@ -4,6 +4,9 @@ Created on Wed Nov 28 11:00:54 2018
 
 @author: Santiago
 """
+#import pyqtgraph.examples
+#pyqtgraph.examples.run()
+# corriendolo por consola anda
 # %%
 # -*- coding: utf-8 -*-
 # author: Sebastian Hoefer

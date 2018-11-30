@@ -858,7 +858,7 @@ class ScanWidget(QtGui.QFrame):
             self.vueltaEdit.setStyleSheet(" background-color: red; ")
         else:
             self.vueltaEdit.setText("10")
-            self.vueltaEdit.setStyleSheet("{ background-color: }")
+            self.vueltaEdit.setStyleSheet(" background-color: ")
 
     def zeroImage(self):
         self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
@@ -995,7 +995,7 @@ class ScanWidget(QtGui.QFrame):
         print("\n tiempo paramCahnged (ms)", (toc-tic)*10**3, "\n")
 #        self.PMT = np.zeros((self.numberofPixels + self.pixelsofftotal,
 #                              self.numberofPixels))
-        self.maxcountsEdit.setStyleSheet("{ background-color: }")
+        self.maxcountsEdit.setStyleSheet(" background-color: ")
 
 
 # %%--- liveview------
@@ -1024,7 +1024,7 @@ class ScanWidget(QtGui.QFrame):
             self.channelsOpenRamp()
             self.tic = ptime.time()
             self.startingRamps()
-            self.maxcountsEdit.setStyleSheet("{ background-color: }")
+            self.maxcountsEdit.setStyleSheet(" background-color: ")
             if self.detectMode.currentText() == "PMT":
                 self.maxcountsLabel.setText('Max Counts (V)')
                 self.PMTtimer.start(self.reallinetime*10**3)  # imput in ms
@@ -1922,7 +1922,7 @@ class ScanWidget(QtGui.QFrame):
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
-        self.zStepEdit.setStyleSheet("{ background-color: }")
+        self.zStepEdit.setStyleSheet(" background-color: ")
 
     def zMoveDown(self):
         PosZ = self.initialPosition[2]
@@ -1932,7 +1932,10 @@ class ScanWidget(QtGui.QFrame):
 #            setStyleSheet("color: rgb(255, 0, 255);")
         else:
             self.moveZ('z', -float(getattr(self, 'z' + "StepEdit").text()))
-            self.zStepEdit.setStyleSheet("{ background-color: }")
+            self.zStepEdit.setStyleSheet(" background-color: ")
+            if self.initialPosition[2]== 0:  # para no ir a z negativo
+                self.zDownButton.setStyleSheet(
+                    "QPushButton { background-color: orange; }")
         if PosZ == 0:  # para no ira z negativo
             self.zDownButton.setStyleSheet(
                 "QPushButton { background-color: red; }"
@@ -2607,11 +2610,13 @@ class Traza(QtGui.QWidget):
         self.p6 = self.traza_Widget2.addPlot(row=2, col=1, title="Traza")
         self.p6.showGrid(x=True, y=True)
         self.curve = self.p6.plot(open='y')
+        self.line =self.p6.plot(open='y')
+        self.line1 =self.p6.plot(open='y')
 
-        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
-        self.p7.showGrid(x=True, y=True)
-        self.curve2 = self.p7.plot(open='y')
-
+#        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
+#        self.p7.showGrid(x=True, y=True)
+#        self.curve2 = self.p7.plot(open='y')
+#        self.line2 =self.p7.plot(open='y')
     #  buttons
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause || (1)')
         self.play_pause_Button.setCheckable(True)
@@ -2637,9 +2642,11 @@ class Traza(QtGui.QWidget):
         QtGui.QShortcut(
             QtGui.QKeySequence('F2'), self, self.stop)
 
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
         grid.addWidget(self.traza_Widget2,      0, 0)
         grid.addWidget(self.play_pause_Button,  0, 3)
         grid.addWidget(self.stop_Button,        1, 3)
+        grid.addWidget(self.PointLabel,         2, 3)
         self.play_pause_Button.setChecked(True)
         self.PointScan()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
@@ -2696,9 +2703,9 @@ class Traza(QtGui.QWidget):
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
         self.ptr1 = 0
-        self.timeaxis = []
-        self.data1 = []  # np.empty(100)
-        self.data2 = []  # np.empty(300)
+        self.timeaxis = np.empty(100)
+        self.data1 = np.empty(100)
+#        self.data2 = np.empty(100)
 
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
@@ -2712,19 +2719,46 @@ class Traza(QtGui.QWidget):
         m = np.mean(self.points)
         m2 = np.mean(self.points2)
 #        #print("valor traza", m)
-        self.ScanWidget.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
+        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
                                            float(m), float(m2)))
-
-        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
-        self.data1.append(m)
+#        sig2 = np.mean(self.points2)
+        self.timeaxis[self.ptr1] = (self.tiempo * 10**-3)*self.ptr1
+        self.data1[self.ptr1] = m
         self.ptr1 += 1
-        self.curve.setData(self.timeaxis, self.data1)
+        if self.ptr1 >= self.data1.shape[0]:
+            tmpdata1 = self.data1
+            self.data1 = np.empty(self.data1.shape[0] * 2)
+            self.data1[:tmpdata1.shape[0]] = tmpdata1
+            tmptime = self.timeaxis
+            self.timeaxis = np.empty(self.timeaxis.shape[0] * 2)
+            self.timeaxis[:tmptime.shape[0]] = tmptime
+#            tmpdata2 = self.data2
+#            self.data2 = np.empty(self.data2.shape[0] * 2)
+#            self.data2[:tmpdata2.shape[0]] = tmpdata2
 
-        self.data2 = np.roll(self.data2, -1)            # (see also: np.roll)
-        self.data2.append(m2)
-        self.curve2.setData(self.timeaxis, self.data2)
+#        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
+#        self.data1.append(m)
+        self.ptr1 += 1
+#        self.curve.setData(self.timeaxis, self.data1)
+        self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
+                           pen=pg.mkPen('r',width=1) , shadowPen=pg.mkPen('b',width=3))
+
+#        self.data2 = np.roll(self.data2, -1)            # (see also: np.roll)
+#        self.data2.append(m2)
+#        self.curve2.setData(self.timeaxis[:self.ptr1], self.data2[:self.ptr1])
 #        self.curve2.setPos(self.timeaxis[0], 0)
+        mediototal = np.mean(self.data1[:self.ptr1])
+        self.line.setData(self.timeaxis[:self.ptr1],
+                           np.ones(len(self.timeaxis[:self.ptr1]))* mediototal,
+                           pen=pg.mkPen('c', width=2))
 
+        if self.ptr1 < 300: mediochico = np.mean(self.data1[:self.ptr1])
+        else:    mediochico = np.mean(self.data1[self.ptr1-300:self.ptr1])
+
+        self.line1.setData(self.timeaxis2,
+                           np.ones(300)* mediochico, pen=pg.mkPen('g', width=2))
+        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
+                                float(mediototal), float(mediochico)))
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):

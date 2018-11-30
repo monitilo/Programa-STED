@@ -108,7 +108,7 @@ class MainWindow(QtGui.QMainWindow):
         self.a = 0
         self.file_path = os.path.abspath("")
         self.setMinimumSize(QtCore.QSize(500, 500))
-        self.setWindowTitle("PyPrintingPy")
+        self.setWindowTitle("PC PyPrintingPy PC")
 
     # Create new action
         openAction = QtGui.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)
@@ -832,6 +832,7 @@ class ScanWidget(QtGui.QFrame):
             self.liveviewStop()
 
     def liveviewStart(self):
+        self.maxcountsEdit.setStyleSheet(" background-color: ")
         if self.scanMode.currentText() in ["step scan", "ramp scan"]:
             self.tic = ptime.time()
             self.viewtimer.start(self.linetime)
@@ -907,7 +908,7 @@ class ScanWidget(QtGui.QFrame):
         m4 = np.min(self.image)
         self.maxcountsEdit.setText("<strong> {}|{}".format(int(m), int(m2)) +
                                    " \n" + " {}|{}".format(int(m3), int(m4)))
-        maxsecure = (5000 * self.pixelTime*10**3)
+        maxsecure = 5  # (5000 * self.pixelTime*10**3)
         if m >= maxsecure or m2 >= maxsecure:
             self.maxcountsEdit.setStyleSheet(" background-color: red; ")
 
@@ -1059,7 +1060,7 @@ class ScanWidget(QtGui.QFrame):
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
-        self.zStepEdit.setStyleSheet("{ background-color: }")
+        self.zStepEdit.setStyleSheet("background-color: ")
 
     def zMoveDown(self):
         PosZ = self.initialPosition[2]
@@ -1070,6 +1071,9 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.move('z', -float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet(" background-color: ")
+            if self.initialPosition[2]== 0:  # para no ir a z negativo
+                self.zDownButton.setStyleSheet(
+                    "QPushButton { background-color: orange; }")
         if PosZ == 0:  # para no ir a z negativo
             self.zDownButton.setStyleSheet(
                 "QPushButton { background-color: red; }"
@@ -1234,7 +1238,7 @@ class ScanWidget(QtGui.QFrame):
         Z = self.Z
         if self.step == 1:
             self.cuentas = np.zeros((self.numberofPixels))
-            self.cuentas = Z[self.i, :]
+            self.cuentas = Z[self.i, :] * 5
 #            for i in range(self.numberofPixels):
 #                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels)
@@ -1509,6 +1513,11 @@ class ScanWidget(QtGui.QFrame):
             array = self.linearROI.getArrayRegion(self.image, self.img)
             self.curve.setData(array)
 
+            m = np.mean(array)
+            m2 = np.max(array)
+            self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
+                                    float(m),float(m2)))
+
         if self.ROIlineButton.isChecked():
 
             self.linearROI = pg.LineSegmentROI([[10, 64], [larg, 64]], pen='m')
@@ -1695,10 +1704,13 @@ class MyPopup(QtGui.QWidget):
         self.p6 = self.traza_Widget2.addPlot(row=2, col=1, title="Traza")
         self.p6.showGrid(x=True, y=True)
         self.curve = self.p6.plot(open='y')
+        self.line =self.p6.plot(open='y')
+        self.line1 =self.p6.plot(open='y')
 
         self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
         self.p7.showGrid(x=True, y=True)
         self.curve2 = self.p7.plot(open='y')
+        self.line2 =self.p7.plot(open='y')
 
     #  buttons
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼ (F1)')
@@ -1725,9 +1737,11 @@ class MyPopup(QtGui.QWidget):
         QtGui.QShortcut(
             QtGui.QKeySequence('F2'), self, self.stop)
 
-        grid.addWidget(self.traza_Widget2,      0, 0)
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+        grid.addWidget(self.traza_Widget2,      0, 0, 3, 1)
         grid.addWidget(self.play_pause_Button,  0, 3)
         grid.addWidget(self.stop_Button,        1, 3)
+        grid.addWidget(self.PointLabel,         2, 3)
         self.play_pause_Button.setChecked(True)
         self.PointScan()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
@@ -1751,8 +1765,8 @@ class MyPopup(QtGui.QWidget):
         self.play_pause()
 
     def play_pause(self):
-        print("play")
         if self.play_pause_Button.isChecked():
+            print("play")
             # self.pause_Button.setStyleSheet(
             #        "QPushButton { background-color: ; }")
             if self.running:
@@ -1760,6 +1774,7 @@ class MyPopup(QtGui.QWidget):
             else:
                 self.PointScan()
         else:
+            print("pause")
             self.pointtimer.stop()
             # self.pause_Button.setStyleSheet(
             #        "QPushButton { background-color: red; }")
@@ -1782,14 +1797,14 @@ class MyPopup(QtGui.QWidget):
         self.running = True
         self.tiempo = 10  # ms  # refresca el numero cada este tiempo
 
-        self.timeaxis = []
+        self.timeaxis = np.empty(100)  # [0]
 #        try: self.traza_Widget2.deleteLater()
 #        except: pass
 #        self.traza_Widget2 = pg.GraphicsLayoutWidget()
 
 #        self.otrosDock.addWidget(self.traza_Widget)
         self.ptr1 = 0
-        self.data1 = []  # np.empty(100)
+        self.data1 = np.empty(100)  # [0]  # np.empty(100)
 #        self.data1 = np.zeros(300)
 
         self.data2 = np.zeros(300)
@@ -1806,38 +1821,54 @@ class MyPopup(QtGui.QWidget):
         points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
         points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
 
-        m = np.mean(points)
-        m2 = np.mean(points2)
-        self.ScanWidget.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
-                                           float(m), float(m2)))
+        sig = np.mean(points) + np.log(self.ptr1+1) + points[0]
 
-        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
-        self.data1.append(m + np.log(self.ptr1)+points[0])
+#        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
+#        self.data1.append(sig)
+        self.timeaxis[self.ptr1] = (self.tiempo * 10**-3)*self.ptr1
+        self.data1[self.ptr1] = sig
         self.ptr1 += 1
-        self.curve.setData(self.timeaxis, self.data1)
+        if self.ptr1 >= self.data1.shape[0]:
+            tmpdata = self.data1
+            self.data1 = np.empty(self.data1.shape[0] * 2)
+            self.data1[:tmpdata.shape[0]] = tmpdata
+            tmptime = self.timeaxis
+            self.timeaxis = np.empty(self.timeaxis.shape[0] * 2)
+            self.timeaxis[:tmptime.shape[0]] = tmptime
+
+        self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
+                           pen=pg.mkPen('r',width=1) , shadowPen=pg.mkPen('b',width=3))
 #        self.curve.setPos(-self.ptr1, 0)
 
-#    def updatePointAA(self):
-#        points = np.zeros(int((apdrate*(self.tiempo /10**3))))
-#        points2 = points
-# #        N = len(points)
-#        points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
-#        points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
+        m = np.mean(self.data1[:self.ptr1])
+        m1 = np.max(self.data1[:self.ptr1])
+        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
+                                           float(m), float(m1)))
+#        self.p7.addLine(x=None, y=m, pen=pg.mkPen('y', width=1))
+        self.line.setData(self.timeaxis[:self.ptr1],
+                           np.ones(len(self.timeaxis[:self.ptr1]))* m,
+                           pen=pg.mkPen('c', width=2))
 
-#        m = np.mean(points)
-#        m2 = np.mean(points2)
-#        #print("valor traza", m)
-#        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(float(m),float(m2)))
 
-#        self.ptr1 += 1
         self.timeaxis2 = np.roll(self.timeaxis2, -1)
         self.timeaxis2[-1] = (self.tiempo * 10**-3) * self.ptr1
         self.data2 = np.roll(self.data2, -1)             # (see also: np.roll)
-        self.data2[-1] = m + np.log(self.ptr1) + points[0]
+        self.data2[-1] = sig
 #        self.curve2.setData(self.timeaxis2, self.data2)
         self.curve2.setData(np.linspace(0, 3, 300), self.data2)
         self.curve2.setPos(self.timeaxis2[0], 0)
+        m2 = np.mean(self.data2)
+        self.line2.setData(self.timeaxis2,
+                           np.ones(300)* m2, pen=pg.mkPen('y', width=2))
 
+        if self.ptr1 < 300: medio = np.mean(self.data1[:self.ptr1])
+        else:    medio = np.mean(self.data1[self.ptr1-300:self.ptr1])
+
+
+        self.line1.setData(self.timeaxis2,
+                           np.ones(300)* medio, pen=pg.mkPen('g', width=2))
+        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
+                                float(m), float(medio)))
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
