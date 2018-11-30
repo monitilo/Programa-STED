@@ -1449,13 +1449,13 @@ class ScanWidget(QtGui.QFrame):
     def histogramROI(self):
         # ***----
         def updatehistogram():
+            
             array = self.roihist.getArrayRegion(self.image, self.img)
             ROIpos = np.array(self.roihist.pos())
             newPos_px = tools.ROIscanRelativePOS(ROIpos,
                                                  self.numberofPixels,
                                                  np.shape(array)[1])
             newRange_px = np.shape(array)[0]
-
             roizone = self.image[
                       int(newPos_px[0]):int(newPos_px[0]+newRange_px),
                       self.numberofPixels-int(newPos_px[1]+newRange_px):

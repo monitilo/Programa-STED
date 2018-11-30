@@ -1147,12 +1147,12 @@ class ScanWidget(QtGui.QFrame):
     def APDstop(self):
         try:
             self.APDtask.stop()
-        except:
-            pass
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
         try:
             self.APD2task.stop()
-        except:
-            pass
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
 # %% MAX Counts
     def MaxCounts(self):
@@ -1713,42 +1713,44 @@ class ScanWidget(QtGui.QFrame):
             self.aotask.stop()  # Piezo
             self.aotask.close()
         except:
-            # print("a")
+            # print("Aotask no estaba abierto")
             pass
         try:
             self.APD1task.stop()  # Apd
             self.APD1task.close()
         except:
             pass
-            # print("b_0")
+            # print("APD1task no estaba abierto")
         try:
             self.APD2task.stop()  # Apd
             self.APD2task.close()
         except:
             pass
-            # print("b_1")
+            # print("APD2task no estaba abierto")
         try:
             self.PMTtask.stop()  # PMT
             self.PMTtask.close()
         except:
             pass
-            # print("c")
+            # print("PMTtask no estaba abierto")
         try:
             self.triggertask.stop()  # trigger, antes dotask
             self.triggertask.close()
         except:
             pass
-            # print("d")
-        try:
-            self.pointtask.stop()
-            self.pointtask.close()
-        except:
-            pass
-        try:
-            self.pointtask2.stop()
-            self.pointtask2.close()
-        except:
-            pass
+            # print("Triggertask no estaba abierto")
+#        try:
+#            self.pointtask.stop()
+#            self.pointtask.close()
+#        except:
+#            pass
+#            # print("pointtasktask no estaba abierto")
+#        try:
+#            self.pointtask2.stop()
+#            self.pointtask2.close()
+#            # print("pointask 2no estaba abierto")
+#        except:
+#            pass
             # print("d")
 
 #        self.shuttertask.stop()
@@ -1760,8 +1762,7 @@ class ScanWidget(QtGui.QFrame):
         self.piezosteps = False
         self.PMTon = False
         self.APDson = False
-        self.triggeron = False  # separo los canales en partes
-        self.triggerAPD = False
+        self.triggerAPD = False  # separo los canales en partes
         self.triggerPMT = False
 #        else:
 #            print("llego hasta el done pero no tenia nada que cerrar")
@@ -2682,6 +2683,17 @@ class Traza(QtGui.QWidget):
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
         self.running = False
         self.play_pause_Button.setChecked(False)
+        try:
+            self.pointtask.stop()
+            self.pointtask.close()
+        except:  # pass
+            print("pointtasktask no estaba abierto")
+        try:
+            self.pointtask2.stop()
+            self.pointtask2.close()
+        except:  # pass
+            print("pointtasktask2 no estaba abierto")
+
 
     def PointScan(self):
         self.running = True

@@ -220,7 +220,7 @@ class ROI(pg.ROI):
 
         self.mainShape = shape
 
-        pg.ROI.__init__(self, pos, size=(100, 100), pen='y', *args, **kwargs)
+        pg.ROI.__init__(self, pos, size=(100, 100), pen='m', *args, **kwargs)
         self.addScaleHandle(handlePos, handleCenter, lockAspect=True)
         vb.addItem(self)
 
