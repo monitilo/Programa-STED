@@ -583,15 +583,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(QtGui.QLabel(""),          5, 3)
         subgrid3.addWidget(self.histogramROIButton,   6, 3)
 #        subgrid3.addWidget(QtGui.QLabel(""),          1, 3)
-#        subgrid3.addWidget(QtGui.QLabel(""),          2, 3)
-#        subgrid3.addWidget(QtGui.QLabel(""),          4, 3)
-#        subgrid3.addWidget(QtGui.QLabel(""),          5, 3)
-#        subgrid3.addWidget(QtGui.QLabel(""),          6, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          7, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          8, 3)
 #        subgrid3.addWidget(QtGui.QLabel(""),          9, 3)
-#        subgrid3.addWidget(self.ROIlineButton,        6, 3)
-#        subgrid3.addWidget(self.selectlineROIButton,  7, 3)
         subgrid3.addWidget(self.PointButton,          9, 3)
         subgrid3.addWidget(self.PointLabel,          10, 3)
         subgrid3.addWidget(QtGui.QLabel(""),         11, 3)
@@ -725,6 +719,7 @@ class ScanWidget(QtGui.QFrame):
         self.goCMButton.pressed.connect(self.goGauss)
         layout3.addWidget(self.goCMButton, 2, 4)  # , 2, 2)
         layout3.addWidget(self.Gausscheck, 2, 1)
+
 # ---- fin positioner part----------
 
 #        saveBtn = QtGui.QPushButton('Save dock state')
@@ -1977,8 +1972,7 @@ class ScanWidget(QtGui.QFrame):
         rango2 = self.scanRange/2
         self.zgotoLabel.setStyleSheet(" background-color: ")
         print("arranco en", float(self.xLabel.text()),
-              float(self.yLabel.text()),
-              float(self.zLabel.text()))
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
@@ -1987,15 +1981,13 @@ class ScanWidget(QtGui.QFrame):
                     float(self.zLabel.text()))
 
         print("termino en", float(self.xLabel.text()),
-              float(self.yLabel.text()),
-              float(self.zLabel.text()))
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
     def goGauss(self):
         rango2 = self.scanRange/2
         self.zgotoLabel.setStyleSheet(" background-color: ")
         print("arranco en", float(self.xLabel.text()),
-              float(self.yLabel.text()),
-              float(self.zLabel.text()))
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
@@ -2004,21 +1996,42 @@ class ScanWidget(QtGui.QFrame):
                     float(self.zLabel.text()))
 
         print("termino en", float(self.xLabel.text()),
-              float(self.yLabel.text()),
-              float(self.zLabel.text()))
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
 # ---goto. Para ir a una posicion especifica
+
     def goto(self):
 
-        print("arranco en", float(self.xLabel.text()),
-              float(self.yLabel.text()), float(self.zLabel.text()))
+        if float(self.zgotoLabel.text()) < 0:
+            QtGui.QMessageBox.question(self, '¿¡ Como pusiste z negativo !?',
+                                               'Algo salio mal. :(  Avisar')
+            print("Z no puede ser negativo!!!")
+            self.zgotoLabel.setStyleSheet(" background-color: red")
+            time.sleep(1)
 
-        self.moveto(float(self.xgotoLabel.text()),
-                    float(self.ygotoLabel.text()),
-                    float(self.zgotoLabel.text()))
+        else:
+            self.zgotoLabel.setStyleSheet(" background-color: ")
+            print("arranco en", float(self.xLabel.text()),
+                  float(self.yLabel.text()), float(self.zLabel.text()))
 
-        print("termino en", float(self.xLabel.text()),
-              float(self.yLabel.text()), float(self.zLabel.text()))
+            self.moveto(float(self.xgotoLabel.text()),
+                        float(self.ygotoLabel.text()),
+                        float(self.zgotoLabel.text()))
+
+            print("termino en", float(self.xLabel.text()),
+                  float(self.yLabel.text()), float(self.zLabel.text()))
+
+            if float(self.zLabel.text()) == 0:  # para no ira z negativo
+                self.zDownButton.setStyleSheet(
+                    "QPushButton { background-color: red; }"
+                    "QPushButton:pressed { background-color: blue; }")
+                self.zDownButton.setEnabled(False)
+            else:
+                self.zDownButton.setStyleSheet(
+                    "QPushButton { background-color: }")
+                self.zDownButton.setEnabled(True)
+
+            self.paramChanged()
 
 # # ---moveto ---
     def moveto(self, x, y, z):
@@ -2358,12 +2371,13 @@ class ScanWidget(QtGui.QFrame):
 
 # %%  ROI cosas
     def ROImethod(self):
+        size = (int(self.numberofPixels / 2), int(self.numberofPixels / 2))
         if self.roi is None:
 
             ROIpos = (0.5 * self.numberofPixels - 64,
                       0.5 * self.numberofPixels - 64)
             self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb,
-                                         ROIpos,
+                                         ROIpos, size,
                                          handlePos=(1, 0),
                                          handleCenter=(0, 1),
                                          scaleSnap=True,
@@ -2376,7 +2390,7 @@ class ScanWidget(QtGui.QFrame):
                 ROIpos = (0.5 * self.numberofPixels - 64,
                           0.5 * self.numberofPixels - 64)
                 self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb,
-                                             ROIpos,
+                                             ROIpos, size,
                                              handlePos=(1, 0),
                                              handleCenter=(0, 1),
                                              scaleSnap=True,
@@ -2444,8 +2458,9 @@ class ScanWidget(QtGui.QFrame):
         if self.histogramROIButton.isChecked():
             ROIpos = (0.5 * self.numberofPixels - 64,
                       0.5 * self.numberofPixels - 64)
+            size = (int(self.numberofPixels / 2), int(self.numberofPixels / 2))
             self.roihist = viewbox_tools.ROI(self.numberofPixels, self.vb,
-                                             ROIpos,
+                                             ROIpos, size,
                                              handlePos=(1, 0),
                                              handleCenter=(0, 1),
                                              scaleSnap=True,
@@ -2627,7 +2642,7 @@ class Traza(QtGui.QWidget):
 #                "QPushButton { background-color: rgb(200, 200, 10); }"
 #                "QPushButton:pressed { background-color: blue; }")
 
-        self.stop_Button = QtGui.QPushButton('Stop ◘ (F2)')
+        self.stop_Button = QtGui.QPushButton('◘ Stop (F2)')
         self.stop_Button.setCheckable(False)
         self.stop_Button.clicked.connect(self.stop)
         self.stop_Button.setToolTip('Para la traza (F2)')
@@ -2643,24 +2658,20 @@ class Traza(QtGui.QWidget):
         QtGui.QShortcut(
             QtGui.QKeySequence('F2'), self, self.stop)
 
+        self.close_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ESC'), self, self.close_win)
+
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        grid.addWidget(self.traza_Widget2,      0, 0)
-        grid.addWidget(self.play_pause_Button,  0, 3)
-        grid.addWidget(self.stop_Button,        1, 3)
-        grid.addWidget(self.PointLabel,         2, 3)
+        grid.addWidget(self.traza_Widget2,      0, 0, 1, 3)
+        grid.addWidget(self.play_pause_Button,  1, 0)
+        grid.addWidget(self.stop_Button,        1, 1)
+        grid.addWidget(self.PointLabel,         1, 2)
         self.play_pause_Button.setChecked(True)
         self.PointScan()
-#        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
 
-# TODO: a seguir mejorando esta parte
-#     def play(self):
-#         if self.play_Button.isChecked():
-#             if self.running == True:
-#                 self.pointtimer.start(self.tiempo)
-#             else:
-#                 self.PointScan()
-#         else:
-#             self.pointtimer.stop()
+    def close_win(self):
+        self.close()
 
     def play_pause(self):
         if self.play_pause_Button.isChecked():
