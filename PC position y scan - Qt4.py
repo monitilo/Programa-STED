@@ -107,7 +107,7 @@ class MainWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self)
         self.a = 0
         self.file_path = os.path.abspath("")
-        self.setMinimumSize(QtCore.QSize(500, 500))
+#        self.setMinimumSize(QtCore.QSize(500, 500))
         self.setWindowTitle("PC PyPrintingPy PC")
 
     # Create new action
@@ -168,24 +168,23 @@ class MainWindow(QtGui.QMainWindow):
 
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
-        self.setGeometry(10, 40, 900, 600)  # (PosX, PosY, SizeX, SizeY)
+        self.setGeometry(10, 40, 600, 550)  # (PosX, PosY, SizeX, SizeY)
         self.save_docks()
 
 
 # %% Scan Widget
 class ScanWidget(QtGui.QFrame):
 
-    def keyPressEvent(self, e):
-
-        if e.key() == QtCore.Qt.Key_Escape:
-            print("tocaste Escape")
-            self.close()
-            self.liveviewStop()
-
-        if e.key() == QtCore.Qt.Key_Enter:
-            print("tocaste Enter")
-            self.liveviewButton.setChecked()
-            self.liveview()
+#    def keyPressEvent(self, e):
+#        if e.key() == QtCore.Qt.Key_Escape:
+#            print("tocaste Escape")
+#            self.close()
+#            self.liveviewStop()
+#
+#        if e.key() == QtCore.Qt.Key_Enter:
+#            print("tocaste Enter")
+#            self.liveviewButton.setChecked()
+#            self.liveview()
 
     def __init__(self, main, device, *args, **kwargs):  # main
 
@@ -337,7 +336,7 @@ class ScanWidget(QtGui.QFrame):
         self.CMcheck.setChecked(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
 
-        self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
+        self.Gausscheck = QtGui.QCheckBox('calcula Gauss')
         self.Gausscheck.setChecked(False)
         self.Gausscheck.clicked.connect(self.GaussMeasure)
 
@@ -411,6 +410,13 @@ class ScanWidget(QtGui.QFrame):
         self.CMyValue = QtGui.QLabel('NaN')
         self.a = QtGui.QLineEdit('-1.5')
         self.b = QtGui.QLineEdit('-1.5')
+        tamaño = 80
+        self.a.setFixedWidth(tamaño)
+        self.b.setFixedWidth(tamaño)
+        self.numberofPixelsEdit.setFixedWidth(tamaño)
+        self.pixelTimeEdit.setFixedWidth(tamaño)
+        self.scanRangeEdit.setFixedWidth(tamaño)
+        self.pixelSizeValue.setFixedWidth(tamaño)
 #        self.a.textChanged.connect(self.paramChanged)
 #        self.b.textChanged.connect(self.paramChanged)
 
@@ -422,7 +428,7 @@ class ScanWidget(QtGui.QFrame):
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
-#        self.plotLivebutton.clicked.connect(self.otroPlot)
+        self.plotLivebutton.clicked.connect(self.otroPlot)
 
     # ROI buttons
         self.roi = None
@@ -488,78 +494,81 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDred)
         group2.addButton(self.APDgreen)
 
-        subgrid.addWidget(self.APDred,                0, 1)
-        subgrid.addWidget(self.shutterredbutton,      1, 1)
-        subgrid.addWidget(self.shuttergreenbutton,    2, 1)
-        subgrid.addWidget(self.shutterotrobutton,     3, 1)
-        subgrid.addWidget(self.scanRangeLabel,        4, 1)
-        subgrid.addWidget(self.scanRangeEdit,         5, 1)
-        subgrid.addWidget(pixelTimeLabel,             6, 1)
-        subgrid.addWidget(self.pixelTimeEdit,         7, 1)
-        subgrid.addWidget(numberofPixelsLabel,        8, 1)
-        subgrid.addWidget(self.numberofPixelsEdit,    9, 1)
-        subgrid.addWidget(self.pixelSizeLabel,       10, 1)
-        subgrid.addWidget(self.pixelSizeValue,       11, 1)
-        subgrid.addWidget(self.stepcheck,            12, 1)
-        subgrid.addWidget(self.scanMode,             13, 1)
-        subgrid.addWidget(self.liveviewButton,       14, 1, 2, 1)
-        subgrid.addWidget(self.Alancheck,            16, 1)
-        subgrid.addWidget(self.timeTotalLabel,       17, 1)
-#        subgrid.addWidget(self.timeTotalValue,      17, 1)
-        subgrid.addWidget(self.saveimageButton,      18, 1)
 
-        subgrid2.addWidget(self.APDgreen,              0, 2)
-        subgrid2.addWidget(self.aLabel,                1, 2)
-        subgrid2.addWidget(self.a,                     2, 2)
-        subgrid2.addWidget(self.bLabel,                3, 2)
-        subgrid2.addWidget(self.b,                     4, 2)
-        subgrid2.addWidget(self.ROIlineButton,         5, 2)
-        subgrid2.addWidget(self.selectlineROIButton,   6, 2)
-        subgrid2.addWidget(QtGui.QLabel(' '),          7, 2)  #
-        subgrid2.addWidget(self.plotLivebutton,         8, 2)
-#        subgrid2.addWidget(QtGui.QLabel(' '),           9, 2)  #
-#        subgrid2.addWidget(self.CMcheck,                 8, 2)
-#        subgrid2.addWidget(QtGui.QLabel(' '),          10, 2)  #
-        subgrid2.addWidget(self.Continouscheck,        12, 2)
-        subgrid2.addWidget(QtGui.QLabel(' '),          9, 2)  #
-        subgrid2.addWidget(self.presetsMode,            13, 2)
-        subgrid2.addWidget(self.XYcheck,                14, 2)
-        subgrid2.addWidget(self.XZcheck,                15, 2)
-        subgrid2.addWidget(self.YZcheck,                16, 2)
-#        subgrid2.addWidget(self.Gausscheck,            7, 2)
-        subgrid2.addWidget(label_save,                 17, 2)  # , 1, 2)
-        subgrid2.addWidget(self.edit_save,             18, 2)  # , 1, 2)
+        subgrid.addWidget(self.shutterredbutton,      0, 1)
+        subgrid.addWidget(self.shuttergreenbutton,    1, 1)
+        subgrid.addWidget(self.shutterotrobutton,     2, 1)
+        subgrid.addWidget(self.scanRangeLabel,        3, 1)
+        subgrid.addWidget(self.scanRangeEdit,         4, 1)
+        subgrid.addWidget(pixelTimeLabel,             5, 1)
+        subgrid.addWidget(self.pixelTimeEdit,         6, 1)
+        subgrid.addWidget(numberofPixelsLabel,        7, 1)
+        subgrid.addWidget(self.numberofPixelsEdit,    8, 1)
+        subgrid.addWidget(self.pixelSizeLabel,        9, 1)
+        subgrid.addWidget(self.pixelSizeValue,       10, 1)
+        subgrid.addWidget(self.liveviewButton,       11, 1)
+        subgrid.addWidget(self.Continouscheck,       12, 1)
+        subgrid.addWidget(QtGui.QLabel('Autolevels'),         13, 1)
+        subgrid.addWidget(QtGui.QLabel('Img Check'), 14, 1)
+        subgrid.addWidget(self.maxcountsLabel,       15, 1)
+        subgrid.addWidget(self.maxcountsEdit,        16, 2, 2, 1)
+
+    # Columna 2
+#        subgrid2.addWidget(QtGui.QLabel("NameDir"),    0, 2)
+#        subgrid2.addWidget(QtGui.QLabel("OpenDir"),    1, 2)
+#        subgrid2.addWidget(QtGui.QLabel("CreateDir"),  2, 2)
+#        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
+
+#        subgrid2.addWidget(self.aLabel,                1, 2)
+        subgrid2.addWidget(self.a,                     1, 2)
+#        subgrid2.addWidget(self.bLabel,                3, 2)
+        subgrid2.addWidget(self.b,                     2, 2)
+        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
+        subgrid2.addWidget(self.stepcheck,             6, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           7, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           8, 2)
+        subgrid2.addWidget(self.Alancheck,             9, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           10, 2)
+        subgrid2.addWidget(label_save,                 11, 2)  # , 1, 2)
+        subgrid2.addWidget(self.edit_save,             12, 2)  # , 1, 2)
+        subgrid2.addWidget(self.saveimageButton,       13, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           14, 2)
+        subgrid2.addWidget(self.presetsMode,           15, 2)
+        subgrid2.addWidget(self.timeTotalLabel,        16, 2)
+#        subgrid2.addWidget(self.timeTotalValue,        17, 2)
+
+#        subgrid.addWidget(self.APDred,                0, 1)
+#        subgrid2.addWidget(self.APDgreen,              0, 2)
+
+#        subgrid2.addWidget(self.XYcheck,                14, 2)
+#        subgrid2.addWidget(self.XZcheck,                15, 2)
+#        subgrid2.addWidget(self.YZcheck,                16, 2)
 
         self.paramWidget3 = QtGui.QWidget()
         subgrid3 = QtGui.QGridLayout()
         self.paramWidget3.setLayout(subgrid3)
 
     # Columna 3
-#        subgrid3.addWidget(QtGui.QLabel('ROI BUTTON'),              0, 3)
-#        subgrid3.addWidget(QtGui.QLabel('Select Roi Button'),       1, 3)
-#        subgrid3.addWidget(QtGui.QLabel('Line ROI button'),         4, 3)
-#        subgrid3.addWidget(QtGui.QLabel('PLOt line ROI'),           5, 3)
-#        subgrid3.addWidget(QtGui.QLabel('Pint Scan buton'),         7, 3)
-#        subgrid3.addWidget(QtGui.QLabel('Valor del point'),         8, 3)
-        subgrid3.addWidget(self.PointButton,          7, 3)
-        subgrid3.addWidget(self.PointLabel,           8, 3)
-        subgrid3.addWidget(QtGui.QLabel('Plotar en vivo'),         10, 3)
-        subgrid3.addWidget(QtGui.QLabel('Nombre de archivo'),      12, 3)
-        subgrid3.addWidget(QtGui.QLabel('archivo.tiff'),           13, 3)
-        subgrid3.addWidget(QtGui.QLabel('presets desplegable'),    15, 3)
-#        subgrid3.addWidget(QtGui.QLabel('Cuentas maximas (r/a)'),  16, 3)
-#        subgrid3.addWidget(QtGui.QLabel('valor maximo'),       17, 3,2,2)
-        subgrid3.addWidget(self.ROIButton,           0, 3)
-        subgrid3.addWidget(self.selectROIButton,     1, 3)
-        subgrid3.addWidget(self.histogramROIButton,  2, 3)
-
-        subgrid3.addWidget(self.maxcountsLabel,     16, 3)
-        subgrid3.addWidget(self.maxcountsEdit,      17, 3, 2, 3)
-
-#        subgrid3.addWidget(self.NameDirButton,       4, 3, 2, 1)
-#        subgrid3.addWidget(self.OpenButton,          5, 3, 1, 1)
-#        subgrid3.addWidget(self.create_day_Button,   6, 3, 1, 1)
-
+        subgrid3.addWidget(self.ROIButton,            0, 3)
+        subgrid3.addWidget(self.selectROIButton,      1, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),          2, 3)
+        subgrid3.addWidget(self.ROIlineButton,        3, 3)
+        subgrid3.addWidget(self.selectlineROIButton,  4, 3)
+        subgrid3.addWidget(self.histogramROIButton,   6, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),          5, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),          7, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),          8, 3)
+        subgrid3.addWidget(self.PointButton,          9, 3)
+        subgrid3.addWidget(self.PointLabel,          10, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),         11, 3)
+        subgrid3.addWidget(QtGui.QLabel("scanplot"), 12, 3)  # graphcheck
+        subgrid3.addWidget(self.plotLivebutton,      13, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),         14, 3)
+        subgrid3.addWidget(self.scanMode,            15, 3)
+        subgrid3.addWidget(QtGui.QLabel("PSFMode"),  16, 3)
 
 # --- POSITIONERRRRR-------------------------------
 
@@ -620,6 +629,36 @@ class ScanWidget(QtGui.QFrame):
         self.xgotoLabel.setFixedWidth(tamaño)
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
+
+        layout3 = QtGui.QGridLayout()
+        self.goCMWidget = QtGui.QWidget()
+        self.goCMWidget.setLayout(layout3)
+        self.CMxLabel = QtGui.QLabel('CM X')
+        self.CMxValue = QtGui.QLabel('NaN')
+        self.CMyLabel = QtGui.QLabel('CM Y')
+        self.CMyValue = QtGui.QLabel('NaN')
+        layout3.addWidget(self.CMxLabel, 3, 1)
+        layout3.addWidget(self.CMxValue, 4, 1)
+        layout3.addWidget(self.CMyLabel, 3, 2)
+        layout3.addWidget(self.CMyValue, 4, 2)
+        self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
+        self.goCMButton.pressed.connect(self.goCM)
+        layout3.addWidget(self.goCMButton, 1, 4)  # , 2, 2)
+        layout3.addWidget(self.CMcheck, 1, 1)
+
+        self.GaussxLabel = QtGui.QLabel('Gauss X')
+        self.GaussxValue = QtGui.QLabel('NaN')
+        self.GaussyLabel = QtGui.QLabel('Gauss Y')
+        self.GaussyValue = QtGui.QLabel('NaN')
+        layout3.addWidget(self.GaussxLabel, 3, 4)
+        layout3.addWidget(self.GaussxValue, 4, 4)
+        layout3.addWidget(self.GaussyLabel, 3, 5)
+        layout3.addWidget(self.GaussyValue, 4, 5)
+#        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
+        self.goCMButton = QtGui.QPushButton("♥ Go Gauss ♦")
+        self.goCMButton.pressed.connect(self.goGauss)
+        layout3.addWidget(self.goCMButton, 2, 4)  # , 2, 2)
+        layout3.addWidget(self.Gausscheck, 2, 1)
 # --- fin POSITIONEERRRRRR---------------------------
 
         self.state = None
@@ -642,13 +681,13 @@ class ScanWidget(QtGui.QFrame):
 #         restoreBtn.clicked.connect(load_docks)
 # =============================================================================
 
-# ----DOCK cosas
+# ----DOCK cosas, mas comodo!
         hbox = QtGui.QHBoxLayout(self)
         dockArea = DockArea()
 
         viewDock = Dock('viewbox', size=(500, 450))
         viewDock.addWidget(imageWidget)
-#        viewDock.hideTitleBar()
+        viewDock.hideTitleBar()
         dockArea.addDock(viewDock, 'left')
 
         self.otrosDock = Dock('Other things', size=(1, 1))
@@ -659,11 +698,15 @@ class ScanWidget(QtGui.QFrame):
         posDock.addWidget(self.positioner)
         dockArea.addDock(posDock, 'above', self.otrosDock)
 
+        goCMDock = Dock('Cm and Gauss', size=(1, 1))
+        goCMDock.addWidget(self.goCMWidget)
+        dockArea.addDock(goCMDock, 'right', posDock)
+
         gotoDock = Dock('goto', size=(1, 1))
         gotoDock.addWidget(self.gotoWidget)
-        dockArea.addDock(gotoDock, 'right', posDock)
+        dockArea.addDock(gotoDock, 'above', goCMDock)
 
-        scanDock3 = Dock('PMT config', size=(1, 1))
+        scanDock3 = Dock('ROI Things', size=(1, 1))
         scanDock3.addWidget(self.paramWidget3)
         dockArea.addDock(scanDock3, 'right')
 
@@ -1080,7 +1123,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
 
-# ---go CM goto
+# %% Go Cm, go Gauss y go to
     def goCM(self):
 
         self.zgotoLabel.setStyleSheet(" background-color: ")
@@ -1096,9 +1139,26 @@ class ScanWidget(QtGui.QFrame):
         print("termino en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
+    def goGauss(self):
+        rango2 = self.scanRange/2
+        self.zgotoLabel.setStyleSheet(" background-color: ")
+        print("arranco en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
+
+        startX = float(self.xLabel.text())
+        startY = float(self.yLabel.text())
+        self.moveto((float(self.GaussxValue.text()) + startX) - rango2,
+                    (float(self.GaussyValue.text()) + startY) - rango2,
+                    float(self.zLabel.text()))
+
+        print("termino en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
+
     def goto(self):
 
         if float(self.zgotoLabel.text()) < 0:
+            QtGui.QMessageBox.question(self, '¿¡ Como pusiste z negativo !?',
+                                               'Algo salio mal. :(  Avisar')
             print("Z no puede ser negativo!!!")
             self.zgotoLabel.setStyleSheet(" background-color: red")
             time.sleep(1)
@@ -1262,8 +1322,8 @@ class ScanWidget(QtGui.QFrame):
         X, Y = np.meshgrid(xv, yv)
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
-        cb = fig.colorbar(p)
-        print(cb)
+        fig.colorbar(p)  # cb =
+
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         try:
@@ -1274,7 +1334,7 @@ class ScanWidget(QtGui.QFrame):
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "☺", color='m')
+                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "CM", color='m')
             Normal = self.scanRange / self.numberofPixels  # Normalizo
             ax.set_title((self.xcm*Normal + float(initPos[0]),
                           self.ycm*Normal + float(initPos[1])))
@@ -1282,14 +1342,16 @@ class ScanWidget(QtGui.QFrame):
             pass
         try:
             (height, x, y, width_x, width_y) = self.params
+            xg = int(np.floor(x))  # GaussxValue
+            yg = int(np.floor(y))
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(xv[int(x)+i], yv[int(y)+j], "◘", color='m')
-
+#                    ax.text(xv[int(x)+i], yv[int(y)+j], "GS", color='m')
+                    ax.text(X[xg+i, yg+j], Y[xg+i, yg+j], "Ga", color='m')
             plt.text(0.95, 0.05, """
                     x : %.1f
-                    y : %.1f """ % (xv[int(x)], yv[int(y)]),
+                    y : %.1f """ % (X[xg, yg], Y[xg, yg]),
                      fontsize=16, horizontalalignment='right',
                      verticalalignment='bottom', transform=ax.transAxes)
 
@@ -1307,22 +1369,43 @@ class ScanWidget(QtGui.QFrame):
                          self.numberofPixels) + float(initPos[1])
         X, Y = np.meshgrid(xv, yv)
         try:
-            plt.matshow(self.data, cmap=plt.cm.gist_earth_r)
+#            data = np.flip(np.flip(self.image,0),1)
+            plt.matshow(self.data, cmap=plt.cm.gist_earth_r, origin='lower',
+                        interpolation='none',
+                        extent=[xv[0], xv[-1], yv[0], yv[-1]])
             plt.colorbar()
-
+            plt.grid(True)
             plt.contour(self.fit(*np.indices(self.data.shape)),
-                        cmap=plt.cm.copper)
+                        cmap=plt.cm.copper, interpolation='none',
+                        extent=[xv[0], xv[-1], yv[0], yv[-1]])
             ax = plt.gca()
             (height, x, y, width_x, width_y) = self.params
+#            xv = np.flip(xv)
+#            yv = np.flip(yv)
 
-            plt.text(0.95, 0.05, """
-            x : %.1f
-            y : %.1f
-            width_x : %.1f
-            width_y : %.1f""" % (xv[int(x)], yv[int(y)], width_x, width_y),
+            xc = int(np.floor(x))
+            yc = int(np.floor(y))
+            resol = 2
+            xsum, ysum = 0, 0
+            for i in range(resol):
+                for j in range(resol):
+#                    ax.text(X[xc+i, yc+j], Y[xc+i, yc+j], "Ga", color='m')
+                    xsum = X[xc+i, yc+j] + xsum
+                    ysum = Y[xc+i, yc+j] + ysum
+            xmean = xsum / (resol**2)
+            ymean = ysum / (resol**2)
+            ax.text(xmean, ymean, "✔", color='r')
+#            Normal = self.scanRange / self.numberofPixels  # Normalizo
+#            ax.set_title((self.xcm*Normal + float(initPos[0]),
+#                          self.ycm*Normal + float(initPos[1])))
+            plt.text(0.95, 0.05, """x : %.2f y : %.2f """
+                     % (xmean, ymean), # X[xc, yc], Y[xc, yc]
                      fontsize=16, horizontalalignment='right',
                      verticalalignment='bottom', transform=ax.transAxes)
-            print("x", xv[int(x)])
+            print("x", xv[int(x)], X[xc, yc], xmean)
+#            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title("Centro en x={:.3f}, y={:.3f}".format(xmean, ymean))
+            plt.show()
         except:
             pass
 
@@ -1339,7 +1422,7 @@ class ScanWidget(QtGui.QFrame):
 # %% GaussMeasure
     def GaussMeasure(self):
         tic = ptime.time()
-        self.data = self.image
+        self.data = np.transpose(self.image)  # np.flip(np.flip(self.image,0),1)
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params
@@ -1358,8 +1441,8 @@ class ScanWidget(QtGui.QFrame):
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         xx = x*Normal
         yy = y*Normal
-        self.GaussxValue.setText(str(xx))
-        self.GaussyValue.setText(str(yy))
+        self.GaussxValue.setText("{:.2}".format(xx))
+        self.GaussyValue.setText("{:.2}".format(yy))
 
 # %% buttos to open and select folder
     def selectFolder(self):
@@ -1386,16 +1469,18 @@ class ScanWidget(QtGui.QFrame):
         self.ycm = ycm
 
         Normal = self.scanRange / self.numberofPixels  # Normalizo
-        self.CMxValue.setText(str(xcm*Normal))
-        self.CMyValue.setText(str(ycm*Normal))
+        self.CMxValue.setText("{:.2}".format(xcm*Normal))
+        self.CMyValue.setText("{:.2}".format(ycm*Normal))
 
 # %%  ROI cosas
     def ROImethod(self):
+        size = (int(self.numberofPixels / 2), int(self.numberofPixels / 2))
         if self.roi is None:
 
             ROIpos = (0.5 * self.numberofPixels - 64,
                       0.5 * self.numberofPixels - 64)
-            self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb, ROIpos,
+            self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb,
+                                         ROIpos, size,
                                          handlePos=(1, 0),
                                          handleCenter=(0, 1),
                                          scaleSnap=True,
@@ -1408,7 +1493,7 @@ class ScanWidget(QtGui.QFrame):
                 ROIpos = (0.5 * self.numberofPixels - 64,
                           0.5 * self.numberofPixels - 64)
                 self.roi = viewbox_tools.ROI(self.numberofPixels, self.vb,
-                                             ROIpos,
+                                             ROIpos, size,
                                              handlePos=(1, 0),
                                              handleCenter=(0, 1),
                                              scaleSnap=True,
@@ -1476,16 +1561,21 @@ class ScanWidget(QtGui.QFrame):
         # ***----
 
         if self.histogramROIButton.isChecked():
-            ROIpos = (0.5 * self.numberofPixels - 64,
-                      0.5 * self.numberofPixels - 64)
+            size = (int(self.numberofPixels / 2), int(self.numberofPixels / 2))
+            ROIpos = (0.25 * self.numberofPixels,
+                      0.25 * self.numberofPixels)
             self.roihist = viewbox_tools.ROI(self.numberofPixels, self.vb,
-                                             ROIpos,
+                                             ROIpos, size,
                                              handlePos=(1, 0),
                                              handleCenter=(0, 1),
                                              scaleSnap=True,
                                              translateSnap=True)
             self.roihist.sigRegionChanged.connect(updatehistogram)
 
+            try: self.LinearWidget.deleteLater()
+            except: pass
+            try: self.HistoWidget.deleteLater()
+            except: pass
             self.HistoWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.HistoWidget.addPlot(row=2, col=1)
 
@@ -1498,12 +1588,13 @@ class ScanWidget(QtGui.QFrame):
             self.otrosDock.addWidget(self.HistoWidget)
 
         else:
+#            self.roihist.sigRegionChanged.disconnect()
+            self.algo.textChanged.disconnect()
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
 #            self.otrosDock.removeWidget(self.HistoWidget)
-            self.HistoWidget.deleteLater()
-            self.roihist.disconnect()
-            self.algo.disconnect()
+#            self.HistoWidget.deleteLater()
+
 
 # %%  ROI LINEARL
     def ROIlinear(self):
@@ -1524,6 +1615,11 @@ class ScanWidget(QtGui.QFrame):
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
 
+            try: self.HistoWidget.deleteLater()
+            except: pass
+            try: self.LinearWidget.deleteLater()
+            except: pass
+
             self.LinearWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.LinearWidget.addPlot(row=2, col=1,
                                                 title="Linear plot")
@@ -1533,7 +1629,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
-            self.LinearWidget.deleteLater()
+#            self.LinearWidget.deleteLater()
 
     def selectLineROI(self):
         fig, ax = plt.subplots()
@@ -1721,7 +1817,7 @@ class MyPopup(QtGui.QWidget):
 #                "QPushButton { background-color: rgb(200, 200, 10); }"
 #                "QPushButton:pressed { background-color: blue; }")
 
-        self.stop_Button = QtGui.QPushButton('Stop ◘ (F2)')
+        self.stop_Button = QtGui.QPushButton('◘ Stop (F2)')
         self.stop_Button.setCheckable(False)
         self.stop_Button.clicked.connect(self.stop)
         self.stop_Button.setToolTip('Para la traza (F2)')
@@ -1736,12 +1832,16 @@ class MyPopup(QtGui.QWidget):
         self.stop_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('F2'), self, self.stop)
+        self.close_Action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ESC'), self, self.close_win)
 
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        grid.addWidget(self.traza_Widget2,      0, 0, 3, 1)
-        grid.addWidget(self.play_pause_Button,  0, 3)
-        grid.addWidget(self.stop_Button,        1, 3)
-        grid.addWidget(self.PointLabel,         2, 3)
+        grid.addWidget(self.traza_Widget2,      0, 0, 1, 4)
+        grid.addWidget(self.play_pause_Button,  1, 0)
+        grid.addWidget(self.stop_Button,        1, 1)
+        grid.addWidget(self.PointLabel,         1, 2)
+        self.setWindowTitle("Traza. (ESC lo cierra)")
         self.play_pause_Button.setChecked(True)
         self.PointScan()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
@@ -1755,6 +1855,8 @@ class MyPopup(QtGui.QWidget):
 #                 self.PointScan()
 #         else:
 #             self.pointtimer.stop()
+    def close_win(self):
+        self.close()
 
     def play_pause_active(self):
         '''Triggered by the play_pause_Action shortcut.'''
