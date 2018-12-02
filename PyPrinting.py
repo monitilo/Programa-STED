@@ -2215,7 +2215,7 @@ class ScanWidget(QtGui.QFrame):
         X, Y = np.meshgrid(x, y)
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
-        fig.colorbar(p)  # cb =
+        fig.colorbar(p)
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         if self.CMplot:
@@ -2231,18 +2231,28 @@ class ScanWidget(QtGui.QFrame):
             ax.set_title((self.xcm*Normal+float(initPos[0]),
                           self.ycm * Normal + float(initPos[1])))
         if self.GaussPlot:
-            xc = int(np.floor(self.xGauss))
-            yc = int(np.floor(self.yGauss))
-            X2 = np.transpose(X)
-            Y2 = np.transpose(Y)
+            (height, x, y, width_x, width_y) = self.params
+            xg = int(np.floor(x))  # self.GaussxValue
+            yg = int(np.floor(y))  # self.GaussyValue
+#            X2 = np.transpose(X)
+#            Y2 = np.transpose(Y)
             resol = 2
+            xsum, ysum = 0, 0
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "Ga", color='m')
-            Normal = self.scanRange / self.numberofPixels  # Normalizo
-            ax.set_title((xc*Normal+float(initPos[0]),
-                          yc * Normal + float(initPos[1])))
-
+#                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "Ga", color='m')
+                    ax.text(X[xg+i, yg+j], Y[xg+i, yg+j], "Ga", color='m')
+                    xsum = X[xg+i, yg+j] + xsum
+                    ysum = Y[xg+i, yg+j] + ysum
+            xmean = xsum / (resol**2)
+            ymean = ysum / (resol**2)
+            ax.text(xmean, ymean, "✔", color='r')
+            ax.set_title("Centro en x={:.3f}, y={:.3f}".format(xmean, ymean))
+            plt.text(0.95, 0.05, """
+                    x : %.1f
+                    y : %.1f """ % (X[xg, yg], Y[xg, yg]),
+                     fontsize=16, horizontalalignment='right',
+                     verticalalignment='bottom', transform=ax.transAxes)
         plt.show()
         toc = ptime.time()
         print("\n tiempo Plotlive", toc-tic, "\n")
@@ -2304,7 +2314,7 @@ class ScanWidget(QtGui.QFrame):
 # %% GaussFit
     def GaussFit(self):
         tic = ptime.time()
-        self.data = self.image
+        self.data = np.transpose(self.image)
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params

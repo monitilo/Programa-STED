@@ -76,12 +76,14 @@ def fitgaussian(data):
 Xin, Yin = np.mgrid[0:201, 0:201]
 data = gaussian(3, 20, 191, 30, 30)(Xin, Yin) + 0.5*np.random.random(Xin.shape)
 
-plt.matshow(data, cmap=plt.cm.gist_earth_r)
+plt.matshow(data, cmap=plt.cm.gist_earth_r, origin='lower',
+            interpolation='none', extent=[80,120,32,0])
 plt.colorbar()
 params = fitgaussian(data)
 fit = gaussian(*params)
 
-plt.contour(fit(*np.indices(data.shape)), cmap=plt.cm.copper)
+plt.contour(fit(*np.indices(data.shape)), cmap=plt.cm.copper,
+            interpolation='none', extent=[80,120,32,0])
 ax = plt.gca()
 (height, x, y, width_x, width_y) = params
 

@@ -336,7 +336,7 @@ class ScanWidget(QtGui.QFrame):
         self.CMcheck.setChecked(False)
         self.CMcheck.clicked.connect(self.CMmeasure)
 
-        self.Gausscheck = QtGui.QCheckBox('calcula centro gaussiano')
+        self.Gausscheck = QtGui.QCheckBox('calcula Gauss')
         self.Gausscheck.setChecked(False)
         self.Gausscheck.clicked.connect(self.GaussMeasure)
 
@@ -428,7 +428,7 @@ class ScanWidget(QtGui.QFrame):
         self.plotLivebutton = QtGui.QPushButton('Plot this image')
         self.plotLivebutton.setChecked(False)
         self.plotLivebutton.clicked.connect(self.plotLive)
-#        self.plotLivebutton.clicked.connect(self.otroPlot)
+        self.plotLivebutton.clicked.connect(self.otroPlot)
 
     # ROI buttons
         self.roi = None
@@ -520,11 +520,11 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
 
-        subgrid2.addWidget(self.aLabel,                1, 2)
-        subgrid2.addWidget(self.a,                     2, 2)
-        subgrid2.addWidget(self.bLabel,                3, 2)
-        subgrid2.addWidget(self.b,                     4, 2)
-        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 5, 2)
+#        subgrid2.addWidget(self.aLabel,                1, 2)
+        subgrid2.addWidget(self.a,                     1, 2)
+#        subgrid2.addWidget(self.bLabel,                3, 2)
+        subgrid2.addWidget(self.b,                     2, 2)
+        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
         subgrid2.addWidget(self.stepcheck,             6, 2)
@@ -1322,8 +1322,8 @@ class ScanWidget(QtGui.QFrame):
         X, Y = np.meshgrid(xv, yv)
         fig, ax = plt.subplots()
         p = ax.pcolor(X, Y, np.transpose(self.image), cmap=plt.cm.jet)
-        cb = fig.colorbar(p)
-        print(cb)
+        fig.colorbar(p)  # cb =
+
         ax.set_xlabel('x [um]')
         ax.set_ylabel('y [um]')
         try:
@@ -1334,7 +1334,7 @@ class ScanWidget(QtGui.QFrame):
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "☺", color='m')
+                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "CM", color='m')
             Normal = self.scanRange / self.numberofPixels  # Normalizo
             ax.set_title((self.xcm*Normal + float(initPos[0]),
                           self.ycm*Normal + float(initPos[1])))
@@ -1342,14 +1342,16 @@ class ScanWidget(QtGui.QFrame):
             pass
         try:
             (height, x, y, width_x, width_y) = self.params
+            xg = int(np.floor(x))  # GaussxValue
+            yg = int(np.floor(y))
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-                    ax.text(xv[int(x)+i], yv[int(y)+j], "◘", color='m')
-
+#                    ax.text(xv[int(x)+i], yv[int(y)+j], "GS", color='m')
+                    ax.text(X[xg+i, yg+j], Y[xg+i, yg+j], "Ga", color='m')
             plt.text(0.95, 0.05, """
                     x : %.1f
-                    y : %.1f """ % (xv[int(x)], yv[int(y)]),
+                    y : %.1f """ % (X[xg, yg], Y[xg, yg]),
                      fontsize=16, horizontalalignment='right',
                      verticalalignment='bottom', transform=ax.transAxes)
 
@@ -1367,22 +1369,43 @@ class ScanWidget(QtGui.QFrame):
                          self.numberofPixels) + float(initPos[1])
         X, Y = np.meshgrid(xv, yv)
         try:
-            plt.matshow(self.data, cmap=plt.cm.gist_earth_r)
+#            data = np.flip(np.flip(self.image,0),1)
+            plt.matshow(self.data, cmap=plt.cm.gist_earth_r, origin='lower',
+                        interpolation='none',
+                        extent=[xv[0], xv[-1], yv[0], yv[-1]])
             plt.colorbar()
-
+            plt.grid(True)
             plt.contour(self.fit(*np.indices(self.data.shape)),
-                        cmap=plt.cm.copper)
+                        cmap=plt.cm.copper, interpolation='none',
+                        extent=[xv[0], xv[-1], yv[0], yv[-1]])
             ax = plt.gca()
             (height, x, y, width_x, width_y) = self.params
+#            xv = np.flip(xv)
+#            yv = np.flip(yv)
 
-            plt.text(0.95, 0.05, """
-            x : %.1f
-            y : %.1f
-            width_x : %.1f
-            width_y : %.1f""" % (xv[int(x)], yv[int(y)], width_x, width_y),
+            xc = int(np.floor(x))
+            yc = int(np.floor(y))
+            resol = 2
+            xsum, ysum = 0, 0
+            for i in range(resol):
+                for j in range(resol):
+#                    ax.text(X[xc+i, yc+j], Y[xc+i, yc+j], "Ga", color='m')
+                    xsum = X[xc+i, yc+j] + xsum
+                    ysum = Y[xc+i, yc+j] + ysum
+            xmean = xsum / (resol**2)
+            ymean = ysum / (resol**2)
+            ax.text(xmean, ymean, "✔", color='r')
+#            Normal = self.scanRange / self.numberofPixels  # Normalizo
+#            ax.set_title((self.xcm*Normal + float(initPos[0]),
+#                          self.ycm*Normal + float(initPos[1])))
+            plt.text(0.95, 0.05, """x : %.2f y : %.2f """
+                     % (xmean, ymean), # X[xc, yc], Y[xc, yc]
                      fontsize=16, horizontalalignment='right',
                      verticalalignment='bottom', transform=ax.transAxes)
-            print("x", xv[int(x)])
+            print("x", xv[int(x)], X[xc, yc], xmean)
+#            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title("Centro en x={:.3f}, y={:.3f}".format(xmean, ymean))
+            plt.show()
         except:
             pass
 
@@ -1399,7 +1422,7 @@ class ScanWidget(QtGui.QFrame):
 # %% GaussMeasure
     def GaussMeasure(self):
         tic = ptime.time()
-        self.data = self.image
+        self.data = np.transpose(self.image)  # np.flip(np.flip(self.image,0),1)
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params
@@ -1418,8 +1441,8 @@ class ScanWidget(QtGui.QFrame):
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         xx = x*Normal
         yy = y*Normal
-        self.GaussxValue.setText(str(xx))
-        self.GaussyValue.setText(str(yy))
+        self.GaussxValue.setText("{:.2}".format(xx))
+        self.GaussyValue.setText("{:.2}".format(yy))
 
 # %% buttos to open and select folder
     def selectFolder(self):
@@ -1446,8 +1469,8 @@ class ScanWidget(QtGui.QFrame):
         self.ycm = ycm
 
         Normal = self.scanRange / self.numberofPixels  # Normalizo
-        self.CMxValue.setText(str(xcm*Normal))
-        self.CMyValue.setText(str(ycm*Normal))
+        self.CMxValue.setText("{:.2}".format(xcm*Normal))
+        self.CMyValue.setText("{:.2}".format(ycm*Normal))
 
 # %%  ROI cosas
     def ROImethod(self):
