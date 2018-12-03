@@ -51,18 +51,18 @@ apdrate = 10**5
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
-    def closeEvent(self, event):
-        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
-                                           QtGui.QMessageBox.No |
-                                           QtGui.QMessageBox.Yes)
-        if reply == QtGui.QMessageBox.Yes:
-            print("YES")
-            event.accept()
-            self.close()
-            self.liveviewStop()
-        else:
-            event.ignore()
-            print("NOOOO")
+#    def closeEvent(self, event):
+#        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
+#                                           QtGui.QMessageBox.No |
+#                                           QtGui.QMessageBox.Yes)
+#        if reply == QtGui.QMessageBox.Yes:
+#            print("YES")
+#            event.accept()
+#            self.close()
+#            self.liveviewStop()
+#        else:
+#            event.ignore()
+#            print("NOOOO")
 
     def newCall(self):
         print('New')
@@ -506,12 +506,14 @@ class ScanWidget(QtGui.QFrame):
         self.pixelSizeValue.textEdited.connect(self.NpixChange)
         self.scanRangeEdit.textEdited.connect(self.PixelSizeChange)
 
+        self.actualizar = QtGui.QLineEdit('0.5')
+
         self.scanMode.activated.connect(self.SlalomMode)
 
         self.presetsMode.activated.connect(self.PreparePresets)
 
-        self.paramWidget = QtGui.QWidget()
 
+        self.paramWidget = QtGui.QWidget()
 #        grid = QtGui.QGridLayout()
 #        self.setLayout(grid)
 #        grid.addWidget(imageWidget, 0, 0)
@@ -1122,6 +1124,8 @@ class ScanWidget(QtGui.QFrame):
             else:
                 self.img.setImage(self.image, autoLevels=self.autoLevels)
             self.MaxCounts()
+
+        self.actualizar.setText("{}".format(str(ptime.time()-self.tic)))
 
         if self.dy < self.numberofPixels-paso:
             self.dy = self.dy + paso
@@ -2494,10 +2498,11 @@ class ScanWidget(QtGui.QFrame):
             self.curve = self.p6.plot(open='y')
             self.otrosDock.addWidget(self.HistoWidget)
         # lo conecto a algo que cambie en cada loop para que actualize solo
-            self.maxcountsLabel.textChanged.connect(updatehistogram)
+            self.actualizar.textChanged.connect(updatehistogram)
+            updatehistogram()
 
         else:
-            self.maxcountsLabel.textChanged.disconnect()
+            self.actualizar.textChanged.disconnect()
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
 #            self.HistoWidget.deleteLater()
@@ -2529,7 +2534,12 @@ class ScanWidget(QtGui.QFrame):
             self.p6.showGrid(x=True, y=True)
             self.curve = self.p6.plot(open='y')
             self.otrosDock.addWidget(self.LinearWidget)
+            self.actualizar.textChanged.connect(updatelineal)
+            updatelineal()
+
         else:
+            
+            self.actualizar.textChanged.disconnect()
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
 #            self.LinearWidget.deleteLater()
@@ -2632,8 +2642,7 @@ class ScanWidget(QtGui.QFrame):
 class Traza(QtGui.QWidget):
 
     def closeEvent(self, event):
-        self.pointtimer.stop()
-        self.running = False
+        self.stop()
         print("flor de relozzz")
 
     def __init__(self, main, device, *args, **kwargs):
@@ -2653,12 +2662,14 @@ class Traza(QtGui.QWidget):
         self.curve = self.p6.plot(open='y')
         self.line =self.p6.plot(open='y')
         self.line1 =self.p6.plot(open='y')
+        self.line2 =self.p6.plot(open='y')
 
 #        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
 #        self.p7.showGrid(x=True, y=True)
 #        self.curve2 = self.p7.plot(open='y')
 #        self.line2 =self.p7.plot(open='y')
-    #  buttons
+
+    #  buttons: play button
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause || (1)')
         self.play_pause_Button.setCheckable(True)
         self.play_pause_Button.clicked.connect(self.play_pause)
@@ -2666,11 +2677,38 @@ class Traza(QtGui.QWidget):
 #        self.pause_Button.setStyleSheet(
 #                "QPushButton { background-color: rgb(200, 200, 10); }"
 #                "QPushButton:pressed { background-color: blue; }")
-
+    # Stop button
         self.stop_Button = QtGui.QPushButton('◘ Stop (F2)')
         self.stop_Button.setCheckable(False)
         self.stop_Button.clicked.connect(self.stop)
         self.stop_Button.setToolTip('Para la traza (F2)')
+
+    # save button
+        self.save_Button = QtGui.QPushButton('plot and/or save')
+        self.save_Button.setCheckable(False)
+        self.save_Button.clicked.connect(self.save_plot)
+        self.save_Button.setToolTip('Para Guardar la traza (tambien la plotea por ahora)')
+        self.save_Button.setStyleSheet(
+                "QPushButton { background-color: rgb(200, 200, 10); }"
+                "QPushButton:pressed { background-color: blue; }")
+
+    # umbral
+        self.umbralLabel = QtGui.QLabel('Umbral')
+        self.umbralEdit = QtGui.QLineEdit('10')
+        self.umbralEdit.setFixedWidth(40)
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores cercanos ')
+
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+        grid.addWidget(self.traza_Widget2,      0, 0, 1, 7)
+        grid.addWidget(self.play_pause_Button,  1, 0)
+        grid.addWidget(self.stop_Button,        1, 1)
+        grid.addWidget(self.umbralLabel,        1, 3)
+        grid.addWidget(self.umbralEdit,         1, 4)
+        grid.addWidget(self.PointLabel,         1, 5)
+        grid.addWidget(self.save_Button,        1, 6)
+        self.setWindowTitle("Traza. (ESC lo cierra bien)")
+        self.play_pause_Button.setChecked(True)
+        self.PointScan()
 
         self.play_pause_Action = QtGui.QAction(self)
 #        self.play_pause_Action.setShortcut('Ctrl+L')
@@ -2686,14 +2724,6 @@ class Traza(QtGui.QWidget):
         self.close_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ESC'), self, self.close_win)
-
-        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        grid.addWidget(self.traza_Widget2,      0, 0, 1, 3)
-        grid.addWidget(self.play_pause_Button,  1, 0)
-        grid.addWidget(self.stop_Button,        1, 1)
-        grid.addWidget(self.PointLabel,         1, 2)
-        self.play_pause_Button.setChecked(True)
-        self.PointScan()
 
     def close_win(self):
         self.stop()
@@ -2721,7 +2751,6 @@ class Traza(QtGui.QWidget):
             #        "QPushButton { background-color: red; }")
 
     def stop(self):
-
         try:
             self.pointtimer.stop()
         except IOError as e:
@@ -2739,6 +2768,32 @@ class Traza(QtGui.QWidget):
         except:  # pass
             print("pointtasktask2 no estaba abierto")
 
+    def save_plot(self):
+
+        try:
+            print("va a aguardar")
+            # filepath = self.file_path
+            filepath = self.main.file_path
+            timestr = time.strftime("%d%m%Y-%H%M%S")
+            name = str(filepath + "/"+ timestr + "-Traza"  + ".txt")
+            print("va a abrir el name")
+            f=open(name,"w")
+            np.savetxt(name,
+                       np.transpose([self.timeaxis[:self.ptr1],
+                                        self.data1[:self.ptr1]]),
+                       header= "{} y umbral={:.3}".format(
+                        timestr,float(self.umbralEdit.text())))
+            print("va a cerrarlo")
+            f.close()
+            print("\n Guardo la Traza")
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+        fig, ax = plt.subplots()
+        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
+        ax.set_xlabel('Tiempo (s) (puede fallar)')
+        ax.set_ylabel('Intensity (V)')
+        plt.show()
 
     def PointScan(self):
         self.running = True
@@ -2777,11 +2832,20 @@ class Traza(QtGui.QWidget):
         self.timeaxis = np.empty(100)
         self.data1 = np.empty(100)
 #        self.data2 = np.empty(100)
+    # Quiero saber cuanto tarda para que coincidan los tiempos
+        self.tiemporeal = self.tiempo
         tic = ptime.time()
-        self.points[:] = self.pointtask.read(len(self.points))
+        self.updatePoint()
         tiic = ptime.time()
         self.tiemporeal = (tiic-tic)*2
-        print(self.tiemporeal)
+        print("tiempo propuesto=", self.tiempo*10**3,"ms")
+        print("tiempo real=", self.tiemporeal*10**3,"ms")
+
+        self.ptr1 = 0
+        self.timeaxis = np.empty(100)
+        self.data1 = np.empty(100)
+#        self.data2 = np.empty(100)
+
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
         self.pointtimer.start(self.tiemporeal)
@@ -2821,37 +2885,53 @@ class Traza(QtGui.QWidget):
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
                            pen=pg.mkPen('r',width=1) , shadowPen=pg.mkPen('b',width=3))
 
-#        self.data2 = np.roll(self.data2, -1)            # (see also: np.roll)
-#        self.data2.append(m2)
-#        self.curve2.setData(self.timeaxis[:self.ptr1], self.data2[:self.ptr1])
-#        self.curve2.setPos(self.timeaxis[0], 0)
         mediototal = np.mean(self.data1[:self.ptr1])
         self.line.setData(self.timeaxis[:self.ptr1],
                            np.ones(len(self.timeaxis[:self.ptr1]))* mediototal,
                            pen=pg.mkPen('c', width=1))
         tec = ptime.time()
         M = 40
+        M2 = 10
         if self.ptr1 < M:
             mediochico = np.mean(self.data1[:self.ptr1])
             self.timeaxis2 = self.timeaxis[:self.ptr1]
             MMM = self.ptr1
+            if self.ptr1 < M2:
+                mediochico2 =np.mean(self.data1[:self.ptr1])
+                MM2 = 0
+            else:
+                mediochico2 =np.mean(self.data1[:self.ptr1-M2])
+                MM2 = M2
         else:
             mediochico = np.mean(self.data1[self.ptr1-M:self.ptr1])
             self.timeaxis2 = self.timeaxis[self.ptr1-M:self.ptr1]
             MMM = M
+            mediochico2 = np.mean(self.data1[self.ptr1-M-M2:self.ptr1-M2])
+
         tuc = ptime.time()
         self.line1.setData(self.timeaxis2,
                            np.ones(MMM)* mediochico, pen=pg.mkPen('g', width=2))
+        self.line2.setData(self.timeaxis2[:],
+                           np.ones(MMM)* mediochico2, pen=pg.mkPen('y', width=2))
+
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
-                                float(mediototal), float(mediochico)))
+                                float(mediochico), float(mediochico2)))
+#        print(mediochico, mediochico2)
+        if mediochico >= mediochico2*float(self.umbralEdit.text()):
+            self.PointLabel.setStyleSheet(" background-color: orange")
+        else:
+            self.PointLabel.setStyleSheet(" background-color: ")
+
         toc = ptime.time()
-        print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
-        print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")
-        print("tiempo del medio", np.round((tec-tac)*10**3,3), "(ms)")
-        print("tiempo armar promedio", np.round((tuc-tec)*10**3,3), "(ms)")
-        print("tiempo plotear medio", np.round((toc-tuc)*10**3,3), "(ms)")
-        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
-        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
+#        print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
+#        print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")
+#        print("tiempo del medio", np.round((tec-tac)*10**3,3), "(ms)")
+#        print("tiempo armar promedios varios", np.round((tuc-tec)*10**3,3), "(ms)")
+#        print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
+#        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
+#        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
+
+
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""

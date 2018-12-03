@@ -8,6 +8,37 @@ Created on Wed Nov 28 11:00:54 2018
 #pyqtgraph.examples.run()
 # corriendolo por consola anda
 # %%
+#%%
+import numpy as np
+import matplotlib.pyplot as plt
+
+name= "Pepe.txt"
+data = (np.linspace(0,9,10))
+data2 = np.round(np.linspace(-3,1,10))
+data3 = np.round(np.linspace(-30,29,10))
+a=2
+f=open(name,"w")
+np.savetxt(name, np.transpose([data,data2,data3]),fmt='%.18g',
+           header= "cosas{} y otras cosas{}".format(a,2*a))
+#np.savetxt(name, data2)
+#np.savetxt(name, data3)
+f.close()
+# %%
+name= "03122018-160240Traza.txt"
+f=open(name,"r")
+j=np.loadtxt(name, unpack=True)
+f.close()
+x =j[0,:]
+y =j[1,:]
+plt.plot(x,y)
+#%%
+f=open(name,"r")
+lines=f.readlines()
+result=[0]
+for x in lines:
+    result.append(x.split(' ')[1])
+f.close()
+# %%
 # -*- coding: utf-8 -*-
 # author: Sebastian Hoefer
 #"""

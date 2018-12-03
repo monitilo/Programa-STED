@@ -389,7 +389,7 @@ class ScanWidget(QtGui.QFrame):
         self.pixelSizeLabel.setToolTip('Anda tambien en labels')
         self.pixelSizeValue.setToolTip('y en los valores')
 
-        self.algo = QtGui.QLineEdit('0.5')
+        self.actualizar = QtGui.QLineEdit('0.5')
 
 #        newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold)
 #        self.pixelSizeValue.setFont(newfont)
@@ -926,7 +926,7 @@ class ScanWidget(QtGui.QFrame):
         self.MaxCounts()
 
         time = (ptime.time()-self.tic)
-        self.algo.setText("{}".format(str(time)))
+        self.actualizar.setText("{}".format(str(time)))
         if self.i < self.numberofPixels-self.step:
             self.i = self.i + self.step
         else:
@@ -1584,12 +1584,13 @@ class ScanWidget(QtGui.QFrame):
             self.p6.setLabel('bottom', 'counts')
             self.p6.setLabel('right', '')
             self.curve = self.p6.plot(open='y')
-            self.algo.textChanged.connect(updatehistogram)
+            self.actualizar.textChanged.connect(updatehistogram)
             self.otrosDock.addWidget(self.HistoWidget)
+            updatehistogram()
 
         else:
 #            self.roihist.sigRegionChanged.disconnect()
-            self.algo.textChanged.disconnect()
+            self.actualizar.textChanged.disconnect()
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
 #            self.otrosDock.removeWidget(self.HistoWidget)
@@ -1599,7 +1600,7 @@ class ScanWidget(QtGui.QFrame):
 # %%  ROI LINEARL
     def ROIlinear(self):
         larg = self.numberofPixels/1.5+10
-
+    # ---
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
             self.curve.setData(array)
@@ -1608,7 +1609,7 @@ class ScanWidget(QtGui.QFrame):
             m2 = np.max(array)
             self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
                                     float(m),float(m2)))
-
+    # ---
         if self.ROIlineButton.isChecked():
 
             self.linearROI = pg.LineSegmentROI([[10, 64], [larg, 64]], pen='m')
@@ -1626,7 +1627,11 @@ class ScanWidget(QtGui.QFrame):
             self.p6.showGrid(x=True, y=True)
             self.curve = self.p6.plot(open='y')
             self.otrosDock.addWidget(self.LinearWidget)
+            self.actualizar.textChanged.connect(updatelineal)
+            updatelineal()
+
         else:
+            self.actualizar.textChanged.disconnect()
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
 #            self.LinearWidget.deleteLater()
@@ -1802,13 +1807,14 @@ class MyPopup(QtGui.QWidget):
         self.curve = self.p6.plot(open='y')
         self.line =self.p6.plot(open='y')
         self.line1 =self.p6.plot(open='y')
+        self.line12 =self.p6.plot(open='y')
 
         self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
         self.p7.showGrid(x=True, y=True)
         self.curve2 = self.p7.plot(open='y')
         self.line2 =self.p7.plot(open='y')
 
-    #  buttons
+    #  buttons: play button
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼ (F1)')
         self.play_pause_Button.setCheckable(True)
         self.play_pause_Button.clicked.connect(self.play_pause)
@@ -1817,10 +1823,39 @@ class MyPopup(QtGui.QWidget):
 #                "QPushButton { background-color: rgb(200, 200, 10); }"
 #                "QPushButton:pressed { background-color: blue; }")
 
+    # Stop button
         self.stop_Button = QtGui.QPushButton('◘ Stop (F2)')
         self.stop_Button.setCheckable(False)
         self.stop_Button.clicked.connect(self.stop)
         self.stop_Button.setToolTip('Para la traza (F2)')
+
+    # save button
+        self.save_Button = QtGui.QPushButton('plot and/or save')
+        self.save_Button.setCheckable(False)
+        self.save_Button.clicked.connect(self.save_plot)
+        self.save_Button.setToolTip('Para Guardar la traza (tambien la plotea por ahora)')
+        self.save_Button.setStyleSheet(
+                "QPushButton { background-color: rgb(200, 200, 10); }"
+                "QPushButton:pressed { background-color: blue; }")
+
+    # umbral
+        self.umbralLabel = QtGui.QLabel('Umbral')
+        self.umbralEdit = QtGui.QLineEdit('10')
+        self.umbralEdit.setFixedWidth(40)
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores cercanos ')
+
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+
+        grid.addWidget(self.traza_Widget2,      0, 0, 1, 7)
+        grid.addWidget(self.play_pause_Button,  1, 0)
+        grid.addWidget(self.stop_Button,        1, 1)
+        grid.addWidget(self.umbralLabel,        1, 3)
+        grid.addWidget(self.umbralEdit,         1, 4)
+        grid.addWidget(self.PointLabel,         1, 5)
+        grid.addWidget(self.save_Button,        1, 6)
+        self.setWindowTitle("Traza. (ESC lo cierra)")
+        self.play_pause_Button.setChecked(True)
+        self.PointScan()
 
         self.play_pause_Action = QtGui.QAction(self)
 #        self.play_pause_Action.setShortcut('Ctrl+L')
@@ -1836,16 +1871,7 @@ class MyPopup(QtGui.QWidget):
         QtGui.QShortcut(
             QtGui.QKeySequence('ESC'), self, self.close_win)
 
-        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        grid.addWidget(self.traza_Widget2,      0, 0, 1, 4)
-        grid.addWidget(self.play_pause_Button,  1, 0)
-        grid.addWidget(self.stop_Button,        1, 1)
-        grid.addWidget(self.PointLabel,         1, 2)
-        self.setWindowTitle("Traza. (ESC lo cierra)")
-        self.play_pause_Button.setChecked(True)
-        self.PointScan()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
-
 # TODO: a seguir mejorando esta parte
 #     def play(self):
 #         if self.play_Button.isChecked():
@@ -1855,6 +1881,7 @@ class MyPopup(QtGui.QWidget):
 #                 self.PointScan()
 #         else:
 #             self.pointtimer.stop()
+
     def close_win(self):
         self.close()
 
@@ -1895,6 +1922,29 @@ class MyPopup(QtGui.QWidget):
 #        dc.drawLine(0, 0, 100, 100)
 #        dc.drawLine(100, 0, 0, 100)
 
+    def save_plot(self):
+        fig, ax = plt.subplots()
+        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
+        ax.set_xlabel('Tiempo (s) (puede fallar)')
+        ax.set_ylabel('Intensity (V)')
+        plt.show()
+# TODO: No se en que formato guardarlo!!
+        try:
+            # filepath = self.file_path
+            filepath = self.main.file_path
+            timestr = time.strftime("%d%m%Y-%H%M%S")
+            name = str(filepath + "/"+ timestr + "Traza"  + ".txt")
+            f=open(name,"w")
+            np.savetxt(name,
+                       np.transpose([self.timeaxis[:self.ptr1],
+                                        self.data1[:self.ptr1]]),
+                       header= "{} y umbral={}".format(
+                        timestr,float(self.umbralEdit.text())))
+            f.close()
+            print("\n Guardo la Traza")
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
     def PointScan(self):
         self.running = True
         self.tiempo = 10  # ms  # refresca el numero cada este tiempo
@@ -1923,7 +1973,7 @@ class MyPopup(QtGui.QWidget):
         points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
         points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
 
-        sig = np.mean(points) + np.log(self.ptr1+1) + points[0]
+        sig = np.mean(points) + np.log(self.ptr1+1)**2 + points[0]
 
 #        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
 #        self.data1.append(sig)
@@ -1957,20 +2007,39 @@ class MyPopup(QtGui.QWidget):
         self.data2 = np.roll(self.data2, -1)             # (see also: np.roll)
         self.data2[-1] = sig
 #        self.curve2.setData(self.timeaxis2, self.data2)
-        self.curve2.setData(np.linspace(0, 3, 300), self.data2)
+        M = 300  # tengo que cambiar mas cosas para que esto ande
+        self.curve2.setData(np.linspace(0, 3, M), self.data2)
         self.curve2.setPos(self.timeaxis2[0], 0)
         m2 = np.mean(self.data2)
         self.line2.setData(self.timeaxis2,
-                           np.ones(300)* m2, pen=pg.mkPen('y', width=2))
+                           np.ones(M)* m2, pen=pg.mkPen('y', width=2))
 
-        if self.ptr1 < 300: medio = np.mean(self.data1[:self.ptr1])
-        else:    medio = np.mean(self.data1[self.ptr1-300:self.ptr1])
+        if self.ptr1 < M: 
+            medio = np.mean(self.data1[:self.ptr1])
+            if self.ptr1 <10:
+                medio2 = np.mean(self.data1[:self.ptr1])
+            else:
+                medio2 = np.mean(self.data1[:self.ptr1-10])
+        else:
+            medio = np.mean(self.data1[self.ptr1-M:self.ptr1])
+            medio2 = np.mean(self.data1[self.ptr1-M-10:self.ptr1-10])
 
 
         self.line1.setData(self.timeaxis2,
-                           np.ones(300)* medio, pen=pg.mkPen('g', width=2))
-        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
+                           np.ones(M)* medio, pen=pg.mkPen('g', width=2))
+        self.line12.setData(self.timeaxis2[:-10],
+                           np.ones(M-10)* medio2, pen=pg.mkPen('y', width=2))
+        
+        self.PointLabel.setText("<strong>{:.2}|{:.2}".format(
                                 float(m), float(medio)))
+#        print(medio, medio2)
+        if medio > medio2*float(self.umbralEdit.text()):
+            self.PointLabel.setStyleSheet(" background-color: orange")
+        else:
+            self.PointLabel.setStyleSheet(" background-color: ")
+
+        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
+                                float(medio), float(medio2)))
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
