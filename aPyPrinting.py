@@ -81,7 +81,7 @@ class MainWindow(QtGui.QMainWindow):
         root.withdraw()
 
         self.file_path = filedialog.askdirectory()
-        print(self.file_path, "◄ dire")
+        print("dire: \n", self.file_path, "\n")
         self.form_widget.NameDirValue.setText(self.file_path)
         self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
 #        self.form_widget.paramChanged()
@@ -97,6 +97,7 @@ class MainWindow(QtGui.QMainWindow):
         newpath = self.file_path + "/" + timestr
         if not os.path.exists(newpath):
             os.makedirs(newpath)
+            print("Carpeta creada!")
         else:
             print("Ya existe esa carpeta")
         self.file_path = newpath
@@ -151,7 +152,7 @@ class MainWindow(QtGui.QMainWindow):
 
     # Create de create daily directory action
         load_docks_Action = QtGui.QAction(QtGui.QIcon('algo.png'),
-                                          '&Load Docks', self)
+                                          '&Restore Docks', self)
         load_docks_Action.setStatusTip('Load a previous Docks configuration')
         load_docks_Action.setShortcut('Ctrl+l')
         load_docks_Action.triggered.connect(self.load_docks)
@@ -547,9 +548,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.maxcountsEdit,      16, 2, 2, 1)
 
     # Columna 2
-        subgrid2.addWidget(self.NameDirButton,       0, 2)
-        subgrid2.addWidget(self.OpenButton,          1, 2)
-        subgrid2.addWidget(self.create_day_Button,   2, 2)
+#        subgrid2.addWidget(self.NameDirButton,       0, 2)
+#        subgrid2.addWidget(self.OpenButton,          1, 2)
+#        subgrid2.addWidget(self.create_day_Button,   2, 2)
 #        subgrid2.addWidget(self.triggerLabel,        4, 2)
 #        subgrid2.addWidget(self.triggerEdit,         5, 2)
 #        subgrid2.addWidget(self.added_points_Label,   6, 2)
@@ -1142,12 +1143,10 @@ class ScanWidget(QtGui.QFrame):
     def APDstop(self):
         try:
             self.APDtask.stop()
-        except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        except: pass
         try:
             self.APD2task.stop()
-        except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        except: pass
 
 # %% MAX Counts
     def MaxCounts(self):
@@ -2123,12 +2122,14 @@ class ScanWidget(QtGui.QFrame):
             self.shutter2button.setChecked(False)
 
     def shuttersChannelsNidaq(self):
-        if not self.shuttering:
+        try:
+#        if not self.shuttering:
             self.shuttering = True
             self.shuttertask = nidaqmx.Task("shutter")
             self.shuttertask.do_channels.add_do_chan(
                 lines="Dev1/port0/line0:2", name_to_assign_to_lines='shutters',
                 line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        except: pass
 #        else:
 #            #print("ya estaban abiertos los canales shutters")
 
@@ -2464,7 +2465,8 @@ class ScanWidget(QtGui.QFrame):
             self.curve.setData(x, y, name=text, stepMode=True,
                                fillLevel=0,
                                brush=(0, 0, 255, 150))
-        # ----
+    # ----
+
         if self.histogramROIButton.isChecked():
             ROIpos = (0.5 * self.numberofPixels - 64,
                       0.5 * self.numberofPixels - 64)
@@ -2477,6 +2479,11 @@ class ScanWidget(QtGui.QFrame):
                                              translateSnap=True)
             self.roihist.sigRegionChanged.connect(updatehistogram)
 
+            try: self.LinearWidget.deleteLater()
+            except: pass
+            try: self.HistoWidget.deleteLater()
+            except: pass
+
             self.HistoWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.HistoWidget.addPlot(row=2, col=1)
 
@@ -2485,15 +2492,16 @@ class ScanWidget(QtGui.QFrame):
             self.p6.setLabel('bottom', 'counts')
             self.p6.setLabel('right', '')
             self.curve = self.p6.plot(open='y')
-            self.algo.textChanged.connect(updatehistogram)
             self.otrosDock.addWidget(self.HistoWidget)
+        # lo conecto a algo que cambie en cada loop para que actualize solo
+            self.maxcountsLabel.textChanged.connect(updatehistogram)
 
         else:
+            self.maxcountsLabel.textChanged.disconnect()
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
-            self.HistoWidget.deleteLater()
-            self.roihist.disconnect()
-            self.maxcountsEdit.disconnect()
+#            self.HistoWidget.deleteLater()
+#            self.roihist.sigRegionChanged.disconnect()
 
 
 # %% Roi lineal
@@ -2510,6 +2518,11 @@ class ScanWidget(QtGui.QFrame):
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
 
+            try: self.HistoWidget.deleteLater()
+            except: pass
+            try: self.LinearWidget.deleteLater()
+            except: pass
+
             self.LinearWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.LinearWidget.addPlot(row=2, col=1,
                                                 title="Linear plot")
@@ -2519,7 +2532,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
-            self.LinearWidget.deleteLater()
+#            self.LinearWidget.deleteLater()
 
     def selectLineROI(self):
         fig, ax = plt.subplots()
@@ -2608,8 +2621,9 @@ class ScanWidget(QtGui.QFrame):
 
 # %% Point scan ---+--- Hay que elegir APD
     def PointStart(self):
+        self.done()
         print("Opening a new popup window...")
-        self.w = Traza(self.main)
+        self.w = Traza(self.main, device)
         self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
         self.w.show()
 
@@ -2622,10 +2636,11 @@ class Traza(QtGui.QWidget):
         self.running = False
         print("flor de relozzz")
 
-    def __init__(self, main, *args, **kwargs):
+    def __init__(self, main, device, *args, **kwargs):
         QtGui.QWidget.__init__(self)
         super().__init__(*args, **kwargs)
         self.main = main
+        self.device = device
         self.ScanWidget = ScanWidget(main, device)
 #        self.form_widget = ScanWidget(self, device)
         self.traza_Widget2 = pg.GraphicsLayoutWidget()
@@ -2681,7 +2696,16 @@ class Traza(QtGui.QWidget):
         self.PointScan()
 
     def close_win(self):
+        self.stop()
         self.close()
+
+    def play_pause_active(self):
+        '''Triggered by the play_pause_Action shortcut.'''
+        if self.play_pause_Button.isChecked():
+            self.play_pause_Button.setChecked(False)
+        else:
+            self.play_pause_Button.setChecked(True)
+        self.play_pause()
 
     def play_pause(self):
         if self.play_pause_Button.isChecked():
@@ -2718,8 +2742,10 @@ class Traza(QtGui.QWidget):
 
     def PointScan(self):
         self.running = True
-        self.tiempo = 400  # ms  # refresca el numero cada este tiempo
-        self.points = np.zeros(int((apdrate * (self.tiempo / 10**3))))
+        self.tiempo = 1  # ms  # refresca el numero cada este tiempo
+        self.Napd = int(np.round(apdrate * self.tiempo/10**3))
+        print(self.Napd)
+        self.points = np.zeros(self.Napd)#int(np.round((apdrate * (self.tiempo/10**3)))))
         self.points2 = np.copy(self.points)
 
         self.pointtask = nidaqmx.Task('pointtask')
@@ -2729,33 +2755,52 @@ class Traza(QtGui.QWidget):
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
 
+        self.pointtask.timing.cfg_samp_clk_timing(
+          rate=apdrate,
+          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+          source=r'100kHzTimebase',  # 1000k
+          samps_per_chan=len(self.points))
+
         self.pointtask2 = nidaqmx.Task('pointtask2')
         # Configure the counter channel to read the APD
         self.pointtask2.ci_channels.add_ci_count_edges_chan(
                             counter='Dev1/ctr{}'.format(COchans[1]),
                             name_to_assign_to_channel=u'Line_counter',
                             initial_count=0)
+        self.pointtask2.timing.cfg_samp_clk_timing(
+          rate=apdrate,
+          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+          source=r'100kHzTimebase',  # 1000k
+          samps_per_chan=len(self.points))
+
         self.ptr1 = 0
         self.timeaxis = np.empty(100)
         self.data1 = np.empty(100)
 #        self.data2 = np.empty(100)
-
+        tic = ptime.time()
+        self.points[:] = self.pointtask.read(len(self.points))
+        tiic = ptime.time()
+        self.tiemporeal = (tiic-tic)*2
+        print(self.tiemporeal)
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
-        self.pointtimer.start(self.tiempo)
+        self.pointtimer.start(self.tiemporeal)
 
     def updatePoint(self):
+        tic = ptime.time()
         N = len(self.points)
         self.points[:] = self.pointtask.read(N)
         self.points2[:] = self.pointtask2.read(N)
-
-        m = np.mean(self.points)
+        tiic = ptime.time()
+#        if self.ptr1 ==0:
+#            self.tiemporeal = tiic-tic
+        m = np.max(self.points)  # mean
         m2 = np.mean(self.points2)
 #        #print("valor traza", m)
         self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
                                            float(m), float(m2)))
 #        sig2 = np.mean(self.points2)
-        self.timeaxis[self.ptr1] = (self.tiempo * 10**-3)*self.ptr1
+        self.timeaxis[self.ptr1] = self.tiemporeal*self.ptr1  #7 *self.tiempo
         self.data1[self.ptr1] = m
         self.ptr1 += 1
         if self.ptr1 >= self.data1.shape[0]:
@@ -2768,10 +2813,10 @@ class Traza(QtGui.QWidget):
 #            tmpdata2 = self.data2
 #            self.data2 = np.empty(self.data2.shape[0] * 2)
 #            self.data2[:tmpdata2.shape[0]] = tmpdata2
-
+        tac = ptime.time()
 #        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
 #        self.data1.append(m)
-        self.ptr1 += 1
+#        self.ptr1 += 1
 #        self.curve.setData(self.timeaxis, self.data1)
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
                            pen=pg.mkPen('r',width=1) , shadowPen=pg.mkPen('b',width=3))
@@ -2783,16 +2828,30 @@ class Traza(QtGui.QWidget):
         mediototal = np.mean(self.data1[:self.ptr1])
         self.line.setData(self.timeaxis[:self.ptr1],
                            np.ones(len(self.timeaxis[:self.ptr1]))* mediototal,
-                           pen=pg.mkPen('c', width=2))
-
-        if self.ptr1 < 300: mediochico = np.mean(self.data1[:self.ptr1])
-        else:    mediochico = np.mean(self.data1[self.ptr1-300:self.ptr1])
-
+                           pen=pg.mkPen('c', width=1))
+        tec = ptime.time()
+        M = 40
+        if self.ptr1 < M:
+            mediochico = np.mean(self.data1[:self.ptr1])
+            self.timeaxis2 = self.timeaxis[:self.ptr1]
+            MMM = self.ptr1
+        else:
+            mediochico = np.mean(self.data1[self.ptr1-M:self.ptr1])
+            self.timeaxis2 = self.timeaxis[self.ptr1-M:self.ptr1]
+            MMM = M
+        tuc = ptime.time()
         self.line1.setData(self.timeaxis2,
-                           np.ones(300)* mediochico, pen=pg.mkPen('g', width=2))
+                           np.ones(MMM)* mediochico, pen=pg.mkPen('g', width=2))
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(mediototal), float(mediochico)))
-
+        toc = ptime.time()
+        print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
+        print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")
+        print("tiempo del medio", np.round((tec-tac)*10**3,3), "(ms)")
+        print("tiempo armar promedio", np.round((tuc-tec)*10**3,3), "(ms)")
+        print("tiempo plotear medio", np.round((toc-tuc)*10**3,3), "(ms)")
+        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
+        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
@@ -2833,8 +2892,8 @@ def find_nearest(array, value):
     return array[idx]
 # %% FIN
 app = QtGui.QApplication([])
-win = ScanWidget(device)
-# win = MainWindow()
+#win = ScanWidget(device)
+win = MainWindow()
 win.show()
 
 app.exec_()
