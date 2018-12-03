@@ -2024,7 +2024,6 @@ class MyPopup(QtGui.QWidget):
             medio = np.mean(self.data1[self.ptr1-M:self.ptr1])
             medio2 = np.mean(self.data1[self.ptr1-M-10:self.ptr1-10])
 
-
         self.line1.setData(self.timeaxis2,
                            np.ones(M)* medio, pen=pg.mkPen('g', width=2))
         self.line12.setData(self.timeaxis2[:-10],
