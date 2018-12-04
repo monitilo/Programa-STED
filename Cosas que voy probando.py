@@ -8,6 +8,47 @@ Created on Wed Nov 28 11:00:54 2018
 #pyqtgraph.examples.run()
 # corriendolo por consola anda
 # %%
+import numpy as np
+import matplotlib.pyplot as plt
+import tkinter as tk
+from tkinter import filedialog
+
+root = tk.Tk()
+root.withdraw()
+#name = "10x15(para_probar_grilla)"
+name  = filedialog.askopenfilename()
+f=open(name,"r")
+datos = np.loadtxt(name, unpack=True)
+f.close()
+x=datos[0,:]
+y=datos[1,:]
+z=datos[2,:]
+plt.plot(x,y)
+
+mode = "full"  # ["valid"  # "full"  # "same"]  #
+for moda in ["full","same","valid"]:
+    a=np.correlate(x, x, moda)
+    b=np.correlate(x, y, moda)
+    c=np.correlate(y, x, moda)
+    d=np.correlate(y, y, moda)
+    plt.figure()
+    plt.plot(a, 'm')
+    plt.plot(b, 'b')
+    plt.plot(c, 'r')
+    plt.plot(d, 'c')
+
+ejes = np.zeros((3,len(x)))
+ejes[0,:] =x
+ejes[1,:] = y
+ejes[2,:] = z
+for moda in ["full","same","valid"]:
+    for i in range(ejes.shape[0]):
+        for j in range(ejes.shape[0]):
+#            print(i,j,moda)
+            p=np.correlate(ejes[i,:], ejes[j,:], moda)
+            plt.plot(p)
+
+
 #%%
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,6 +71,8 @@ j=np.loadtxt(name, unpack=True)
 f.close()
 x =j[0,:]
 y =j[1,:]
+
+plt.figure()
 plt.plot(x,y)
 #%%
 f=open(name,"r")

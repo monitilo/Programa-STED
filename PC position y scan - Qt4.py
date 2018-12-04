@@ -220,7 +220,7 @@ class ScanWidget(QtGui.QFrame):
         self.xUpButton.pressed.connect(self.xMoveUp)
         self.xDownButton = QtGui.QPushButton("◄ (-x)")  # ←
         self.xDownButton.pressed.connect(self.xMoveDown)
-        self.xStepEdit = QtGui.QLineEdit("1")  # estaban en 0.05<
+        self.xStepEdit = QtGui.QLineEdit("1.0")  # estaban en 0.05<
         self.xStepUnit = QtGui.QLabel(" µm")
 
         self.yLabel = QtGui.QLabel('2.0')
@@ -232,7 +232,7 @@ class ScanWidget(QtGui.QFrame):
         self.yUpButton.pressed.connect(self.yMoveUp)
         self.yDownButton = QtGui.QPushButton("(-y) ▼")  # ↓
         self.yDownButton.pressed.connect(self.yMoveDown)
-        self.yStepEdit = QtGui.QLineEdit("1")
+        self.yStepEdit = QtGui.QLineEdit("1.0")
         self.yStepUnit = QtGui.QLabel(" µm")
 
         self.zLabel = QtGui.QLabel('3.0')
@@ -244,7 +244,7 @@ class ScanWidget(QtGui.QFrame):
         self.zUpButton.pressed.connect(self.zMoveUp)
         self.zDownButton = QtGui.QPushButton("-z ▼")
         self.zDownButton.pressed.connect(self.zMoveDown)
-        self.zStepEdit = QtGui.QLineEdit("1")
+        self.zStepEdit = QtGui.QLineEdit("1.0")
         self.zStepUnit = QtGui.QLabel(" µm")
 
         tamaño = 50
@@ -282,6 +282,9 @@ class ScanWidget(QtGui.QFrame):
         self.edit_Name = str(self.edit_save.text())
         self.edit_save.textEdited.connect(self.save_name_update)
         self.save_name_update()
+        tamaño = 110
+        self.edit_save.setFixedWidth(tamaño)
+        self.saveimageButton.setFixedWidth(tamaño)
 
 #        self.NameDirButton = QtGui.QPushButton('select Dir')
 #        self.NameDirButton.clicked.connect(self.selectFolder)
@@ -307,7 +310,7 @@ class ScanWidget(QtGui.QFrame):
         self.presetsModes = ['Manual', '500x0.01', '128x0.1']
         self.presetsMode.addItems(self.presetsModes)
         self.presetsMode.activated.connect(self.Presets)
-
+        self.presetsMode.setFixedWidth(tamaño)
 #        self.presetsMode.setStyleSheet("QComboBox{color: rgb(255,0,200);}\n")
 #                     "background-color: transparent;\n"
 #                     "background-image:url(background.png);}\n"
@@ -328,7 +331,7 @@ class ScanWidget(QtGui.QFrame):
         self.YZcheck.setChecked(False)
 
     # para que guarde todo (trazas de Alan)
-        self.Alancheck = QtGui.QCheckBox('Alan continous save')
+        self.Alancheck = QtGui.QCheckBox('"VIDEO" save')
         self.Alancheck.setChecked(False)
 
     # Calcula el centro de la particula
@@ -360,7 +363,7 @@ class ScanWidget(QtGui.QFrame):
         self.ischannelopen = False
 
     # Point scan
-        self.PointButton = QtGui.QPushButton('Point scan')
+        self.PointButton = QtGui.QPushButton('TRAZA')
         self.PointButton.setCheckable(False)
         self.PointButton.clicked.connect(self.PointStart)
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
@@ -383,7 +386,7 @@ class ScanWidget(QtGui.QFrame):
         self.numberofPixelsEdit = QtGui.QLineEdit('100')
         self.pixelSizeLabel = QtGui.QLabel('Pixel size (nm)')
         self.pixelSizeValue = QtGui.QLineEdit('20')
-        self.timeTotalLabel = QtGui.QLabel('tiempo total del escaneo (s)')
+        self.timeTotalLabel = QtGui.QLabel('tiempo total (s)')
 #        self.timeTotalValue = QtGui.QLabel('')
 
         self.pixelSizeLabel.setToolTip('Anda tambien en labels')
@@ -612,12 +615,12 @@ class ScanWidget(QtGui.QFrame):
 #        grid.addWidget(self.gotoWidget, 1, 1)
         layout2 = QtGui.QGridLayout()
         self.gotoWidget.setLayout(layout2)
-        layout2.addWidget(QtGui.QLabel("X"), 1, 1)
-        layout2.addWidget(QtGui.QLabel("Y"), 2, 1)
-        layout2.addWidget(QtGui.QLabel("Z"), 3, 1)
-        self.xgotoLabel = QtGui.QLineEdit("0")
-        self.ygotoLabel = QtGui.QLineEdit("0")
-        self.zgotoLabel = QtGui.QLineEdit("0")
+        layout2.addWidget(QtGui.QLabel("X [µm]"), 1, 1)
+        layout2.addWidget(QtGui.QLabel("Y [µm]"), 2, 1)
+        layout2.addWidget(QtGui.QLabel("Z [µm]"), 3, 1)
+        self.xgotoLabel = QtGui.QLineEdit("0.000")
+        self.ygotoLabel = QtGui.QLineEdit("0.000")
+        self.zgotoLabel = QtGui.QLineEdit("0.000")
         self.gotoButton = QtGui.QPushButton("♫ G0 To ♪")
         self.gotoButton.pressed.connect(self.goto)
         layout2.addWidget(self.gotoButton, 1, 5, 2, 2)
@@ -690,6 +693,10 @@ class ScanWidget(QtGui.QFrame):
         viewDock.hideTitleBar()
         dockArea.addDock(viewDock, 'left')
 
+        scanDock = Dock('Scan parameters', size=(1, 1))
+        scanDock.addWidget(self.paramWidget)
+        dockArea.addDock(scanDock, 'right', viewDock)
+        
         self.otrosDock = Dock('Other things', size=(1, 1))
 #        self.otrosDock.addWidget(HistoWidget)
         dockArea.addDock(self.otrosDock, 'bottom')
@@ -712,11 +719,8 @@ class ScanWidget(QtGui.QFrame):
 
         scanDock2 = Dock('Other parameters', size=(1, 1))
         scanDock2.addWidget(self.paramWidget2)
-        dockArea.addDock(scanDock2, 'above', scanDock3)
+        dockArea.addDock(scanDock2, 'left', scanDock3)
 
-        scanDock = Dock('Scan parameters', size=(1, 1))
-        scanDock.addWidget(self.paramWidget)
-        dockArea.addDock(scanDock, 'left', scanDock2)
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -781,7 +785,7 @@ class ScanWidget(QtGui.QFrame):
         pixelSize = float(self.pixelSizeValue.text())/1000
         self.numberofPixelsEdit.setText('{}'.format(int(scanRange/pixelSize)))
         pixelTime = float(self.pixelTimeEdit.text()) / 10**3
-        self.timeTotalLabel.setText("Tiempo total (s)= "+'{}'.format(np.around(
+        self.timeTotalLabel.setText("Tiempo total(s)= "+'{}'.format(np.around(
                          int(scanRange/pixelSize)**2 * pixelTime, 2)))
 
 # %%--- paramChanged / PARAMCHANGEDinitialize
@@ -1670,6 +1674,21 @@ class ScanWidget(QtGui.QFrame):
 
         self.paramChanged()
 #        self.preseteado = True    creo que no lo voy a usar
+
+    def read_grid(self):
+        """ select the file where the grid comes from"""
+        root = tk.Tk()
+        root.withdraw()
+        #name = "C://.../sarasa/10x15"
+        name  = filedialog.askopenfilename()
+        f=open(name,"r")
+        datos = np.loadtxt(name, unpack=True)
+        f.close()
+        x=datos[0,:]
+        y=datos[1,:]
+        z=datos[2,:]  # siempre cero en general.
+        plt.plot(x,y,z)
+
 
 # %% Point scan (inaplicable aca)
 # """
