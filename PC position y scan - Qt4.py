@@ -29,6 +29,7 @@ from tkinter import filedialog
 import tools
 import viewbox_tools
 
+import ctypes  # For the pop ups warnings
 
 from scipy import ndimage
 from scipy import optimize
@@ -37,6 +38,8 @@ device = 9
 convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
 # la de z es 1 um = 0.59 V
 apdrate = 10**5
+shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']
+# TODO: estar seguro cual es cual en las salidas digitales
 
 
 # %% Main Window
@@ -55,6 +58,7 @@ class MainWindow(QtGui.QMainWindow):
             event.ignore()
             print("NOOOO")
 #    """
+    Signal1 = QtCore.pyqtSignal()
 
     def newCall(self):
         self.a = 0
@@ -174,20 +178,15 @@ class MainWindow(QtGui.QMainWindow):
         self.setGeometry(10, 40, 600, 550)  # (PosX, PosY, SizeX, SizeY)
         self.save_docks()
 
+        self.umbralLabel = self.form_widget.umbralLabel
+        self.umbralEdit = self.form_widget.umbralEdit
+        self.pepe = True
+
+        self.Signal1.emit()
+
 
 # %% Scan Widget
 class ScanWidget(QtGui.QFrame):
-
-#    def keyPressEvent(self, e):
-#        if e.key() == QtCore.Qt.Key_Escape:
-#            print("tocaste Escape")
-#            self.close()
-#            self.liveviewStop()
-#
-#        if e.key() == QtCore.Qt.Key_Enter:
-#            print("tocaste Enter")
-#            self.liveviewButton.setChecked()
-#            self.liveview()
 
     def __init__(self, main, device, *args, **kwargs):  # main
 
@@ -195,7 +194,22 @@ class ScanWidget(QtGui.QFrame):
 
         self.main = main
         self.device = device
-# ---  Positioner metido adentro
+# ---  COSAS DE PRINTIG!
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.grid_laser = QtGui.QComboBox()
+        self.grid_laser.addItems(shutters)
+#        self.grid_laser.setCurrentIndex(0)
+        self.grid_laser.setToolTip('Elijo el shuter para IMPRIMIR la grilla')
+
+    # umbral
+        self.umbralLabel = QtGui.QLabel('Umbral')
+        self.umbralEdit = QtGui.QLineEdit('10')
+        self.umbralEdit.setFixedWidth(40)
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
+        print(self.umbralEdit.text())
+
+# --- FIN COSAS PRINTING
 
         # Parameters for smooth moving (to no shake hard the piezo)
         self.moveTime = 0.1  # total time to move(s)
@@ -213,49 +227,6 @@ class ScanWidget(QtGui.QFrame):
         self.activeChannels = ["x", "y", "z"]
         self.AOchans = [0, 1, 2]     # Order corresponds to self.channelOrder
 
-        # Axes control
-        self.xLabel = QtGui.QLabel('1.0')
-#            "<strong>x = {0:.2f} µm</strong>".format(self.x))
-        self.xLabel.setTextFormat(QtCore.Qt.RichText)
-        self.xname = QtGui.QLabel("<strong>x =")
-        self.xname.setTextFormat(QtCore.Qt.RichText)
-        self.xUpButton = QtGui.QPushButton("(+x) ►")  # →
-        self.xUpButton.pressed.connect(self.xMoveUp)
-        self.xDownButton = QtGui.QPushButton("◄ (-x)")  # ←
-        self.xDownButton.pressed.connect(self.xMoveDown)
-        self.xStepEdit = QtGui.QLineEdit("1.0")  # estaban en 0.05<
-        self.xStepUnit = QtGui.QLabel(" µm")
-
-        self.yLabel = QtGui.QLabel('2.0')
-#            "<strong>y = {0:.2f} µm</strong>".format(self.y))
-        self.yLabel.setTextFormat(QtCore.Qt.RichText)
-        self.yname = QtGui.QLabel("<strong>y =")
-        self.yname.setTextFormat(QtCore.Qt.RichText)
-        self.yUpButton = QtGui.QPushButton("(+y) ▲")  # ↑
-        self.yUpButton.pressed.connect(self.yMoveUp)
-        self.yDownButton = QtGui.QPushButton("(-y) ▼")  # ↓
-        self.yDownButton.pressed.connect(self.yMoveDown)
-        self.yStepEdit = QtGui.QLineEdit("1.0")
-        self.yStepUnit = QtGui.QLabel(" µm")
-
-        self.zLabel = QtGui.QLabel('3.0')
-#            "<strong>z = {0:.2f} µm</strong>".format(self.z))
-        self.zLabel.setTextFormat(QtCore.Qt.RichText)
-        self.zname = QtGui.QLabel("<strong>z =")
-        self.zname.setTextFormat(QtCore.Qt.RichText)
-        self.zUpButton = QtGui.QPushButton("+z ▲")
-        self.zUpButton.pressed.connect(self.zMoveUp)
-        self.zDownButton = QtGui.QPushButton("-z ▼")
-        self.zDownButton.pressed.connect(self.zMoveDown)
-        self.zStepEdit = QtGui.QLineEdit("1.0")
-        self.zStepUnit = QtGui.QLabel(" µm")
-
-        tamaño = 50
-        self.xStepUnit.setFixedWidth(tamaño)
-        self.yStepUnit.setFixedWidth(tamaño)
-        self.zStepUnit.setFixedWidth(tamaño)
-
-# ---- fin 1ra parte del positioner ----------
         self.step = 1
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
@@ -268,7 +239,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: green; }"
                 "QPushButton:pressed { background-color: blue; }")
         self.liveviewButton.setToolTip('This is a tooltip message.')
-        self.grid_read()
+
     # save image Button
         self.saveimageButton = QtGui.QPushButton('Save Frame')
         self.saveimageButton.setCheckable(False)
@@ -349,17 +320,19 @@ class ScanWidget(QtGui.QFrame):
     # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
         self.stepcheck.clicked.connect(self.steptype)
-        # botones para shutters (por ahora no hacen nada)
-        self.shuttersignal = [0, 0, 0]
-        self.shutterredbutton = QtGui.QCheckBox('shutter 640')
-#        self.shutterredbutton.setChecked(False)
-        self.shutterredbutton.clicked.connect(self.shutterred)
-        self.shuttergreenbutton = QtGui.QCheckBox('shutter 532')
-#        self.shuttergreenbutton.setChecked(False)
-        self.shuttergreenbutton.clicked.connect(self.shuttergreen)
-        self.shutterotrobutton = QtGui.QCheckBox('shutter otro')
-#        self.shutterotrobutton.setChecked(False)
-        self.shutterotrobutton.clicked.connect(self.shutterotro)
+
+        self.shuttersignal = [False, False, False]
+    # Shutters buttons
+        self.shutter0button = QtGui.QCheckBox('shutter Green')
+        self.shutter0button.clicked.connect(self.shutter0)
+        self.shutter1button = QtGui.QCheckBox('shutter Red')
+        self.shutter1button.clicked.connect(self.shutter1)
+        self.shutter2button = QtGui.QCheckBox('shutter Blue')
+        self.shutter2button.clicked.connect(self.grid_move)
+
+        self.shutter0button.setToolTip('Open/close Green 532 Shutter')
+        self.shutter1button.setToolTip('Open/close red 640 Shutter')
+        self.shutter2button.setToolTip('Open/close blue 405 Shutter')
 
 
 #       This boolean is set to True when open the nidaq channels
@@ -468,8 +441,6 @@ class ScanWidget(QtGui.QFrame):
         newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold)
         self.maxcountsEdit.setFont(newfont)
 
-        self.paramChanged()
-
         self.paramWidget = QtGui.QWidget()
 
 #        grid = QtGui.QGridLayout()
@@ -500,9 +471,9 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDred)
         group2.addButton(self.APDgreen)
 
-        subgrid.addWidget(self.shutterredbutton,      0, 1)
-        subgrid.addWidget(self.shuttergreenbutton,    1, 1)
-        subgrid.addWidget(self.shutterotrobutton,     2, 1)
+        subgrid.addWidget(self.shutter0button,        0, 1)
+        subgrid.addWidget(self.shutter1button,        1, 1)
+        subgrid.addWidget(self.shutter2button,        2, 1)
         subgrid.addWidget(self.scanRangeLabel,        3, 1)
         subgrid.addWidget(self.scanRangeEdit,         4, 1)
         subgrid.addWidget(pixelTimeLabel,             5, 1)
@@ -530,10 +501,12 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid2.addWidget(self.bLabel,                3, 2)
         subgrid2.addWidget(self.b,                     2, 2)
         subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
-#        subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
-        subgrid2.addWidget(self.stepcheck,             6, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),           7, 2)
+        subgrid2.addWidget(self.umbralLabel,      4, 2)
+        subgrid2.addWidget(self.umbralEdit,       5, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
+        subgrid2.addWidget(self.stepcheck,             7, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           8, 2)
         subgrid2.addWidget(self.Alancheck,             9, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           10, 2)
@@ -576,6 +549,48 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(QtGui.QLabel("PSFMode"),  16, 3)
 
 # --- POSITIONERRRRR-------------------------------
+
+        # Axes control
+        self.xLabel = QtGui.QLabel('1.0')
+#            "<strong>x = {0:.2f} µm</strong>".format(self.x))
+        self.xLabel.setTextFormat(QtCore.Qt.RichText)
+        self.xname = QtGui.QLabel("<strong>x =")
+        self.xname.setTextFormat(QtCore.Qt.RichText)
+        self.xUpButton = QtGui.QPushButton("(+x) ►")  # →
+        self.xUpButton.pressed.connect(self.xMoveUp)
+        self.xDownButton = QtGui.QPushButton("◄ (-x)")  # ←
+        self.xDownButton.pressed.connect(self.xMoveDown)
+        self.xStepEdit = QtGui.QLineEdit("1.0")  # estaban en 0.05<
+        self.xStepUnit = QtGui.QLabel(" µm")
+
+        self.yLabel = QtGui.QLabel('2.0')
+#            "<strong>y = {0:.2f} µm</strong>".format(self.y))
+        self.yLabel.setTextFormat(QtCore.Qt.RichText)
+        self.yname = QtGui.QLabel("<strong>y =")
+        self.yname.setTextFormat(QtCore.Qt.RichText)
+        self.yUpButton = QtGui.QPushButton("(+y) ▲")  # ↑
+        self.yUpButton.pressed.connect(self.yMoveUp)
+        self.yDownButton = QtGui.QPushButton("(-y) ▼")  # ↓
+        self.yDownButton.pressed.connect(self.yMoveDown)
+        self.yStepEdit = QtGui.QLineEdit("1.0")
+        self.yStepUnit = QtGui.QLabel(" µm")
+
+        self.zLabel = QtGui.QLabel('3.0')
+#            "<strong>z = {0:.2f} µm</strong>".format(self.z))
+        self.zLabel.setTextFormat(QtCore.Qt.RichText)
+        self.zname = QtGui.QLabel("<strong>z =")
+        self.zname.setTextFormat(QtCore.Qt.RichText)
+        self.zUpButton = QtGui.QPushButton("+z ▲")
+        self.zUpButton.pressed.connect(self.zMoveUp)
+        self.zDownButton = QtGui.QPushButton("-z ▼")
+        self.zDownButton.pressed.connect(self.zMoveDown)
+        self.zStepEdit = QtGui.QLineEdit("1.0")
+        self.zStepUnit = QtGui.QLabel(" µm")
+
+        tamaño = 50
+        self.xStepUnit.setFixedWidth(tamaño)
+        self.yStepUnit.setFixedWidth(tamaño)
+        self.zStepUnit.setFixedWidth(tamaño)
 
         self.positioner = QtGui.QWidget()
 #        grid.addWidget(self.positioner, 1, 0)
@@ -666,27 +681,9 @@ class ScanWidget(QtGui.QFrame):
         layout3.addWidget(self.Gausscheck, 2, 1)
 # --- fin POSITIONEERRRRRR---------------------------
 
-        self.state = None
-# =============================================================================
-#         saveBtn = QtGui.QPushButton('Save dock state')
-#         restoreBtn = QtGui.QPushButton('Restore dock state')
-#         restoreBtn.setEnabled(False)
-#
-#         subgrid2.addWidget(saveBtn,    10, 2)
-#         subgrid2.addWidget(restoreBtn, 11, 2)
-#
-#
-#    Lo mande mas arriba
-#         def save_docks():
-#             self.state = dockArea.saveState()
-#             restoreBtn.setEnabled(True)
-#         def load_docks():
-#             dockArea.restoreState(self.state)
-#         saveBtn.clicked.connect(save_docks)
-#         restoreBtn.clicked.connect(load_docks)
-# =============================================================================
 
-# ----DOCK cosas, mas comodo!
+# ----DOCKs, mas comodo!
+        self.state = None
         hbox = QtGui.QHBoxLayout(self)
         dockArea = DockArea()
 
@@ -768,9 +765,10 @@ class ScanWidget(QtGui.QFrame):
         self.Presets()
 #        save_docks()
         self.dockArea = dockArea
+        self.paramChanged()
 
 
-# Cosas pequeñas que agregue
+# --- Cosas pequeñas que agregue
     def PixelSizeChange(self):
         scanRange = float(self.scanRangeEdit.text())
         numberofPixels = int(self.numberofPixelsEdit.text())
@@ -873,7 +871,7 @@ class ScanWidget(QtGui.QFrame):
         """ Image live view when not recording"""
         if self.liveviewButton.isChecked():
             self.paramChangedInitialize()
-            self.openShutter("red")
+            self.openShutter(shutters[0])
             self.liveviewStart()
 
         else:
@@ -892,7 +890,7 @@ class ScanWidget(QtGui.QFrame):
 #            print("PMT")
 
     def liveviewStop(self):
-        self.closeShutter("red")
+        self.closeShutter(shutters[0])
         self.liveviewButton.setChecked(False)
         self.viewtimer.stop()
 #        self.done()
@@ -1223,57 +1221,55 @@ class ScanWidget(QtGui.QFrame):
 
 # %%--- Shutter time --------------------------
 
-    def shutterred(self):
-        if self.shutterredbutton.isChecked():
-            self.openShutter("red")
+    def shutter0(self):
+        if self.shutter0button.isChecked():
+            self.openShutter(shutters[0])
         else:
-            self.closeShutter("red")
+            self.closeShutter(shutters[0])
 
-    def shuttergreen(self):
-        if self.shuttergreenbutton.isChecked():
-            self.openShutter("green")
+    def shutter1(self):
+        if self.shutter1button.isChecked():
+            self.openShutter(shutters[1])
         else:
-            self.closeShutter("green")
+            self.closeShutter(shutters[1])
 
-    def shutterotro(self):
-        if self.shutterotrobutton.isChecked():
-            self.openShutter("otro")
+    def shutter2(self):
+        if self.shutter2button.isChecked():
+            self.openShutter(shutters[2])
         else:
-            self.closeShutter("otro")
+            self.closeShutter(shutters[2])
 
     def openShutter(self, p):
-        print("abre shutter", p)
-        shutters = ["red", "green", "otro"]
         for i in range(3):
             if p == shutters[i]:
-                self.shuttersignal[i] = 5
-#        self.dotask.write(self.shuttersignal, auto_start=True)
+                self.shuttersignal[i] = True
+#        self.shuttertask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
         self.checkShutters()
+        print("open", p)
 
     def closeShutter(self, p):
-        print("cierra shutter", p)
-        shutters = ["red", "green", "otro"]
-        for i in range(3):
+        for i in range(len(shutters)):
             if p == shutters[i]:
-                self.shuttersignal[i] = 0
-#        self.dotask.write(self.shuttersignal, auto_start=True)
+                self.shuttersignal[i] = False
+#        self.shuttertask.write(self.shuttersignal, auto_start=True)
         print(self.shuttersignal)
         self.checkShutters()
+        print("close", p)
 
     def checkShutters(self):
         if self.shuttersignal[0]:
-            self.shutterredbutton.setChecked(True)
+            self.shutter0button.setChecked(True)
         else:
-            self.shutterredbutton.setChecked(False)
+            self.shutter0button.setChecked(False)
         if self.shuttersignal[1]:
-            self.shuttergreenbutton.setChecked(True)
+            self.shutter1button.setChecked(True)
         else:
-            self.shuttergreenbutton.setChecked(False)
+            self.shutter1button.setChecked(False)
         if self.shuttersignal[2]:
-            self.shutterotrobutton.setChecked(True)
+            self.shutter2button.setChecked(True)
         else:
-            self.shutterotrobutton.setChecked(False)
+            self.shutter2button.setChecked(False)
 #        if self.shuttergreen.isChecked():
 #            print("shutter verde")
 #
@@ -1598,8 +1594,8 @@ class ScanWidget(QtGui.QFrame):
             updatehistogram()
 
         else:
-#            self.roihist.sigRegionChanged.disconnect()
             self.actualizar.textChanged.disconnect()
+#            self.roihist.sigRegionChanged.disconnect()
             self.vb.removeItem(self.roihist)
             self.roihist.hide()
 #            self.otrosDock.removeWidget(self.HistoWidget)
@@ -1687,9 +1683,38 @@ class ScanWidget(QtGui.QFrame):
 
 # %% FUNCIONES PRINTING
 
+    def grid_read(self):
+        """ select the file where the grid comes from"""
+        root = tk.Tk()
+        root.withdraw()
+#        name = "C://.../sarasa/10x15"
+        name = filedialog.askopenfilename()
+        f = open(name, "r")
+        datos = np.loadtxt(name, unpack=True)
+        f.close()
+        self.grid_name = name
+#        self.grid_create_folder()
+        self.grid_x = datos[0, :]
+        self.grid_y = datos[1, :]
+#        z = datos[2, :]  # siempre cero en general.
+        plt.plot(self.grid_x, self.grid_y, '.')
+
+    def grid_plot(self):
+        try:
+            fig, ax = plt.subplots()
+            plt.plot(self.grid_x, self.grid_y, 'o')
+            ax.set_xlabel('x (µm)')
+            ax.set_ylabel('y (µm)')
+            ax.grid(True)
+            plt.show()
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+            print("^ No hay nada cargado ^")
+
     def grid_create_folder(self):
-        base = os.path.basename(self.gridname)
-#        gridname = filedialog.askopenfilename()
+        base = os.path.basename(self.grid_name)
+#        grid_name = filedialog.askopenfilename()
 
         q = base
         w = [""]*len(q)
@@ -1713,7 +1738,6 @@ class ScanWidget(QtGui.QFrame):
 
         except:
             print("No lo tomo como grilla, AVISAR!")
-            import ctypes  # An included library with Python install.
             ctypes.windll.user32.MessageBoxW(0,
                                              "No lo tomo como grilla, AVISAR!\
                                              \n Pero igual creó una carpeta",
@@ -1724,26 +1748,47 @@ class ScanWidget(QtGui.QFrame):
 #        asi despues vuelvo
         self.NameDirValue.setText(new_folder)
         self.NameDirValue.setStyleSheet(" background-color: green ; ")
-
-    def grid_read(self):
-        """ select the file where the grid comes from"""
-        root = tk.Tk()
-        root.withdraw()
-#        name = "C://.../sarasa/10x15"
-        name = filedialog.askopenfilename()
-        f = open(name, "r")
-        datos = np.loadtxt(name, unpack=True)
-        f.close()
-        self.gridx = datos[0, :]
-        self.gridy = datos[1, :]
-#        z = datos[2, :]  # siempre cero en general.
-        plt.plot(self.gridx, self.gridy, '.')
-
-        self.gridname = name
-        self.grid_create_folder()
+        self.i_global = 0
 
     def grid_move(self):
-        print("a")
+        self.i_global = 0
+        self.a = np.zeros(11)
+        self.grid_openshutter()
+#            self.aotask.write(np.array(
+#                [self.grid_x[self.i_global] / convFactors['x'],
+#                 self.grid_y[self.i_global] / convFactors['y']]),
+#                auto_start=True)
+
+    def grid_openshutter(self):
+        if self.grid_laser.currentText() == shutters[0]:  # Verde
+            self.openShutter(shutters[0])
+            self.shutterabierto = shutters[0]
+        elif self.grid_laser.currentText() == shutters[1]:  # rojo
+            self.openShutter(shutters[0])
+            self.shutterabierto = shutters[1]
+        elif self.presetsMode.currentText() == shutters[2]:  # azul
+            self.grid_laser(shutters[1])
+            self.shutterabierto = shutters[2]
+
+        self.grid_traza()
+
+    def grid_traza(self):
+        self.main.pepe = False
+        self.doit()
+        self.main.Signal1.connect(self.grid_detect)
+
+    def grid_detect(self):
+
+        self.closeShutter(self.shutterabierto)
+        time.sleep(2)
+        self.i_global += 1
+        print(" i global ", self.i_global)
+        if self.i_global < 5:
+            print(" i global ", self.i_global, "?")
+            self.a[self.i_global] = self.i_global
+            self.grid_openshutter()
+
+        print(self.a)
 
 # %% Point scan (inaplicable aca)
 # """
@@ -1862,15 +1907,16 @@ class ScanWidget(QtGui.QFrame):
 class MyPopup(QtGui.QWidget):
 
     def closeEvent(self, event):
-        self.pointtimer.stop()
-        self.running = False
+#        self.pointtimer.stop()
+#        self.running = False
+        self.stop()
         print("flor de relozzz")
 
     def __init__(self, main, *args, **kwargs):
         QtGui.QWidget.__init__(self)
         super().__init__(*args, **kwargs)
         self.main = main
-        self.ScanWidget = ScanWidget(main, device)
+#        self.ScanWidget = ScanWidget(main, device)
         self.traza_Widget2 = pg.GraphicsLayoutWidget()
         self.running = False
         grid = QtGui.QGridLayout()
@@ -1906,16 +1952,18 @@ class MyPopup(QtGui.QWidget):
     # save button
         self.save_Button = QtGui.QPushButton('plot and/or save')
         self.save_Button.setCheckable(False)
-        self.save_Button.clicked.connect(self.save_plot)
+        self.save_Button.clicked.connect(self.save_traza)
         self.save_Button.setToolTip('Para Guardar la traza(tambien la plotea)')
         self.save_Button.setStyleSheet(
                 "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
     # umbral
-        self.umbralLabel = QtGui.QLabel('Umbral')
-        self.umbralEdit = QtGui.QLineEdit('10')
-        self.umbralEdit.setFixedWidth(40)
+        self.umbralLabel = self.main.umbralLabel  # QtGui.QLabel('Umbral')
+        self.umbralEdit = self.main.umbralEdit  # QtGui.QLineEdit('10')
+#        self.umbralEdit.settext()
+#        print("umbral",self.main.umbralEdit.text())
+#        self.umbralEdit.setFixedWidth(40)
         self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
 
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
@@ -1923,8 +1971,8 @@ class MyPopup(QtGui.QWidget):
         grid.addWidget(self.traza_Widget2,      0, 0, 1, 7)
         grid.addWidget(self.play_pause_Button,  1, 0)
         grid.addWidget(self.stop_Button,        1, 1)
-        grid.addWidget(self.umbralLabel,        1, 3)
-        grid.addWidget(self.umbralEdit,         1, 4)
+#        grid.addWidget(self.umbralLabel,        1, 3)
+#        grid.addWidget(self.umbralEdit,         1, 4)
         grid.addWidget(self.PointLabel,         1, 5)
         grid.addWidget(self.save_Button,        1, 6)
         self.setWindowTitle("Traza. (ESC lo cierra)")
@@ -1996,13 +2044,13 @@ class MyPopup(QtGui.QWidget):
 #        dc.drawLine(0, 0, 100, 100)
 #        dc.drawLine(100, 0, 0, 100)
 
-    def save_plot(self):
+    def save_traza(self):
         fig, ax = plt.subplots()
         plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
         ax.set_xlabel('Tiempo (s) (puede fallar)')
         ax.set_ylabel('Intensity (V)')
         plt.show()
-# TODO: No se en que formato guardarlo!!
+
         try:
             # filepath = self.file_path
             filepath = self.main.file_path
@@ -2048,7 +2096,8 @@ class MyPopup(QtGui.QWidget):
         points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
 
         sig = np.mean(points) + np.log(self.ptr1+1)**2 + points[0]
-
+        if self.ptr1 > 50:
+            sig = self.ptr1**5
 #        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
 #        self.data1.append(sig)
         self.timeaxis[self.ptr1] = (self.tiempo * 10**-3)*self.ptr1
@@ -2090,7 +2139,7 @@ class MyPopup(QtGui.QWidget):
 
         if self.ptr1 < M:
             medio = np.mean(self.data1[:self.ptr1])
-            if self.ptr1 < 10:
+            if self.ptr1 < 11:
                 medio2 = np.mean(self.data1[:self.ptr1])
             else:
                 medio2 = np.mean(self.data1[:self.ptr1-10])
@@ -2106,8 +2155,16 @@ class MyPopup(QtGui.QWidget):
         self.PointLabel.setText("<strong>{:.2}|{:.2}".format(
                                 float(m), float(medio)))
 #        print(medio, medio2)
+
         if medio > medio2*float(self.umbralEdit.text()):
             self.PointLabel.setStyleSheet(" background-color: orange")
+            if not self.main.pepe:
+                print("medio=", np.round(medio))
+                self.stop()
+                #self.save_traza
+                self.main.pepe = True
+                self.main.Signal1.emit()
+                self.close_win()
         else:
             self.PointLabel.setStyleSheet(" background-color: ")
 
