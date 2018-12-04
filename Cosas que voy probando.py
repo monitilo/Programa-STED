@@ -12,41 +12,88 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import filedialog
+import os
+#import re
 
 root = tk.Tk()
 root.withdraw()
 #name = "10x15(para_probar_grilla)"
-name  = filedialog.askopenfilename()
-f=open(name,"r")
+file_path = os.path.abspath("")
+name = filedialog.askopenfilename()
+
+base = os.path.basename(name)
+[int(s) for s in base.split("x") if s.isdigit()]
+q = base  # re.findall(r"[\w']+", base)
+w = [""]*len(q)
+j = 0
+for i in range(len(q)):
+    try:
+        float(q[i]) == float
+        print(q[i])
+        w[j] = w[j] + str(q[i])
+    except:
+        print("separador", q[i])
+        j = j+1
+print(w)
+numeros=[int(s) for s in w if s.isdigit()]
+print("la grilla es de {}x{}".format(numeros[0],numeros[1]))
+
+new_folder = file_path + "/" + "_Grilla {}x{}".format(numeros[0], numeros[1])
+os.makedirs(new_folder)
+""" me crea la carpeta donde va, auque elija un archivo grilla de cualquier
+otro lado """
+
+#%%
+f = open(name, "r")
 datos = np.loadtxt(name, unpack=True)
 f.close()
-x=datos[0,:]
-y=datos[1,:]
-z=datos[2,:]
-plt.plot(x,y)
+x = datos[0, :]
+y = datos[1, :]
+#z = datos[2, :]  # siempre cero en general.
+plt.plot(x, y, 'o-')
+#fig, ax = plt.subplots()
+#ax.set_xlabel('Roi')
+#ax.set_ylabel('Intensity (N photons)')
+#plt.show()
+maxy = int((x[-1]/x[1])+2)
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.plot(x/x[1], y/y[maxy], 'og', label = 'N°')
+#ax.plot(x/x[1], y/y[maxy], '-', label = 'N°')
+#ax2 = ax.twinx()
+#ax2.plot(x, y, 'ob', label = 'µm')
+#ax2.legend(loc=0)
+ax.grid()
+#ax2.set_xlabel(" x (µm)")
+#ax2.set_ylabel(" y (µm)")
+ax.set_xlabel("x (numero)")
+ax.set_ylabel("y (numero)")
+#ax2.set_ylim(0, 35)
+#ax.set_ylim(-20,100)
 
+# %%
 mode = "full"  # ["valid"  # "full"  # "same"]  #
-for moda in ["full","same","valid"]:
-    a=np.correlate(x, x, moda)
-    b=np.correlate(x, y, moda)
-    c=np.correlate(y, x, moda)
-    d=np.correlate(y, y, moda)
+for moda in ["full", "same", "valid"]:
+    a = np.correlate(x, x, moda)
+    b = np.correlate(x, y, moda)
+    c = np.correlate(y, x, moda)
+    d = np.correlate(y, y, moda)
     plt.figure()
     plt.plot(a, 'm')
     plt.plot(b, 'b')
     plt.plot(c, 'r')
     plt.plot(d, 'c')
 
-ejes = np.zeros((3,len(x)))
-ejes[0,:] =x
-ejes[1,:] = y
-ejes[2,:] = z
-for moda in ["full","same","valid"]:
-    for i in range(ejes.shape[0]):
-        for j in range(ejes.shape[0]):
-#            print(i,j,moda)
-            p=np.correlate(ejes[i,:], ejes[j,:], moda)
-            plt.plot(p)
+#ejes = np.zeros((3,len(x)))
+#ejes[0, :] =x
+#ejes[1, :] = y
+#ejes[2, :] = z
+#for moda in ["full", "same", "valid"]:
+#    for i in range(ejes.shape[0]):
+#        for j in range(ejes.shape[0]):
+##            print(i,j,moda)
+#            p = np.correlate(ejes[i,:], ejes[j,:], moda)
+#            plt.plot(p)
 
 
 #%%

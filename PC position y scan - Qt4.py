@@ -62,7 +62,8 @@ class MainWindow(QtGui.QMainWindow):
 
     def openCall(self):
         self.a = 1.5
-        os.startfile(self.file_path)
+        namebien = (self.form_widget.NameDirValue.text()).replace("/", "\\")
+        os.startfile(namebien)
 #        print('Open')
 
     def exitCall(self):
@@ -75,8 +76,9 @@ class MainWindow(QtGui.QMainWindow):
         root.withdraw()
 
         self.file_path = filedialog.askdirectory()
-        print(self.file_path, "◄ dire")
-        self.form_widget.NameDirValue.setText(self.file_path)
+        print(self.file_path, " dire")
+        self.form_widget.NameDirValue.setText(self.file_path[:30] +
+                                              ".../..." + self.file_path[-50:])
         self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
 #        self.form_widget.paramChanged()
 
@@ -94,7 +96,8 @@ class MainWindow(QtGui.QMainWindow):
         else:
             print("Ya existe esa carpeta")
         self.file_path = newpath
-        self.form_widget.NameDirValue.setText(self.file_path)
+        self.form_widget.NameDirValue.setText(self.file_path[:20] +
+                                              ".../..." + self.file_path[-60:])
         self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def save_docks(self):
@@ -265,7 +268,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: green; }"
                 "QPushButton:pressed { background-color: blue; }")
         self.liveviewButton.setToolTip('This is a tooltip message.')
-
+        self.grid_read()
     # save image Button
         self.saveimageButton = QtGui.QPushButton('Save Frame')
         self.saveimageButton.setCheckable(False)
@@ -497,7 +500,6 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDred)
         group2.addButton(self.APDgreen)
 
-
         subgrid.addWidget(self.shutterredbutton,      0, 1)
         subgrid.addWidget(self.shuttergreenbutton,    1, 1)
         subgrid.addWidget(self.shutterotrobutton,     2, 1)
@@ -696,7 +698,7 @@ class ScanWidget(QtGui.QFrame):
         scanDock = Dock('Scan parameters', size=(1, 1))
         scanDock.addWidget(self.paramWidget)
         dockArea.addDock(scanDock, 'right', viewDock)
-        
+
         self.otrosDock = Dock('Other things', size=(1, 1))
 #        self.otrosDock.addWidget(HistoWidget)
         dockArea.addDock(self.otrosDock, 'bottom')
@@ -720,7 +722,6 @@ class ScanWidget(QtGui.QFrame):
         scanDock2 = Dock('Other parameters', size=(1, 1))
         scanDock2.addWidget(self.paramWidget2)
         dockArea.addDock(scanDock2, 'left', scanDock3)
-
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -1023,22 +1024,22 @@ class ScanWidget(QtGui.QFrame):
         self.number = 0
         print("Actualizo el save name")
 
-    def create_daily_directory(self):
-        root = tk.Tk()
-        root.withdraw()
-
-        self.file_path = filedialog.askdirectory()
-
-        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
-
-        newpath = self.file_path + "/" + timestr
-        if not os.path.exists(newpath):
-            os.makedirs(newpath)
-        else:
-            print("Ya existe esa carpeta")
-        self.file_path = newpath
-        self.NameDirValue.setText(self.file_path)
-        self.NameDirValue.setStyleSheet(" background-color: ; ")
+#    def create_daily_directory(self):
+#        root = tk.Tk()
+#        root.withdraw()
+#
+#        self.file_path = filedialog.askdirectory()
+#
+#        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+#
+#        newpath = self.file_path + "/" + timestr
+#        if not os.path.exists(newpath):
+#            os.makedirs(newpath)
+#        else:
+#            print("Ya existe esa carpeta")
+#        self.file_path = newpath
+#        self.NameDirValue.setText(self.file_path)
+#        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def guardarimagen(self):
         try:
@@ -1118,7 +1119,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.move('z', -float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet(" background-color: ")
-            if self.initialPosition[2]== 0:  # para no ir a z negativo
+            if self.initialPosition[2] == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
                     "QPushButton { background-color: orange; }")
         if PosZ == 0:  # para no ir a z negativo
@@ -1162,7 +1163,7 @@ class ScanWidget(QtGui.QFrame):
 
         if float(self.zgotoLabel.text()) < 0:
             QtGui.QMessageBox.question(self, '¿¡ Como pusiste z negativo !?',
-                                               'Algo salio mal. :(  Avisar')
+                                       'Algo salio mal. :(  Avisar')
             print("Z no puede ser negativo!!!")
             self.zgotoLabel.setStyleSheet(" background-color: red")
             time.sleep(1)
@@ -1426,7 +1427,7 @@ class ScanWidget(QtGui.QFrame):
 # %% GaussMeasure
     def GaussMeasure(self):
         tic = ptime.time()
-        self.data = np.transpose(self.image)  # np.flip(np.flip(self.image,0),1)
+        self.data = np.transpose(self.image)  # np.flip(np.flip(self.image,0),1
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params
@@ -1538,7 +1539,7 @@ class ScanWidget(QtGui.QFrame):
     def histogramROI(self):
         # ***----
         def updatehistogram():
-            
+
             array = self.roihist.getArrayRegion(self.image, self.img)
             ROIpos = np.array(self.roihist.pos())
             newPos_px = tools.ROIscanRelativePOS(ROIpos,
@@ -1576,10 +1577,14 @@ class ScanWidget(QtGui.QFrame):
                                              translateSnap=True)
             self.roihist.sigRegionChanged.connect(updatehistogram)
 
-            try: self.LinearWidget.deleteLater()
-            except: pass
-            try: self.HistoWidget.deleteLater()
-            except: pass
+            try:
+                self.LinearWidget.deleteLater()
+            except:
+                pass
+            try:
+                self.HistoWidget.deleteLater()
+            except:
+                pass
             self.HistoWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.HistoWidget.addPlot(row=2, col=1)
 
@@ -1604,6 +1609,7 @@ class ScanWidget(QtGui.QFrame):
 # %%  ROI LINEARL
     def ROIlinear(self):
         larg = self.numberofPixels/1.5+10
+
     # ---
         def updatelineal():
             array = self.linearROI.getArrayRegion(self.image, self.img)
@@ -1612,7 +1618,7 @@ class ScanWidget(QtGui.QFrame):
             m = np.mean(array)
             m2 = np.max(array)
             self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
-                                    float(m),float(m2)))
+                                    float(m), float(m2)))
     # ---
         if self.ROIlineButton.isChecked():
 
@@ -1620,10 +1626,14 @@ class ScanWidget(QtGui.QFrame):
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
 
-            try: self.HistoWidget.deleteLater()
-            except: pass
-            try: self.LinearWidget.deleteLater()
-            except: pass
+            try:
+                self.HistoWidget.deleteLater()
+            except:
+                pass
+            try:
+                self.LinearWidget.deleteLater()
+            except:
+                pass
 
             self.LinearWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.LinearWidget.addPlot(row=2, col=1,
@@ -1675,20 +1685,65 @@ class ScanWidget(QtGui.QFrame):
         self.paramChanged()
 #        self.preseteado = True    creo que no lo voy a usar
 
-    def read_grid(self):
+# %% FUNCIONES PRINTING
+
+    def grid_create_folder(self):
+        base = os.path.basename(self.gridname)
+#        gridname = filedialog.askopenfilename()
+
+        q = base
+        w = [""]*len(q)
+        j = 0
+        for i in range(len(q)):
+            try:
+                float(q[i]) == float
+                print(q[i])
+                w[j] = w[j] + str(q[i])
+            except:
+                print("separador", q[i])
+                j = j+1
+        print(w)
+        numeros = [int(s) for s in w if s.isdigit()]
+
+        timestr = time.strftime("%H-%M-%S")  # %Y%m%d-
+        try:
+            print("la grilla es de {}x{}".format(numeros[0], numeros[1]))
+            new_folder = self.file_path + "/" + timestr
+            + "_Grilla {}x{}".format(numeros[0], numeros[1])
+
+        except:
+            print("No lo tomo como grilla, AVISAR!")
+            import ctypes  # An included library with Python install.
+            ctypes.windll.user32.MessageBoxW(0,
+                                             "No lo tomo como grilla, AVISAR!\
+                                             \n Pero igual creó una carpeta",
+                                             "Algo raro paso ;(", 0)
+            new_folder = self.file_path + "/" + timestr + "_algo"
+        os.makedirs(new_folder)
+#        self.file_path = newpath  # no quiero perder el nombre anterior,
+#        asi despues vuelvo
+        self.NameDirValue.setText(new_folder)
+        self.NameDirValue.setStyleSheet(" background-color: green ; ")
+
+    def grid_read(self):
         """ select the file where the grid comes from"""
         root = tk.Tk()
         root.withdraw()
-        #name = "C://.../sarasa/10x15"
-        name  = filedialog.askopenfilename()
-        f=open(name,"r")
+#        name = "C://.../sarasa/10x15"
+        name = filedialog.askopenfilename()
+        f = open(name, "r")
         datos = np.loadtxt(name, unpack=True)
         f.close()
-        x=datos[0,:]
-        y=datos[1,:]
-        z=datos[2,:]  # siempre cero en general.
-        plt.plot(x,y,z)
+        self.gridx = datos[0, :]
+        self.gridy = datos[1, :]
+#        z = datos[2, :]  # siempre cero en general.
+        plt.plot(self.gridx, self.gridy, '.')
 
+        self.gridname = name
+        self.grid_create_folder()
+
+    def grid_move(self):
+        print("a")
 
 # %% Point scan (inaplicable aca)
 # """
@@ -1824,14 +1879,14 @@ class MyPopup(QtGui.QWidget):
         self.p6 = self.traza_Widget2.addPlot(row=2, col=1, title="Traza")
         self.p6.showGrid(x=True, y=True)
         self.curve = self.p6.plot(open='y')
-        self.line =self.p6.plot(open='y')
-        self.line1 =self.p6.plot(open='y')
-        self.line12 =self.p6.plot(open='y')
+        self.line = self.p6.plot(open='y')
+        self.line1 = self.p6.plot(open='y')
+        self.line12 = self.p6.plot(open='y')
 
         self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
         self.p7.showGrid(x=True, y=True)
         self.curve2 = self.p7.plot(open='y')
-        self.line2 =self.p7.plot(open='y')
+        self.line2 = self.p7.plot(open='y')
 
     #  buttons: play button
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause ‼ (F1)')
@@ -1852,7 +1907,7 @@ class MyPopup(QtGui.QWidget):
         self.save_Button = QtGui.QPushButton('plot and/or save')
         self.save_Button.setCheckable(False)
         self.save_Button.clicked.connect(self.save_plot)
-        self.save_Button.setToolTip('Para Guardar la traza (tambien la plotea por ahora)')
+        self.save_Button.setToolTip('Para Guardar la traza(tambien la plotea)')
         self.save_Button.setStyleSheet(
                 "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
@@ -1861,7 +1916,7 @@ class MyPopup(QtGui.QWidget):
         self.umbralLabel = QtGui.QLabel('Umbral')
         self.umbralEdit = QtGui.QLineEdit('10')
         self.umbralEdit.setFixedWidth(40)
-        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores cercanos ')
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
 
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
 
@@ -1952,13 +2007,13 @@ class MyPopup(QtGui.QWidget):
             # filepath = self.file_path
             filepath = self.main.file_path
             timestr = time.strftime("%d%m%Y-%H%M%S")
-            name = str(filepath + "/"+ timestr + "Traza"  + ".txt")
-            f=open(name,"w")
+            name = str(filepath + "/" + timestr + "Traza" + ".txt")
+            f = open(name, "w")
             np.savetxt(name,
                        np.transpose([self.timeaxis[:self.ptr1],
-                                        self.data1[:self.ptr1]]),
-                       header= "{} y umbral={}".format(
-                        timestr,float(self.umbralEdit.text())))
+                                     self.data1[:self.ptr1]]),
+                       header="{} y umbral={}".format(
+                        timestr, float(self.umbralEdit.text())))
             f.close()
             print("\n Guardo la Traza")
         except IOError as e:
@@ -2008,7 +2063,8 @@ class MyPopup(QtGui.QWidget):
             self.timeaxis[:tmptime.shape[0]] = tmptime
 
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
-                           pen=pg.mkPen('r',width=1) , shadowPen=pg.mkPen('b',width=3))
+                           pen=pg.mkPen('r', width=1),
+                           shadowPen=pg.mkPen('b', width=3))
 #        self.curve.setPos(-self.ptr1, 0)
 
         m = np.mean(self.data1[:self.ptr1])
@@ -2017,9 +2073,8 @@ class MyPopup(QtGui.QWidget):
                                            float(m), float(m1)))
 #        self.p7.addLine(x=None, y=m, pen=pg.mkPen('y', width=1))
         self.line.setData(self.timeaxis[:self.ptr1],
-                           np.ones(len(self.timeaxis[:self.ptr1]))* m,
-                           pen=pg.mkPen('c', width=2))
-
+                          np.ones(len(self.timeaxis[:self.ptr1])) * m,
+                          pen=pg.mkPen('c', width=2))
 
         self.timeaxis2 = np.roll(self.timeaxis2, -1)
         self.timeaxis2[-1] = (self.tiempo * 10**-3) * self.ptr1
@@ -2031,11 +2086,11 @@ class MyPopup(QtGui.QWidget):
         self.curve2.setPos(self.timeaxis2[0], 0)
         m2 = np.mean(self.data2)
         self.line2.setData(self.timeaxis2,
-                           np.ones(M)* m2, pen=pg.mkPen('y', width=2))
+                           np.ones(M) * m2, pen=pg.mkPen('y', width=2))
 
-        if self.ptr1 < M: 
+        if self.ptr1 < M:
             medio = np.mean(self.data1[:self.ptr1])
-            if self.ptr1 <10:
+            if self.ptr1 < 10:
                 medio2 = np.mean(self.data1[:self.ptr1])
             else:
                 medio2 = np.mean(self.data1[:self.ptr1-10])
@@ -2044,10 +2099,10 @@ class MyPopup(QtGui.QWidget):
             medio2 = np.mean(self.data1[self.ptr1-M-10:self.ptr1-10])
 
         self.line1.setData(self.timeaxis2,
-                           np.ones(M)* medio, pen=pg.mkPen('g', width=2))
+                           np.ones(M) * medio, pen=pg.mkPen('g', width=2))
         self.line12.setData(self.timeaxis2[:-10],
-                           np.ones(M-10)* medio2, pen=pg.mkPen('y', width=2))
-        
+                            np.ones(M-10) * medio2, pen=pg.mkPen('y', width=2))
+
         self.PointLabel.setText("<strong>{:.2}|{:.2}".format(
                                 float(m), float(medio)))
 #        print(medio, medio2)
@@ -2058,6 +2113,7 @@ class MyPopup(QtGui.QWidget):
 
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(medio), float(medio2)))
+
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
