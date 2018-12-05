@@ -40,7 +40,7 @@ convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # la calibracion es 1 µm = 40 mV;
 apdrate = 10**5
 shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']
 # TODO: estar seguro cual es cual en las salidas digitales
-
+activeChannels = ["x", "y", "z"]
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
@@ -58,7 +58,7 @@ class MainWindow(QtGui.QMainWindow):
             event.ignore()
             print("NOOOO")
 #    """
-    Signal1 = QtCore.pyqtSignal()
+#    Signal1 = QtCore.pyqtSignal()
 
     def newCall(self):
         self.a = 0
@@ -180,9 +180,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.umbralLabel = self.form_widget.umbralLabel
         self.umbralEdit = self.form_widget.umbralEdit
-        self.pepe = True
-
-        self.Signal1.emit()
+        self.grid_traza_control = True
 
 
 # %% Scan Widget
@@ -199,7 +197,7 @@ class ScanWidget(QtGui.QFrame):
     # Defino el tipo de laser que quiero para imprimir
         self.grid_laser = QtGui.QComboBox()
         self.grid_laser.addItems(shutters)
-#        self.grid_laser.setCurrentIndex(0)
+        self.grid_laser.setCurrentIndex(2)
         self.grid_laser.setToolTip('Elijo el shuter para IMPRIMIR la grilla')
 
     # umbral
@@ -207,7 +205,30 @@ class ScanWidget(QtGui.QFrame):
         self.umbralEdit = QtGui.QLineEdit('10')
         self.umbralEdit.setFixedWidth(40)
         self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
-        print(self.umbralEdit.text())
+
+    # Defino el tipo de laser que quiero para hacer foco
+        self.focus_laser = QtGui.QComboBox()
+        self.focus_laser.addItems(shutters)
+        self.focus_laser.setCurrentIndex(1)
+        self.focus_laser.setToolTip('Elijo el shuter para HACER FOCO')
+
+        self.locked_focus = False
+
+        self.grid_start_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F5'), self, self.grid_start)
+
+        self.focus_maximun_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F8'), self, self.focus_go_to_maximun)
+
+        self.grid_read_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F1'), self, self.grid_read)
+
+        self.grid_autocorr_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F9'), self, self.focus_autocorr)
 
 # --- FIN COSAS PRINTING
 
@@ -328,7 +349,7 @@ class ScanWidget(QtGui.QFrame):
         self.shutter1button = QtGui.QCheckBox('shutter Red')
         self.shutter1button.clicked.connect(self.shutter1)
         self.shutter2button = QtGui.QCheckBox('shutter Blue')
-        self.shutter2button.clicked.connect(self.grid_move)
+        self.shutter2button.clicked.connect(self.shutter2)
 
         self.shutter0button.setToolTip('Open/close Green 532 Shutter')
         self.shutter1button.setToolTip('Open/close red 640 Shutter')
@@ -1348,8 +1369,8 @@ class ScanWidget(QtGui.QFrame):
             resol = 2
             for i in range(resol):
                 for j in range(resol):
-#                    ax.text(xv[int(x)+i], yv[int(y)+j], "GS", color='m')
                     ax.text(X[xg+i, yg+j], Y[xg+i, yg+j], "Ga", color='m')
+#                    ax.text(xv[int(x)+i], yv[int(y)+j], "GS", color='m')
             plt.text(0.95, 0.05, """
                     x : %.1f
                     y : %.1f """ % (X[xg, yg], Y[xg, yg]),
@@ -1369,8 +1390,8 @@ class ScanWidget(QtGui.QFrame):
         yv = np.linspace(0, self.scanRange,
                          self.numberofPixels) + float(initPos[1])
         X, Y = np.meshgrid(xv, yv)
+#        data = np.flip(np.flip(self.image,0),1)
         try:
-#            data = np.flip(np.flip(self.image,0),1)
             plt.matshow(self.data, cmap=plt.cm.gist_earth_r, origin='lower',
                         interpolation='none',
                         extent=[xv[0], xv[-1], yv[0], yv[-1]])
@@ -1390,7 +1411,7 @@ class ScanWidget(QtGui.QFrame):
             xsum, ysum = 0, 0
             for i in range(resol):
                 for j in range(resol):
-#                    ax.text(X[xc+i, yc+j], Y[xc+i, yc+j], "Ga", color='m')
+                    ax.text(X[xc+i, yc+j], Y[xc+i, yc+j], "Ga", color='m')
                     xsum = X[xc+i, yc+j] + xsum
                     ysum = Y[xc+i, yc+j] + ysum
             xmean = xsum / (resol**2)
@@ -1400,7 +1421,7 @@ class ScanWidget(QtGui.QFrame):
 #            ax.set_title((self.xcm*Normal + float(initPos[0]),
 #                          self.ycm*Normal + float(initPos[1])))
             plt.text(0.95, 0.05, """x : %.2f y : %.2f """
-                     % (xmean, ymean), # X[xc, yc], Y[xc, yc]
+                     % (xmean, ymean),  # X[xc, yc], Y[xc, yc]
                      fontsize=16, horizontalalignment='right',
                      verticalalignment='bottom', transform=ax.transAxes)
             print("x", xv[int(x)], X[xc, yc], xmean)
@@ -1697,7 +1718,7 @@ class ScanWidget(QtGui.QFrame):
         self.grid_x = datos[0, :]
         self.grid_y = datos[1, :]
 #        z = datos[2, :]  # siempre cero en general.
-        plt.plot(self.grid_x, self.grid_y, '.')
+        self.grid_plot()
 
     def grid_plot(self):
         try:
@@ -1750,45 +1771,187 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setStyleSheet(" background-color: green ; ")
         self.i_global = 0
 
-    def grid_move(self):
+    def grid_start(self):
         self.i_global = 0
         self.a = np.zeros(11)
+        self.grid_timer_traza = QtCore.QTimer()
+        self.grid_timer_traza.timeout.connect(self.grid_detect_signal)
+        self.grid_move()
+
+    def grid_move(self):
+        time.sleep(1)
         self.grid_openshutter()
 #            self.aotask.write(np.array(
 #                [self.grid_x[self.i_global] / convFactors['x'],
 #                 self.grid_y[self.i_global] / convFactors['y']]),
 #                auto_start=True)
-
-    def grid_openshutter(self):
-        if self.grid_laser.currentText() == shutters[0]:  # Verde
-            self.openShutter(shutters[0])
-            self.shutterabierto = shutters[0]
-        elif self.grid_laser.currentText() == shutters[1]:  # rojo
-            self.openShutter(shutters[0])
-            self.shutterabierto = shutters[1]
-        elif self.presetsMode.currentText() == shutters[2]:  # azul
-            self.grid_laser(shutters[1])
-            self.shutterabierto = shutters[2]
-
+        print("me muevo")
         self.grid_traza()
 
+    def grid_openshutter(self):
+        time.sleep(1)
+        if self.grid_laser.currentText() == shutters[0]:  # Verde
+            self.openShutter(shutters[0])
+            self.grid_shutterabierto = shutters[0]
+        elif self.grid_laser.currentText() == shutters[1]:  # rojo
+            self.openShutter(shutters[1])
+            self.grid_shutterabierto = shutters[1]
+        elif self.grid_laser.currentText() == shutters[2]:  # azul
+            self.openShutter(shutters[2])
+            self.grid_shutterabierto = shutters[2]
+
     def grid_traza(self):
-        self.main.pepe = False
+        self.main.grid_traza_control = False
+        self.grid_timer_traza.start(10)  # no se que tiempo poner
         self.doit()
-        self.main.Signal1.connect(self.grid_detect)
+#        self.main.Signal1.connect(self.grid_detect)
+#        while self.main.grid_traza_control == False:
+#            pass
+#        self.grid_detect()
+#        self.main.grid_timer_traza.start(10)  # no se que tiempo poner
+
+    def grid_detect_signal(self):
+        """ grid_timer_traza connect here"""
+        if self.main.grid_traza_control:
+            self.grid_timer_traza.stop()
+            self.grid_detect()
 
     def grid_detect(self):
-
-        self.closeShutter(self.shutterabierto)
-        time.sleep(2)
+        self.closeShutter(self.grid_shutterabierto)
+#        time.sleep(1)
         self.i_global += 1
         print(" i global ", self.i_global)
-        if self.i_global < 5:
+        Nmax = 6  # self.Nmax  cantidad total de particulas
+        autofoco = 2  # self.autofoco cada tanto
+        multifoco = np.arange(0, Nmax, autofoco)  # ie:np.arange(0,6,2)=[0,2,4]
+        if self.i_global < Nmax:
+            if self.i_global in multifoco:
+                print("Estoy haciendo foco")
+                time.sleep(1)
+#                #self.grid_autofoco()
             print(" i global ", self.i_global, "?")
-            self.a[self.i_global] = self.i_global
-            self.grid_openshutter()
+            self.grid_move()
+        else:
 
-        print(self.a)
+            print("TERMINO LA TIMER TRAZA")
+
+    def move_z(self, dist):
+        """moves the position along the Z axis a distance dist."""
+#        time.sleep(0.1)
+        dist = dist
+#        print("me muevo en z", dist)
+#        with nidaqmx.Task("Ztask") as Ztask:
+#             self.Ztask = nidaqmx.Task('Ztask')
+#             Following loop creates the voltage channels
+#            n = 2
+#            Ztask.ao_channels.add_ao_voltage_chan(
+#                physical_channel='Dev1/ao{}'.format(n),
+#                name_to_assign_to_channel='chan_%s' % activeChannels[n],
+#                min_val=minVolt[activeChannels[n]],
+#                max_val=maxVolt[activeChannels[n]])
+#
+#            N = abs(int(dist*2000))
+#        # read initial position for all channels
+#            toc = ptime.time()
+#            rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
+#            for i in range(N):
+#                Ztask.write([rampz[i] / convFactors['z']], auto_start=True)
+#
+#            print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+#        # update position text
+#            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+#        self.Ztask.stop()
+#        self.Ztask.close()
+#        self.paramChanged()
+
+    def focus_go_to_maximun(self):
+        self.focus_lock_focus()
+        z_max = (np.max(self.z_profile))
+#        print(self.z_profile, np.where(self.z_profile == z_max)[0][0], z_max)
+#        print("\n z vector",self.z_vector)
+        print("paso go to maximun")
+        self.move_z(self.z_vector[np.where(self.z_profile == z_max)[0][0]])
+
+    def focus_openshutter(self):
+        time.sleep(1)
+        if self.focus_laser.currentText() == shutters[0]:  # Verde
+            self.openShutter(shutters[0])
+            self.focus_shutterabierto = shutters[0]
+        elif self.focus_laser.currentText() == shutters[1]:  # rojo
+            self.openShutter(shutters[1])
+            self.focus_shutterabierto = shutters[1]
+        elif self.focus_laser.currentText() == shutters[2]:  # azul
+            self.openShutter(shutters[2])
+            self.focus_shutterabierto = shutters[2]
+        time.sleep(1)
+
+    def read_PD(self, color):
+        """ Read de photodiode of the selecter 'color' """
+        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
+#        time.sleep(0.1)
+#        print("abre canal pmt")  # , channel)
+#        with nidaqmx.Task("PDtask") as PDtask:
+#            self.PDtask = nidaqmx.Task('PDtask')
+#            PDtask.ai_channels.add_ai_voltage_chan(
+#                physical_channel='Dev1/ai{}'.format(channel[color]),
+#                name_to_assign_to_channel='chan_PD')
+#            z_profile = PDtask.read()
+        read = np.random.rand(10)[0]*50
+        return read
+
+    def focus_lock_focus(self):
+        self.Npasos = int(self.numberofPixelsEdit.text())  # algun numero de pasos a definir (50 dice en algun lado)
+        z_start = float(self.zLabel.text()) - (self.scanRange/2)
+        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+        self.z_profile = np.zeros((self.Npasos))
+        self.focus_openshutter()
+        for i in range(self.Npasos):
+            self.move_z(self.z_vector[i])
+            self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
+        # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
+        self.closeShutter(self.focus_shutterabierto)
+        print("tengo el z_profile")
+        self.locked_focus = True
+        self.move_z((self.zLabel.text()))
+
+    def focus_autocorr(self):
+        if self.locked_focus:
+            Ncorrelations = 6  # tambien a definir....
+            self.new_profile = np.zeros((Ncorrelations, self.Npasos))
+            correlations = np.zeros((self.Npasos))
+            maxcorr = np.zeros(Ncorrelations)
+            z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
+#        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+            for j in range(Ncorrelations):
+                z_vector_corr[j, :] = self.z_vector-3+j
+                for i in range(self.Npasos):
+                    self.move_z(z_vector_corr[j, i])
+                    self.new_profile[j, i] = self.read_PD(
+                                                    self.focus_shutterabierto)
+                correlations[:] = np.correlate(self.new_profile[j, :],
+                                               self.z_profile, "same")
+                maxcorr[j] = np.max(correlations)
+#                plt.plot(z_vector_corr[j, :])
+#                plt.plot(self.new_profile)
+#                plt.plot(self.z_profile,'.-k')
+#                plt.plot(correlations)
+#                plt.plot(np.where(correlations==np.max(correlations)),
+#                          np.max(correlations), marker='o')
+
+            j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
+            z_max = np.max(self.new_profile[j_final, :])
+            donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
+
+            plt.plot(self.new_profile[j_final, :], 'o-')
+            plt.show()
+            print(j_final, z_vector_corr[j_final, donde_z_max])
+
+        else:
+            print("No esta Lockeado el foco")
+
+    def grid_scan(self):
+        pass
 
 # %% Point scan (inaplicable aca)
 # """
@@ -1898,7 +2061,7 @@ class ScanWidget(QtGui.QFrame):
 
     def doit(self):
         print("Opening a new popup window...")
-        self.w = MyPopup(self.main)
+        self.w = MyPopup(self.main, self)
         self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
         self.w.show()
 
@@ -1907,16 +2070,16 @@ class ScanWidget(QtGui.QFrame):
 class MyPopup(QtGui.QWidget):
 
     def closeEvent(self, event):
+        self.stop()
 #        self.pointtimer.stop()
 #        self.running = False
-        self.stop()
-        print("flor de relozzz")
+        print("Paró y cerró la traza")
 
-    def __init__(self, main, *args, **kwargs):
+    def __init__(self, main, ScanWidget, *args, **kwargs):
         QtGui.QWidget.__init__(self)
         super().__init__(*args, **kwargs)
         self.main = main
-#        self.ScanWidget = ScanWidget(main, device)
+        self.ScanWidget = ScanWidget
         self.traza_Widget2 = pg.GraphicsLayoutWidget()
         self.running = False
         grid = QtGui.QGridLayout()
@@ -1959,8 +2122,8 @@ class MyPopup(QtGui.QWidget):
                 "QPushButton:pressed { background-color: blue; }")
 
     # umbral
-        self.umbralLabel = self.main.umbralLabel  # QtGui.QLabel('Umbral')
-        self.umbralEdit = self.main.umbralEdit  # QtGui.QLineEdit('10')
+        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
+        self.umbralEdit = self.ScanWidget.umbralEdit  # QtGui.QLineEdit('10')
 #        self.umbralEdit.settext()
 #        print("umbral",self.main.umbralEdit.text())
 #        self.umbralEdit.setFixedWidth(40)
@@ -1989,6 +2152,7 @@ class MyPopup(QtGui.QWidget):
         self.stop_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('F2'), self, self.stop)
+
         self.close_Action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ESC'), self, self.close_win)
@@ -2096,7 +2260,7 @@ class MyPopup(QtGui.QWidget):
         points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
 
         sig = np.mean(points) + np.log(self.ptr1+1)**2 + points[0]
-        if self.ptr1 > 50:
+        if self.ptr1 > 150:
             sig = self.ptr1**5
 #        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
 #        self.data1.append(sig)
@@ -2152,25 +2316,24 @@ class MyPopup(QtGui.QWidget):
         self.line12.setData(self.timeaxis2[:-10],
                             np.ones(M-10) * medio2, pen=pg.mkPen('y', width=2))
 
-        self.PointLabel.setText("<strong>{:.2}|{:.2}".format(
-                                float(m), float(medio)))
+#        self.PointLabel.setText("<strong>{:.2}|{:.2}".format(
+#                                float(m), float(medio)))
 #        print(medio, medio2)
-
-        if medio > medio2*float(self.umbralEdit.text()):
-            self.PointLabel.setStyleSheet(" background-color: orange")
-            if not self.main.pepe:
-                print("medio=", np.round(medio))
-                self.stop()
-                #self.save_traza
-                self.main.pepe = True
-                self.main.Signal1.emit()
-                self.close_win()
-        else:
-            self.PointLabel.setStyleSheet(" background-color: ")
-
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(medio), float(medio2)))
 
+        if medio > medio2*float(self.umbralEdit.text()):
+            self.PointLabel.setStyleSheet(" background-color: orange")
+            if not self.main.grid_traza_control:
+                print("medio=", np.round(medio))
+                self.stop()
+                self.close_win()
+#                self.save_traza
+                self.main.grid_traza_control = True
+#                self.main.Signal1.emit()
+
+        else:
+            self.PointLabel.setStyleSheet(" background-color: ")
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):

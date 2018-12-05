@@ -512,7 +512,6 @@ class ScanWidget(QtGui.QFrame):
 
         self.presetsMode.activated.connect(self.PreparePresets)
 
-
         self.paramWidget = QtGui.QWidget()
 #        grid = QtGui.QGridLayout()
 #        self.setLayout(grid)
@@ -1147,10 +1146,12 @@ class ScanWidget(QtGui.QFrame):
     def APDstop(self):
         try:
             self.APDtask.stop()
-        except: pass
+        except:
+            pass
         try:
             self.APD2task.stop()
-        except: pass
+        except:
+            pass
 
 # %% MAX Counts
     def MaxCounts(self):
@@ -1917,7 +1918,7 @@ class ScanWidget(QtGui.QFrame):
         self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
 
     def zMoveUp(self):
-        self.moveZ('z', float(getattr(self, 'z' + "StepEdit").text()))
+        self.moveZ(float(getattr(self, 'z' + "StepEdit").text()))
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
@@ -1930,9 +1931,9 @@ class ScanWidget(QtGui.QFrame):
             self.zStepEdit.setStyleSheet(" background-color: red; ")
 #            setStyleSheet("color: rgb(255, 0, 255);")
         else:
-            self.moveZ('z', -float(getattr(self, 'z' + "StepEdit").text()))
+            self.moveZ(-float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet(" background-color: ")
-            if self.initialPosition[2]== 0:  # para no ir a z negativo
+            if self.initialPosition[2] == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
                     "QPushButton { background-color: orange; }")
         if PosZ == 0:  # para no ira z negativo
@@ -1941,7 +1942,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
 
-    def moveZ(self, axis, dist):
+    def moveZ(self, dist):
         """moves the position along the Z axis a distance dist."""
 
         with nidaqmx.Task("Ztask") as Ztask:
@@ -2007,7 +2008,7 @@ class ScanWidget(QtGui.QFrame):
 
         if float(self.zgotoLabel.text()) < 0:
             QtGui.QMessageBox.question(self, '¿¡ Como pusiste z negativo !?',
-                                               'Algo salio mal. :(  Avisar')
+                                       'Algo salio mal. :(  Avisar')
             print("Z no puede ser negativo!!!")
             self.zgotoLabel.setStyleSheet(" background-color: red")
             time.sleep(1)
@@ -2127,13 +2128,13 @@ class ScanWidget(QtGui.QFrame):
 
     def shuttersChannelsNidaq(self):
         try:
-#        if not self.shuttering:
-            self.shuttering = True
             self.shuttertask = nidaqmx.Task("shutter")
             self.shuttertask.do_channels.add_do_chan(
                 lines="Dev1/port0/line0:2", name_to_assign_to_lines='shutters',
                 line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
-        except: pass
+            self.shuttering = True
+        except:
+            pass
 #        else:
 #            #print("ya estaban abiertos los canales shutters")
 
@@ -2245,8 +2246,8 @@ class ScanWidget(QtGui.QFrame):
             xsum, ysum = 0, 0
             for i in range(resol):
                 for j in range(resol):
-#                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "Ga", color='m')
                     ax.text(X[xg+i, yg+j], Y[xg+i, yg+j], "Ga", color='m')
+#                    ax.text(X2[xc+i, yc+j], Y2[xc+i, yc+j], "Ga", color='m')
                     xsum = X[xg+i, yg+j] + xsum
                     ysum = Y[xg+i, yg+j] + ysum
             xmean = xsum / (resol**2)
@@ -2483,10 +2484,14 @@ class ScanWidget(QtGui.QFrame):
                                              translateSnap=True)
             self.roihist.sigRegionChanged.connect(updatehistogram)
 
-            try: self.LinearWidget.deleteLater()
-            except: pass
-            try: self.HistoWidget.deleteLater()
-            except: pass
+            try:
+                self.LinearWidget.deleteLater()
+            except:
+                pass
+            try:
+                self.HistoWidget.deleteLater()
+            except:
+                pass
 
             self.HistoWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.HistoWidget.addPlot(row=2, col=1)
@@ -2523,10 +2528,14 @@ class ScanWidget(QtGui.QFrame):
             self.vb.addItem(self.linearROI)
             self.linearROI.sigRegionChanged.connect(updatelineal)
 
-            try: self.HistoWidget.deleteLater()
-            except: pass
-            try: self.LinearWidget.deleteLater()
-            except: pass
+            try:
+                self.HistoWidget.deleteLater()
+            except:
+                pass
+            try:
+                self.LinearWidget.deleteLater()
+            except:
+                pass
 
             self.LinearWidget = pg.GraphicsLayoutWidget()
             self.p6 = self.LinearWidget.addPlot(row=2, col=1,
@@ -2538,7 +2547,7 @@ class ScanWidget(QtGui.QFrame):
             updatelineal()
 
         else:
-            
+
             self.actualizar.textChanged.disconnect()
             self.vb.removeItem(self.linearROI)
             self.linearROI.hide()
@@ -2633,25 +2642,24 @@ class ScanWidget(QtGui.QFrame):
     def PointStart(self):
         self.done()
         print("Opening a new popup window...")
-        self.w = Traza(self.main, device)
+        self.w = Traza(self.main, self)
         self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
         self.w.show()
 
 
 # %% Clase para TRAZA
 class Traza(QtGui.QWidget):
+    """ new class to create a new window for the trace menu"""
 
     def closeEvent(self, event):
         self.stop()
-        print("flor de relozzz")
+        print("Paró y cerró la traza")
 
-    def __init__(self, main, device, *args, **kwargs):
+    def __init__(self, main, ScanWidget, *args, **kwargs):
         QtGui.QWidget.__init__(self)
         super().__init__(*args, **kwargs)
         self.main = main
-        self.device = device
-        self.ScanWidget = ScanWidget(main, device)
-#        self.form_widget = ScanWidget(self, device)
+        self.ScanWidget = ScanWidget  # call ScanWidget
         self.traza_Widget2 = pg.GraphicsLayoutWidget()
         self.running = False
         grid = QtGui.QGridLayout()
@@ -2660,14 +2668,9 @@ class Traza(QtGui.QWidget):
         self.p6 = self.traza_Widget2.addPlot(row=2, col=1, title="Traza")
         self.p6.showGrid(x=True, y=True)
         self.curve = self.p6.plot(open='y')
-        self.line =self.p6.plot(open='y')
-        self.line1 =self.p6.plot(open='y')
-        self.line2 =self.p6.plot(open='y')
-
-#        self.p7 = self.traza_Widget2.addPlot(row=3, col=1, title="Traza")
-#        self.p7.showGrid(x=True, y=True)
-#        self.curve2 = self.p7.plot(open='y')
-#        self.line2 =self.p7.plot(open='y')
+        self.line = self.p6.plot(open='y')
+        self.line1 = self.p6.plot(open='y')
+        self.line2 = self.p6.plot(open='y')
 
     #  buttons: play button
         self.play_pause_Button = QtGui.QPushButton('► Play / Pause || (1)')
@@ -2687,23 +2690,23 @@ class Traza(QtGui.QWidget):
         self.save_Button = QtGui.QPushButton('plot and/or save')
         self.save_Button.setCheckable(False)
         self.save_Button.clicked.connect(self.save_plot)
-        self.save_Button.setToolTip('Para Guardar la traza (tambien la plotea por ahora)')
+        self.save_Button.setToolTip('Para Guardar la traza(tambien la plotea)')
         self.save_Button.setStyleSheet(
                 "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
     # umbral
-        self.umbralLabel = QtGui.QLabel('Umbral')
-        self.umbralEdit = QtGui.QLineEdit('10')
+        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
+        self.umbralEdit = self.ScanWidget.umbralEdit  # QtGui.QLineEdit('10')
         self.umbralEdit.setFixedWidth(40)
-        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores cercanos ')
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
 
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
         grid.addWidget(self.traza_Widget2,      0, 0, 1, 7)
         grid.addWidget(self.play_pause_Button,  1, 0)
         grid.addWidget(self.stop_Button,        1, 1)
-        grid.addWidget(self.umbralLabel,        1, 3)
-        grid.addWidget(self.umbralEdit,         1, 4)
+#        grid.addWidget(self.umbralLabel,        1, 3)
+#        grid.addWidget(self.umbralEdit,         1, 4)
         grid.addWidget(self.PointLabel,         1, 5)
         grid.addWidget(self.save_Button,        1, 6)
         self.setWindowTitle("Traza. (ESC lo cierra bien)")
@@ -2775,14 +2778,14 @@ class Traza(QtGui.QWidget):
             # filepath = self.file_path
             filepath = self.main.file_path
             timestr = time.strftime("%d%m%Y-%H%M%S")
-            name = str(filepath + "/"+ timestr + "-Traza"  + ".txt")
+            name = str(filepath + "/" + timestr + "-Traza" + ".txt")
             print("va a abrir el name")
-            f=open(name,"w")
+            f = open(name, "w")
             np.savetxt(name,
                        np.transpose([self.timeaxis[:self.ptr1],
-                                        self.data1[:self.ptr1]]),
-                       header= "{} y umbral={:.3}".format(
-                        timestr,float(self.umbralEdit.text())))
+                                     self.data1[:self.ptr1]]),
+                       header="{} y umbral={:.3}".format(
+                        timestr, float(self.umbralEdit.text())))
             print("va a cerrarlo")
             f.close()
             print("\n Guardo la Traza")
@@ -2800,7 +2803,8 @@ class Traza(QtGui.QWidget):
         self.tiempo = 1  # ms  # refresca el numero cada este tiempo
         self.Napd = int(np.round(apdrate * self.tiempo/10**3))
         print(self.Napd)
-        self.points = np.zeros(self.Napd)#int(np.round((apdrate * (self.tiempo/10**3)))))
+        self.points = np.zeros(self.Napd)
+#        int(np.round((apdrate * (self.tiempo/10**3)))))
         self.points2 = np.copy(self.points)
 
         self.pointtask = nidaqmx.Task('pointtask')
@@ -2838,8 +2842,8 @@ class Traza(QtGui.QWidget):
         self.updatePoint()
         tiic = ptime.time()
         self.tiemporeal = (tiic-tic)*2
-        print("tiempo propuesto=", self.tiempo*10**3,"ms")
-        print("tiempo real=", self.tiemporeal*10**3,"ms")
+        print("tiempo propuesto=", self.tiempo*10**3, "ms")
+        print("tiempo real=", self.tiemporeal*10**3, "ms")
 
         self.ptr1 = 0
         self.timeaxis = np.empty(100)
@@ -2864,7 +2868,7 @@ class Traza(QtGui.QWidget):
         self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
                                            float(m), float(m2)))
 #        sig2 = np.mean(self.points2)
-        self.timeaxis[self.ptr1] = self.tiemporeal*self.ptr1  #7 *self.tiempo
+        self.timeaxis[self.ptr1] = self.tiemporeal * self.ptr1  # *self.tiempo
         self.data1[self.ptr1] = m
         self.ptr1 += 1
         if self.ptr1 >= self.data1.shape[0]:
@@ -2883,12 +2887,13 @@ class Traza(QtGui.QWidget):
 #        self.ptr1 += 1
 #        self.curve.setData(self.timeaxis, self.data1)
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
-                           pen=pg.mkPen('r',width=1) , shadowPen=pg.mkPen('b',width=3))
+                           pen=pg.mkPen('r', width=1),
+                           shadowPen=pg.mkPen('b', width=3))
 
         mediototal = np.mean(self.data1[:self.ptr1])
         self.line.setData(self.timeaxis[:self.ptr1],
-                           np.ones(len(self.timeaxis[:self.ptr1]))* mediototal,
-                           pen=pg.mkPen('c', width=1))
+                          np.ones(len(self.timeaxis[:self.ptr1])) * mediototal,
+                          pen=pg.mkPen('c', width=1))
         tec = ptime.time()
         M = 40
         M2 = 10
@@ -2897,11 +2902,11 @@ class Traza(QtGui.QWidget):
             self.timeaxis2 = self.timeaxis[:self.ptr1]
             MMM = self.ptr1
             if self.ptr1 < M2:
-                mediochico2 =np.mean(self.data1[:self.ptr1])
-                MM2 = 0
+                mediochico2 = np.mean(self.data1[:self.ptr1])
+#                MM2 = 0
             else:
-                mediochico2 =np.mean(self.data1[:self.ptr1-M2])
-                MM2 = M2
+                mediochico2 = np.mean(self.data1[:self.ptr1-M2])
+#                MM2 = M2
         else:
             mediochico = np.mean(self.data1[self.ptr1-M:self.ptr1])
             self.timeaxis2 = self.timeaxis[self.ptr1-M:self.ptr1]
@@ -2910,9 +2915,11 @@ class Traza(QtGui.QWidget):
 
         tuc = ptime.time()
         self.line1.setData(self.timeaxis2,
-                           np.ones(MMM)* mediochico, pen=pg.mkPen('g', width=2))
+                           np.ones(MMM) * mediochico,
+                           pen=pg.mkPen('g', width=2))
         self.line2.setData(self.timeaxis2[:],
-                           np.ones(MMM)* mediochico2, pen=pg.mkPen('y', width=2))
+                           np.ones(MMM) * mediochico2,
+                           pen=pg.mkPen('y', width=2))
 
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(mediochico), float(mediochico2)))
@@ -2930,7 +2937,7 @@ class Traza(QtGui.QWidget):
 #        print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
 #        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
 #        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
-
+#
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):

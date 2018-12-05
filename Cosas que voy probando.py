@@ -72,6 +72,23 @@ ax.set_ylabel("y (numero)")
 #ax.set_ylim(-20,100)
 
 # %%
+u = np.append(np.linspace(0,5,6), np.linspace(6,0,6))
+v = u * np.random.rand(len(u))
+#plt.plot(u,'.')
+color=['b','r','g','m','c','y','k']
+color2=['ob','or','og','om','oc','oy','ok']
+todo = np.empty(7)
+for i in range(7):
+    a = np.correlate(u, np.roll(v,(-3+i)*2), "same")
+    todo[i] = np.max(a)
+    plt.plot(a, color=color[i])
+    plt.plot(np.where(a==np.max(a)), todo[i], color=color[i], marker='o')
+#    axvline(x=0, ymin=0, ymax=1, **kwargs)
+print(np.where(todo==np.max(todo))[0][0],"\n", todo)
+plt.show()
+
+# %%
+
 mode = "full"  # ["valid"  # "full"  # "same"]  #
 for moda in ["full", "same", "valid"]:
     a = np.correlate(x, x, moda)
