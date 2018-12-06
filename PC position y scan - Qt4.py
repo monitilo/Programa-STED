@@ -29,7 +29,6 @@ from tkinter import filedialog
 import tools
 import viewbox_tools
 
-import ctypes  # For the pop ups warnings
 
 from scipy import ndimage
 from scipy import optimize
@@ -41,6 +40,13 @@ apdrate = 10**5
 shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']
 # TODO: estar seguro cual es cual en las salidas digitales
 activeChannels = ["x", "y", "z"]
+
+# import ctypes  # For the pop ups warnings, Pero uso QtGui.QMessageBox
+# ctypes.windll.user32.MessageBoxW(0,
+#                                 "No lo tomo como grilla, AVISAR!\
+#                                 \n Pero igual creó una carpeta",
+#                                 "Algo raro paso ;(", 0)
+
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
@@ -251,6 +257,11 @@ class ScanWidget(QtGui.QFrame):
         self.step = 1
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
+
+        self.point_graph_Gauss = pg.ScatterPlotItem(size=10,
+                                              symbol='o', color='m')
+        self.point_graph_CM = pg.ScatterPlotItem(size=10,
+                                              symbol='+', color='m')
 
     # LiveView Button
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
@@ -1448,7 +1459,9 @@ class ScanWidget(QtGui.QFrame):
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params
-        (height, x, y, width_x, width_y) = params
+        new_params = fitgaussian(self.image)
+#        new_fit = gaussian(*new_params)
+        (height, x, y, width_x, width_y) = new_params
 
         tac = ptime.time()
         print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
@@ -1463,8 +1476,21 @@ class ScanWidget(QtGui.QFrame):
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         xx = x*Normal
         yy = y*Normal
-        self.GaussxValue.setText("{:.2}".format(xx))
-        self.GaussyValue.setText("{:.2}".format(yy))
+
+        R = self.scanRange
+        if 0 < xx < R and 0 < yy < R:
+            self.GaussxValue.setText("{:.2}".format(xx))
+            self.GaussyValue.setText("{:.2}".format(yy))
+            self.point_graph_Gauss.setData([x], [y])
+            self.vb.addItem(self.point_graph_Gauss)
+        else:
+            self.GaussxValue.setText("{:.2}".format(np.nan))
+            self.GaussyValue.setText("{:.2}".format(np.nan))
+            print("OJO, el ajuste gaussiano no dio bien")
+            try:
+                self.vb.removeItem(self.point_graph_Gauss)
+            except:
+                pass
 
 # %% buttos to open and select folder
     def selectFolder(self):
@@ -1493,6 +1519,10 @@ class ScanWidget(QtGui.QFrame):
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         self.CMxValue.setText("{:.2}".format(xcm*Normal))
         self.CMyValue.setText("{:.2}".format(ycm*Normal))
+
+        self.point_graph_CM.setData([xcm], [ycm])
+
+        self.vb.addItem(self.point_graph_CM)
 
 # %%  ROI cosas
     def ROImethod(self):
@@ -1759,10 +1789,12 @@ class ScanWidget(QtGui.QFrame):
 
         except:
             print("No lo tomo como grilla, AVISAR!")
-            ctypes.windll.user32.MessageBoxW(0,
-                                             "No lo tomo como grilla, AVISAR!\
-                                             \n Pero igual creó una carpeta",
-                                             "Algo raro paso ;(", 0)
+            problem = QtGui.QMessageBox.question(self,
+                                         'Algo raro paso',
+                                         'No lo tomo como grilla, AVISAR!\
+#                                         \n Pero igual creó una carpeta',
+                                          QtGui.QMessageBox.Ok)
+            problem.exec_()
             new_folder = self.file_path + "/" + timestr + "_algo"
         os.makedirs(new_folder)
 #        self.file_path = newpath  # no quiero perder el nombre anterior,
