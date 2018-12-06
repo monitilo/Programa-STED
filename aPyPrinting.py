@@ -248,6 +248,10 @@ class ScanWidget(QtGui.QFrame):
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
+        self.point_graph_Gauss = pg.ScatterPlotItem(size=10,
+                                                    symbol='o', color='m')
+        self.point_graph_CM = pg.ScatterPlotItem(size=10,
+                                                 symbol='+', color='m')
     # Parameters for smooth moving (to no go hard on the piezo (or galvos))
         self.moveTime = 10 / 10**3  # total time to move (s ==>ms)
         self.moveSamples = 1000  # samples to move
@@ -2320,13 +2324,16 @@ class ScanWidget(QtGui.QFrame):
 # %% GaussFit
     def GaussFit(self):
         tic = ptime.time()
-        self.data = np.transpose(self.image)
+        self.data = np.transpose(self.image)  # np.flip(np.flip(self.image,0),1
         params = fitgaussian(self.data)
         self.fit = gaussian(*params)
         self.params = params
-        (height, x, y, width_x, width_y) = params
-        self.xGauss = x
-        self.yGauss = y
+
+        new_params = fitgaussian(self.image)
+        (height, x, y, width_x, width_y) = new_params
+#        self.xGauss = x
+#        self.yGauss = y
+
 #        Channels = self.activeChannels
 #        texts = [getattr(self, ax + "Label").text() for ax in Channels]
 #        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
@@ -2338,8 +2345,22 @@ class ScanWidget(QtGui.QFrame):
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         xx = x*Normal
         yy = y*Normal
-        self.GaussxValue.setText(str(xx))
-        self.GaussyValue.setText(str(yy))
+
+        if 0 < xx < self.scanRange and 0 < yy < self.scanRange:
+            self.GaussxValue.setText("{:.2}".format(xx))
+            self.GaussyValue.setText("{:.2}".format(yy))
+            self.point_graph_Gauss.setData([x], [y])
+            self.vb.addItem(self.point_graph_Gauss)
+        else:
+            self.GaussxValue.setText("{:.2}".format(np.nan))
+            self.GaussyValue.setText("{:.2}".format(np.nan))
+            print("OJO, el ajuste gaussiano no dio bien")
+            try:
+                self.vb.removeItem(self.point_graph_Gauss)
+            except:
+                pass
+#        self.GaussxValue.setText(str(xx))
+#        self.GaussyValue.setText(str(yy))
         tac = ptime.time()
         self.GaussPlot = True
         print(np.round((tac-tic)*10**3, 3), "(ms)Gauss fit\n")
@@ -2355,8 +2376,14 @@ class ScanWidget(QtGui.QFrame):
 #        xc = int(np.round(xcm,2))
 #        yc = int(np.round(ycm,2))
         Normal = self.scanRange / self.numberofPixels
-        self.CMxValue.setText(str(xcm*Normal))
-        self.CMyValue.setText(str(ycm*Normal))
+#        self.CMxValue.setText(str(xcm*Normal))
+#        self.CMyValue.setText(str(ycm*Normal))
+        self.CMxValue.setText("{:.2}".format(xcm*Normal))
+        self.CMyValue.setText("{:.2}".format(ycm*Normal))
+
+        self.point_graph_CM.setData([xcm], [ycm])
+        self.vb.addItem(self.point_graph_CM)
+
         tac = ptime.time()
         self.CMplot = True
         print(np.round((tac-tic)*10**3, 3), "(ms) CM\n")

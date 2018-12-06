@@ -259,9 +259,9 @@ class ScanWidget(QtGui.QFrame):
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
         self.point_graph_Gauss = pg.ScatterPlotItem(size=10,
-                                              symbol='o', color='m')
+                                                    symbol='o', color='m')
         self.point_graph_CM = pg.ScatterPlotItem(size=10,
-                                              symbol='+', color='m')
+                                                 symbol='+', color='m')
 
     # LiveView Button
         self.liveviewButton = QtGui.QPushButton('confocal LIVEVIEW')
@@ -1463,8 +1463,7 @@ class ScanWidget(QtGui.QFrame):
 #        new_fit = gaussian(*new_params)
         (height, x, y, width_x, width_y) = new_params
 
-        tac = ptime.time()
-        print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
+
 #        Channels = self.activeChannels
 #        texts = [getattr(self, ax + "Label").text() for ax in Channels]
 #        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
@@ -1492,6 +1491,8 @@ class ScanWidget(QtGui.QFrame):
             except:
                 pass
 
+        tac = ptime.time()
+        print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
 # %% buttos to open and select folder
     def selectFolder(self):
         root = tk.Tk()
@@ -1510,7 +1511,6 @@ class ScanWidget(QtGui.QFrame):
         self.viewtimer.stop()
         I = self.image
 #        N = len(I)  # numberfoPixels
-
         xcm, ycm = ndimage.measurements.center_of_mass(I)
         print("Xcm=", xcm, "\nYcm=", ycm)
         self.xcm = xcm
