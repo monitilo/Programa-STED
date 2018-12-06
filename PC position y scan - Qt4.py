@@ -73,6 +73,9 @@ class MainWindow(QtGui.QMainWindow):
     def openCall(self):
         self.a = 1.5
         namebien = (self.form_widget.NameDirValue.text()).replace("/", "\\")
+#        print("corregido", namebien)
+#        namebien = self.form_widget.NameDirValue.text()
+#        print("normal",namebien)
         os.startfile(namebien)
 #        print('Open')
 
@@ -86,9 +89,8 @@ class MainWindow(QtGui.QMainWindow):
         root.withdraw()
 
         self.file_path = filedialog.askdirectory()
-        print(self.file_path, " dire")
-        self.form_widget.NameDirValue.setText(self.file_path[:30] +
-                                              ".../..." + self.file_path[-50:])
+        print(" direccion elegida ", self.file_path)
+        self.form_widget.NameDirValue.setText(self.file_path)
         self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
 #        self.form_widget.paramChanged()
 
@@ -106,8 +108,7 @@ class MainWindow(QtGui.QMainWindow):
         else:
             print("Ya existe esa carpeta")
         self.file_path = newpath
-        self.form_widget.NameDirValue.setText(self.file_path[:20] +
-                                              ".../..." + self.file_path[-60:])
+        self.form_widget.NameDirValue.setText(self.file_path)
         self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def save_docks(self):
@@ -235,6 +236,40 @@ class ScanWidget(QtGui.QFrame):
         self.grid_autocorr_action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('F9'), self, self.focus_autocorr)
+
+    # Buttons 
+        self.cargar_archivo_button = QtGui.QPushButton('Cargar Archivo')
+        self.cargar_archivo_button.clicked.connect(self.grid_read)
+        self.cargar_archivo_button.setStyleSheet(
+                "QPushButton { background-color: orange; }"
+                "QPushButton:pressed { background-color: blue; }")
+        self.cargar_archivo_button.setToolTip('This is a tooltip message.')
+
+    # Print button. Que en realidad solo crea la carpeta
+        self.imprimir_button = QtGui.QPushButton('IMPRIMIR (no)')
+        self.imprimir_button.setCheckable(True)
+        self.imprimir_button.clicked.connect(self.grid_create_folder)
+        self.imprimir_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.imprimir_button.setToolTip('En realidad solo crea la carpeta\
+                                        El mundo es una gran mentira.')
+#                "QPushButton:checked {color: white; background-color: blue;}")
+
+    # Print button. Que en realidad solo crea la carpeta
+        self.next_button = QtGui.QPushButton('Next ►')
+        self.next_button.setCheckable(False)
+        self.next_button.clicked.connect(self.grid_start)
+        self.next_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.next_button.setToolTip('Empeiza o continua la grilla')
+
+    # La grid con las cosas de printing. Mas abajo entra en el dock
+        self.grid_print = QtGui.QWidget()
+        grid_print_layout = QtGui.QGridLayout()
+        self.grid_print.setLayout(grid_print_layout)
+        grid_print_layout.addWidget(self.cargar_archivo_button, 1, 1) # QtGui.QLabel(" ")
+        grid_print_layout.addWidget(self.imprimir_button, 1, 2)
+
 
 # --- FIN COSAS PRINTING
 
@@ -751,6 +786,11 @@ class ScanWidget(QtGui.QFrame):
         scanDock2 = Dock('Other parameters', size=(1, 1))
         scanDock2.addWidget(self.paramWidget2)
         dockArea.addDock(scanDock2, 'left', scanDock3)
+
+        grid_print_dock = Dock('Printing grids', size=(1, 10))
+        grid_print_dock.addWidget(self.grid_print)
+        dockArea.addDock(grid_print_dock, 'bottom')
+
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -1493,6 +1533,7 @@ class ScanWidget(QtGui.QFrame):
 
         tac = ptime.time()
         print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
+
 # %% buttos to open and select folder
     def selectFolder(self):
         root = tk.Tk()
@@ -1751,6 +1792,8 @@ class ScanWidget(QtGui.QFrame):
         self.grid_plot()
 
     def grid_plot(self):
+        """hace un plot de la grilla cargada para estar seguro que es lo que
+        se quiere imprimir (nunca esta de mas)"""
         try:
             fig, ax = plt.subplots()
             plt.plot(self.grid_x, self.grid_y, 'o')
@@ -1764,6 +1807,8 @@ class ScanWidget(QtGui.QFrame):
             print("^ No hay nada cargado ^")
 
     def grid_create_folder(self):
+        """ Crea una carpeta para este archivo particular.
+        Si es una grilla, puede tener esa data en el nombre (ej: 10x15)"""
         base = os.path.basename(self.grid_name)
 #        grid_name = filedialog.askopenfilename()
 
@@ -1782,45 +1827,57 @@ class ScanWidget(QtGui.QFrame):
         numeros = [int(s) for s in w if s.isdigit()]
 
         timestr = time.strftime("%H-%M-%S")  # %Y%m%d-
+        self.old_folder = self.main.file_path
         try:
             print("la grilla es de {}x{}".format(numeros[0], numeros[1]))
-            new_folder = self.file_path + "/" + timestr
-            + "_Grilla {}x{}".format(numeros[0], numeros[1])
+            new_folder = self.main.file_path + "/" + timestr +\
+            "_Grilla {}x{}".format(numeros[0], numeros[1])
 
-        except:
-            print("No lo tomo como grilla, AVISAR!")
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#            print("No lo tomo como grilla, AVISAR!")
             problem = QtGui.QMessageBox.question(self,
                                          'Algo raro paso',
                                          'No lo tomo como grilla, AVISAR!\
-#                                         \n Pero igual creó una carpeta',
-                                          QtGui.QMessageBox.Ok)
-            problem.exec_()
-            new_folder = self.file_path + "/" + timestr + "_algo"
+                                         \n Pero igual creó una carpeta',
+                                         QtGui.QMessageBox.Ok)
+
+            new_folder = self.main.file_path + "/" + timestr + "_algo"
         os.makedirs(new_folder)
 #        self.file_path = newpath  # no quiero perder el nombre anterior,
 #        asi despues vuelvo
         self.NameDirValue.setText(new_folder)
         self.NameDirValue.setStyleSheet(" background-color: green ; ")
+        self.main.file_path = new_folder
         self.i_global = 0
 
     def grid_start(self):
-        self.i_global = 0
+        """funcion que empieza el programa de imprimir una grilla
+        (u otra cosa)"""
+        self.i_global = 0  # Este no va aca. Queda en el de la carpeta
         self.a = np.zeros(11)
         self.grid_timer_traza = QtCore.QTimer()
         self.grid_timer_traza.timeout.connect(self.grid_detect_signal)
         self.grid_move()
 
     def grid_move(self):
+        """ se mueve siguiendo las coordenadas que lee del archivo"""
         time.sleep(1)
+        startX = float(self.xLabel.text())
+        startY = float(self.yLabel.text())
         self.grid_openshutter()
 #            self.aotask.write(np.array(
-#                [self.grid_x[self.i_global] / convFactors['x'],
-#                 self.grid_y[self.i_global] / convFactors['y']]),
+#                [self.grid_x[self.i_global] + startX / convFactors['x'],
+#                 self.grid_y[self.i_global] + startY / convFactors['y']]),
 #                auto_start=True)
-        print("me muevo")
+        print("me muevo",
+              self.grid_x[self.i_global] + startX,
+              self.grid_y[self.i_global] + startY)
+
         self.grid_traza()
 
     def grid_openshutter(self):
+        """ abre el shutter que se va a utilizar para imprimir"""
         time.sleep(1)
         if self.grid_laser.currentText() == shutters[0]:  # Verde
             self.openShutter(shutters[0])
@@ -1833,6 +1890,8 @@ class ScanWidget(QtGui.QFrame):
             self.grid_shutterabierto = shutters[2]
 
     def grid_traza(self):
+        """ Abre la ventana nueva y mide la traza,
+        preparado para detectar eventos de impresion"""
         self.main.grid_traza_control = False
         self.grid_timer_traza.start(10)  # no se que tiempo poner
         self.doit()
@@ -1843,12 +1902,16 @@ class ScanWidget(QtGui.QFrame):
 #        self.main.grid_timer_traza.start(10)  # no se que tiempo poner
 
     def grid_detect_signal(self):
-        """ grid_timer_traza connect here"""
+        """ Espera hasta detectar el evento de impresion.
+        grid_timer_traza connect here"""
         if self.main.grid_traza_control:
             self.grid_timer_traza.stop()
             self.grid_detect()
 
     def grid_detect(self):
+        """ Cuando detecta un evento de impresion, entra aca.
+        Esta funcion define el paso siguiente.
+        Puede ser: hacer autofoco, un scan de la PSF, o simplemente seguir """
         self.closeShutter(self.grid_shutterabierto)
 #        time.sleep(1)
         self.i_global += 1
@@ -1864,8 +1927,15 @@ class ScanWidget(QtGui.QFrame):
             print(" i global ", self.i_global, "?")
             self.grid_move()
         else:
-
-            print("TERMINO LA TIMER TRAZA")
+            self.main.file_path = self.old_folder
+            self.NameDirValue.setText(self.old_folder)
+            self.NameDirValue.setStyleSheet(" background-color: ; ")
+#            print("TERMINÓ LA GRILLA")
+            end = QtGui.QMessageBox.question(self,
+                                             'Fin',
+                                             'FIN!\
+                                             \n fin',
+                                             QtGui.QMessageBox.Ok)
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
@@ -1897,6 +1967,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.paramChanged()
 
     def focus_go_to_maximun(self):
+        """ barre en z mientras mira el PD, y va al maximo de intensidad"""
         self.focus_lock_focus()
         z_max = (np.max(self.z_profile))
 #        print(self.z_profile, np.where(self.z_profile == z_max)[0][0], z_max)
@@ -1905,6 +1976,7 @@ class ScanWidget(QtGui.QFrame):
         self.move_z(self.z_vector[np.where(self.z_profile == z_max)[0][0]])
 
     def focus_openshutter(self):
+        """ abre el shutter con el que se hace foco"""
         time.sleep(1)
         if self.focus_laser.currentText() == shutters[0]:  # Verde
             self.openShutter(shutters[0])
@@ -1932,6 +2004,7 @@ class ScanWidget(QtGui.QFrame):
         return read
 
     def focus_lock_focus(self):
+        """ guarda el patron de intensidades, barriendo z en el foco actual"""
         self.Npasos = int(self.numberofPixelsEdit.text())  # algun numero de pasos a definir (50 dice en algun lado)
         z_start = float(self.zLabel.text()) - (self.scanRange/2)
         z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
@@ -1948,6 +2021,8 @@ class ScanWidget(QtGui.QFrame):
         self.move_z((self.zLabel.text()))
 
     def focus_autocorr(self):
+        """ correlaciona la medicion de intensidad moviendo z,
+        respecto del que se lockeo con loc focus"""
         if self.locked_focus:
             Ncorrelations = 6  # tambien a definir....
             self.new_profile = np.zeros((Ncorrelations, self.Npasos))
@@ -1983,6 +2058,7 @@ class ScanWidget(QtGui.QFrame):
             print("No esta Lockeado el foco")
 
     def grid_scan(self):
+        """ Hace un confocal de la particula"""
         pass
 
 # %% Point scan (inaplicable aca)
