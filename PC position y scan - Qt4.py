@@ -27,7 +27,12 @@ import tkinter as tk
 from tkinter import filedialog
 
 import tools
-import viewbox_tools
+try:
+    import viewbox_tools
+    print("\n uso Qt4 \n")
+except:
+    print("\n uso Qt5 \n")
+    import viewbox_toolsQT5 as viewbox_tools
 
 
 from scipy import ndimage
@@ -1622,7 +1627,7 @@ class ScanWidget(QtGui.QFrame):
         print("hasta :", self.scanRange, "\n")
         self.paramChanged()
 
-# --- Creo el intregador de area histograma
+# %% --- Histogram
 
     def histogramROI(self):
         # ***----
