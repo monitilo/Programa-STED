@@ -5,7 +5,7 @@
 # import subprocess
 # import scipy.ndimage as ndi
 
-import sys
+#import sys
 import os
 
 import numpy as np
@@ -27,7 +27,6 @@ import tkinter as tk
 from tkinter import filedialog
 
 import tools
-
 from sys import stdout
 try:
     import viewbox_toolsQT5 as viewbox_tools
@@ -38,7 +37,8 @@ except:
     stdout.write("\033[1;31m")
     print("\n uso Qt4 \n")
 stdout.write("\033[0;0m")
-#==============================================================================
+
+# =============================================================================
 # RED   = "\033[1;31m"  
 # BLUE  = "\033[1;34m"
 # CYAN  = "\033[1;36m"
@@ -46,7 +46,7 @@ stdout.write("\033[0;0m")
 # RESET = "\033[0;0m"
 # BOLD    = "\033[;1m"
 # REVERSE = "\033[;7m"
-#==============================================================================
+# =============================================================================
 
 from scipy import ndimage
 from scipy import optimize
@@ -2504,5 +2504,5 @@ if __name__ == '__main__':
     win = MainWindow()
     win.show()
 
-#    app.exec_()
-    sys.exit(app.exec_())
+    app.exec_()
+#    sys.exit(app.exec_())
