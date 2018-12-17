@@ -1,4 +1,2 @@
 
-__pycache__/tools.cpython-35.pyc
-__pycache__/viewbox_tools.cpython-35.pyc
-__pycache__/viewbox_tools.cpython-35.pyc
+*.pyc
