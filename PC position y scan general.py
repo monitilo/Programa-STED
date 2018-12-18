@@ -316,7 +316,7 @@ class ScanWidget(QtGui.QFrame):
         grid_print_layout.addWidget(self.next_button,             2, 2, 2, 1)
         grid_print_layout.addWidget(self.go_ref_button,           2, 1)
         grid_print_layout.addWidget(self.set_ref_button,          3, 1)
-        grid_print_layout.addWidget(QtGui.QLabel('Print Laser'),  0, 3)
+        grid_print_layout.addWidget(QtGui.QLabel('<strong> Print Laser'),  0, 3)
         grid_print_layout.addWidget(self.grid_laser,              1, 3)
         grid_print_layout.addWidget(self.umbralLabel,             2, 3)
         grid_print_layout.addWidget(self.umbralEdit,              3, 3)
@@ -360,7 +360,7 @@ class ScanWidget(QtGui.QFrame):
         grid_focus_layout.addWidget(self.focus_lock_button,       1, 1, 2, 1)
         grid_focus_layout.addWidget(self.focus_autocorr_button,   2, 1, 2, 1)
         grid_focus_layout.addWidget(self.focus_gotomax_button,    3, 1, 2, 1)
-        grid_focus_layout.addWidget(QtGui.QLabel('Focus Laser'),  2, 2)
+        grid_focus_layout.addWidget(QtGui.QLabel('<strong> Focus Laser'),  2, 2)
         grid_focus_layout.addWidget(self.focus_laser,             3, 2)
 
 # --- FIN COSAS PRINTING
@@ -723,11 +723,19 @@ class ScanWidget(QtGui.QFrame):
         self.xname = QtGui.QLabel("<strong>x =")
         self.xname.setTextFormat(QtCore.Qt.RichText)
         self.xUpButton = QtGui.QPushButton("(+x) ►")  # →
-        self.xUpButton.pressed.connect(self.xMoveUp)
+        self.xUpButton.pressed.connect(
+                       lambda: self.move("x",float(self.StepEdit.text())))
         self.xDownButton = QtGui.QPushButton("◄ (-x)")  # ←
-        self.xDownButton.pressed.connect(self.xMoveDown)
+        self.xDownButton.pressed.connect(
+                       lambda: self.move("x",-float(self.StepEdit.text())))
         self.xStepEdit = QtGui.QLineEdit("1.0")  # estaban en 0.05<
-        self.xStepUnit = QtGui.QLabel(" µm")
+#        self.xStepUnit = QtGui.QLabel(" µm")
+        self.xUp2Button = QtGui.QPushButton("++x ►►")  # →
+        self.xUp2Button.pressed.connect(
+                       lambda: self.move("x",10*float(self.StepEdit.text())))
+        self.xDown2Button = QtGui.QPushButton("◄◄ --x")  # ←
+        self.xDown2Button.pressed.connect(
+                       lambda: self.move("x",-10*float(self.StepEdit.text())))
 
         self.yLabel = QtGui.QLabel('2.0')
 #            "<strong>y = {0:.2f} µm</strong>".format(self.y))
@@ -735,11 +743,20 @@ class ScanWidget(QtGui.QFrame):
         self.yname = QtGui.QLabel("<strong>y =")
         self.yname.setTextFormat(QtCore.Qt.RichText)
         self.yUpButton = QtGui.QPushButton("(+y) ▲")  # ↑
-        self.yUpButton.pressed.connect(self.yMoveUp)
+        self.yUpButton.pressed.connect(
+                       lambda: self.move("y",float(self.StepEdit.text())))
         self.yDownButton = QtGui.QPushButton("(-y) ▼")  # ↓
-        self.yDownButton.pressed.connect(self.yMoveDown)
-        self.yStepEdit = QtGui.QLineEdit("1.0")
-        self.yStepUnit = QtGui.QLabel(" µm")
+        self.yDownButton.pressed.connect(
+                       lambda: self.move("y",-float(self.StepEdit.text())))
+        self.StepEdit = QtGui.QLineEdit("1.0")
+#        self.yStepUnit = QtGui.QLabel(" µm")
+        self.yUp2Button = QtGui.QPushButton("++y ▲▲")  # ↑
+        self.yUp2Button.pressed.connect(
+                       lambda: self.move("y",10*float(self.StepEdit.text())))
+        self.yDown2Button = QtGui.QPushButton("--y ▼▼")  # ↓
+        self.yDown2Button.pressed.connect(
+                       lambda: self.move("y",-10*float(self.StepEdit.text())))
+
 
         self.zLabel = QtGui.QLabel('3.0')
 #            "<strong>z = {0:.2f} µm</strong>".format(self.z))
@@ -747,41 +764,61 @@ class ScanWidget(QtGui.QFrame):
         self.zname = QtGui.QLabel("<strong>z =")
         self.zname.setTextFormat(QtCore.Qt.RichText)
         self.zUpButton = QtGui.QPushButton("+z ▲")
-        self.zUpButton.pressed.connect(self.zMoveUp)
+        self.zUpButton.pressed.connect(
+                       lambda: self.zMoveUp())
         self.zDownButton = QtGui.QPushButton("-z ▼")
-        self.zDownButton.pressed.connect(self.zMoveDown)
+        self.zDownButton.pressed.connect(
+                       lambda: self.zMoveDown())
         self.zStepEdit = QtGui.QLineEdit("1.0")
-        self.zStepUnit = QtGui.QLabel(" µm")
+#        self.zStepUnit = QtGui.QLabel(" µm")
         self.zup2Button = QtGui.QPushButton("++z ▲▲")
-#        self.zup2Button.pressed.connect(self.zMoveUp2)
+        self.zup2Button.pressed.connect(
+                       lambda: self.zMoveUp(10))
         self.zDown2Button = QtGui.QPushButton("--z ▼▼")
-#        self.zDown2Button.pressed.connect(self.zMoveDown2)
+        self.zDown2Button.pressed.connect(
+                       lambda: self.zMoveDown(10))
 
 
+        tamaño = 30
+        self.xLabel.setFixedWidth(tamaño)
+        self.yLabel.setFixedWidth(tamaño)
+        self.zLabel.setFixedWidth(tamaño)
         tamaño = 50
-        self.xStepUnit.setFixedWidth(tamaño)
-        self.yStepUnit.setFixedWidth(tamaño)
-        self.zStepUnit.setFixedWidth(tamaño)
+#        self.xStepUnit.setFixedWidth(tamaño)
+#        self.yStepUnit.setFixedWidth(tamaño)
+#        self.zStepUnit.setFixedWidth(tamaño)
+        self.xUp2Button.setFixedWidth(tamaño)
+        self.xDown2Button.setFixedWidth(tamaño)
+        self.xUpButton.setFixedWidth(tamaño)
+        self.xDownButton.setFixedWidth(tamaño)
+        self.yUp2Button.setFixedWidth(tamaño)
+        self.yDown2Button.setFixedWidth(tamaño)
+        self.yUpButton.setFixedWidth(tamaño)
+        self.yDownButton.setFixedWidth(tamaño)
 
         self.positioner = QtGui.QWidget()
 #        grid.addWidget(self.positioner, 1, 0)
         layout = QtGui.QGridLayout()
         self.positioner.setLayout(layout)
-        layout.addWidget(self.xname,       1, 0)
-        layout.addWidget(self.xLabel,      1, 1)
-        layout.addWidget(self.xUpButton,   2, 6, 2, 1)
-        layout.addWidget(self.xDownButton, 2, 4, 2, 1)
+        layout.addWidget(self.xname,        1, 0)
+        layout.addWidget(self.xLabel,       1, 1)
+        layout.addWidget(self.xUpButton,    2, 6, 2, 1)
+        layout.addWidget(self.xDownButton,  2, 4, 2, 1)
+        layout.addWidget(self.xUp2Button,   2, 7, 2, 1)
+        layout.addWidget(self.xDown2Button, 2, 3, 2, 1)
 #        layout.addWidget(QtGui.QLabel("Step x"), 1, 6)
 #        layout.addWidget(self.xStepEdit, 1, 7)
 #        layout.addWidget(self.xStepUnit, 1, 8)
 
         layout.addWidget(self.yname,       2, 0)
         layout.addWidget(self.yLabel,      2, 1)
-        layout.addWidget(self.yUpButton,   1, 5, 2, 1)
+        layout.addWidget(self.yUpButton,   1, 5, 3, 1)
         layout.addWidget(self.yDownButton, 3, 5, 2, 1)
-        layout.addWidget(QtGui.QLabel("step xy (­­­µm) "), 4, 6)
-        layout.addWidget(self.yStepEdit,   5, 6)
+        layout.addWidget(QtGui.QLabel("step xy µm) "), 4, 6, 1, 2)
+        layout.addWidget(self.StepEdit,   5, 6)
 #        layout.addWidget(self.yStepUnit,   5, 5)
+        layout.addWidget(self.yUp2Button,   0, 5, 2, 1)
+        layout.addWidget(self.yDown2Button, 4, 5, 2, 1)
 
         layout.addWidget(self.zname,       4, 0)
         layout.addWidget(self.zLabel,      4, 1)
@@ -793,11 +830,15 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(self.zStepEdit,   5, 10)
 #        layout.addWidget(self.zStepUnit,   2, 7)
 
+#        Hline =QtGui.QLabel("________________________________________________________________________________________________")
+#        Hline.setFixedWidth(300)
+#        layout.addWidget(Hline,7, 0,1,7)
+
 
         layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
 
         tamaño = 40
-        self.yStepEdit.setFixedWidth(tamaño)
+        self.StepEdit.setFixedWidth(tamaño)
         self.zStepEdit.setFixedWidth(tamaño)
 #        self.yStepEdit.setValidator(self.onlypos)
 #        self.zStepEdit.setValidator(self.onlypos)
@@ -812,7 +853,7 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(QtGui.QLabel("|"),  3, 8)
         layout.addWidget(QtGui.QLabel("|"),  4, 8)
         layout.addWidget(QtGui.QLabel("|"),  5, 8)
-#        layout.addWidget(QtGui.QLabel("|"),  6, 5)
+
 
         self.gotoWidget = QtGui.QWidget()
 #        grid.addWidget(self.gotoWidget, 1, 1)
@@ -849,8 +890,8 @@ class ScanWidget(QtGui.QFrame):
         layout3.addWidget(self.CMyValue, 4, 2)
         self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
         self.goCMButton.pressed.connect(self.goCM)
-        layout3.addWidget(self.goCMButton, 1, 4)  # , 2, 2)
-        layout3.addWidget(self.CMcheck, 1, 1)
+        layout3.addWidget(self.goCMButton, 1, 4, 1, 2)
+        layout3.addWidget(self.CMcheck, 1, 1, 1, 2)
 
         self.GaussxLabel = QtGui.QLabel('Gauss X')
         self.GaussxValue = QtGui.QLabel('NaN')
@@ -863,8 +904,8 @@ class ScanWidget(QtGui.QFrame):
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
         self.goCMButton = QtGui.QPushButton("♥ Go Gauss ♦")
         self.goCMButton.pressed.connect(self.goGauss)
-        layout3.addWidget(self.goCMButton, 2, 4)  # , 2, 2)
-        layout3.addWidget(self.Gausscheck, 2, 1)
+        layout3.addWidget(self.goCMButton, 2, 4, 1, 2)  # , 2, 2)
+        layout3.addWidget(self.Gausscheck, 2, 1, 1, 2)
 # --- fin POSITIONEERRRRRR---------------------------
 
 
@@ -1284,36 +1325,39 @@ class ScanWidget(QtGui.QFrame):
         getattr(self, axis + "Label").setText(newText)
         self.paramChanged()
 
-    def xMoveUp(self):
-        self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
+#    def xMoveUp(self):
+#        self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
+#
+#    def xMoveDown(self):
+#        self.move('x', -float(getattr(self, 'y' + "StepEdit").text()))
+#
+#    def yMoveUp(self):
+#        self.move('y', float(getattr(self, 'y' + "StepEdit").text()))
+#
+#    def yMoveDown(self):
+#        self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
 
-    def xMoveDown(self):
-        self.move('x', -float(getattr(self, 'y' + "StepEdit").text()))
-
-    def yMoveUp(self):
-        self.move('y', float(getattr(self, 'y' + "StepEdit").text()))
-
-    def yMoveDown(self):
-        self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
-
-    def zMoveUp(self):
-        self.move('z', float(getattr(self, 'z' + "StepEdit").text()))
+    def zMoveUp(self, algo=1):
+        self.move('z', algo*float(getattr(self, 'z' + "StepEdit").text()))
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
         self.zStepEdit.setStyleSheet("background-color: ")
+        self.zDown2Button.setStyleSheet("background-color: ")
 
-    def zMoveDown(self):
+    def zMoveDown(self,algo=1):
         PosZ = self.initialPosition[2]
-        if PosZ < float(getattr(self, 'z' + "StepEdit").text()):
+        if PosZ < algo*float(getattr(self, 'z' + "StepEdit").text()):
             print("OJO!, te vas a Z's negativos")
             self.zStepEdit.setStyleSheet(" background-color: red; ")
 #            setStyleSheet("color: rgb(255, 0, 255);")
         else:
-            self.move('z', -float(getattr(self, 'z' + "StepEdit").text()))
+            self.move('z', -algo*float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet(" background-color: ")
             if self.initialPosition[2] == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
+                    "QPushButton { background-color: orange; }")
+                self.zDown2Button.setStyleSheet(
                     "QPushButton { background-color: orange; }")
         if PosZ == 0:  # para no ir a z negativo
             self.zDownButton.setStyleSheet(
@@ -1959,11 +2003,11 @@ class ScanWidget(QtGui.QFrame):
         except IOError as e:
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
 #            print("No lo tomo como grilla, AVISAR!")
-            problem = QtGui.QMessageBox.question(self,
-                                         'Algo raro paso',
-                                         'No lo tomo como grilla, AVISAR!\
-                                         \n Pero igual creó una carpeta',
-                                         QtGui.QMessageBox.Ok)
+            QtGui.QMessageBox.question(self,
+                                       'Algo raro paso',
+                                       'No lo tomo como grilla, AVISAR!\
+                                       \n Pero igual creó una carpeta',
+                                       QtGui.QMessageBox.Ok)
 
             new_folder = self.main.file_path + "/" + timestr + "_algo"
         os.makedirs(new_folder)
@@ -2053,12 +2097,13 @@ class ScanWidget(QtGui.QFrame):
             self.main.file_path = self.old_folder
             self.NameDirValue.setText(self.old_folder)
             self.NameDirValue.setStyleSheet(" background-color: ; ")
+        self.moveto("back to origin")
 #            print("TERMINÓ LA GRILLA")
-            end = QtGui.QMessageBox.question(self,
-                                             'Fin',
-                                             'FIN!\
-                                             \n fin',
-                                             QtGui.QMessageBox.Ok)
+            QtGui.QMessageBox.question(self,
+                                       'Fin',
+                                       'FIN!\
+                                       \n fin',
+                                       QtGui.QMessageBox.Ok)
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
