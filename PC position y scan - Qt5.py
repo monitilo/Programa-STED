@@ -25,7 +25,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 import tools
-import viewbox_tools
+import viewbox_toolsQT5
 
 
 from scipy import ndimage

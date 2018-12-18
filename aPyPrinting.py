@@ -22,7 +22,17 @@ from scipy import optimize
 import re
 
 import tools
-import viewbox_tools
+
+from sys import stdout
+try:
+    import viewbox_toolsQT5 as viewbox_tools
+    stdout.write("\033[1;31m")
+    print("\n uso Qt5 \n")
+except:
+    import viewbox_tools
+    stdout.write("\033[1;31m")
+    print("\n uso Qt4 \n")
+stdout.write("\033[0;0m")
 
 import nidaqmx
 

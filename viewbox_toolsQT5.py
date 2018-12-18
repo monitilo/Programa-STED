@@ -215,12 +215,12 @@ class Crosshair():
 
 class ROI(pg.ROI):
 
-    def __init__(self, shape, vb, pos, handlePos, handleCenter, *args,
+    def __init__(self, shape, vb, pos, size, handlePos, handleCenter, *args,
                  **kwargs):
 
         self.mainShape = shape
 
-        pg.ROI.__init__(self, pos, size=(100, 100), pen='y', *args, **kwargs)
+        pg.ROI.__init__(self, pos, size, pen='m', *args, **kwargs)
         self.addScaleHandle(handlePos, handleCenter, lockAspect=True)
         vb.addItem(self)
 
