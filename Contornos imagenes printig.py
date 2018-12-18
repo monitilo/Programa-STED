@@ -15,13 +15,22 @@ import numpy as np
 from skimage import io
 import time
 
-image=io.imread("Z:/German/Rol/DM/Campaña de a 2/maxp.jpg")/255.0 # imread lee las imagenes con los pixeles codificados como enteros 
+image=io.imread("Z:\German\TAMI\horno.jpg")/255.0 # imread lee las imagenes con los pixeles codificados como enteros 
 # en el rango 0-255. Por eso la convertimos a flotante y en el rango 0-1
 plt.figure()
 print("- Dimensiones de la imagen:")
 print(image.shape)
 plt.imshow(image,vmin=0,vmax=1)
-#
+gris = np.copy(image[45,45,:])
+delta = 0.0985
+for i in range(len(image[:,0,0])):
+    for j in range(len(image[0,:,0])):
+        if (image[i,j,:] <= gris+delta).all() and (image[i,j,:] >= gris-delta).all() :
+            image[i,j,:] = [1,1,1]
+plt.figure()
+plt.imshow(image,vmin=0,vmax=1)
+
+# %%
 #lena_rgb=io.imread("Z:/German/Rol/DM/Campaña de a 2/maxp.jpg")/255.0 
 #plt.imshow(lena_rgb[:,:,0],vmin=0,vmax=1)
 #plt.title("Canal Rojo")
