@@ -2258,7 +2258,7 @@ class ScanWidget(QtGui.QFrame):
             self.presetsMode.setStyleSheet("QComboBox{color: rgb(255,90,0);}\n")
         elif self.presetsMode .currentText() == self.presetsModes[5]:  # nada
             self.presetsMode.setStyleSheet("QComboBox{color: rgb(0,0,0);}\n")
-#https://www.rapidtables.com/web/color/RGB_Color.html  COLORES en rgb
+# https://www.rapidtables.com/web/color/RGB_Color.html
     def Presets(self):
 #shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 #self.presetsModes = ['Red', 'Yellow', 'STED','Yell+STED', 'Red+STED']

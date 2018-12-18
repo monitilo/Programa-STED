@@ -106,28 +106,34 @@ class MainWindow(QtGui.QMainWindow):
         root = tk.Tk()
         root.withdraw()
 
-        self.file_path = filedialog.askdirectory()
-        print(" direccion elegida ", self.file_path)
-        self.form_widget.NameDirValue.setText(self.file_path)
-        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
-#        self.form_widget.paramChanged()
+        file_path = filedialog.askdirectory()
+        if not file_path:
+            print("No elegiste nada")
+        else:
+            self.file_path = file_path
+            print(" direccion elegida ", self.file_path)
+            self.form_widget.NameDirValue.setText(self.file_path)
+            self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
+    #        self.form_widget.paramChanged()
 
     def create_daily_directory(self):
         root = tk.Tk()
         root.withdraw()
 
-        self.file_path = filedialog.askdirectory()
-
-        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
-
-        newpath = self.file_path + "/" + timestr
-        if not os.path.exists(newpath):
-            os.makedirs(newpath)
+        file_path = filedialog.askdirectory()
+        if not file_path:
+            print("No crea la carpeta")
         else:
-            print("Ya existe esa carpeta")
-        self.file_path = newpath
-        self.form_widget.NameDirValue.setText(self.file_path)
-        self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
+            timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+            newpath = file_path + "/" + timestr
+            if not os.path.exists(newpath):
+                os.makedirs(newpath)
+            else:
+                print("Ya existe esa carpeta")
+            self.file_path = newpath
+            self.form_widget.NameDirValue.setText(self.file_path)
+            self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def save_docks(self):
         self.form_widget.state = self.form_widget.dockArea.saveState()
@@ -217,25 +223,9 @@ class ScanWidget(QtGui.QFrame):
 
         self.main = main
         self.device = device
+
 # ---  COSAS DE PRINTIG!
 
-    # Defino el tipo de laser que quiero para imprimir
-        self.grid_laser = QtGui.QComboBox()
-        self.grid_laser.addItems(shutters)
-        self.grid_laser.setCurrentIndex(2)
-        self.grid_laser.setToolTip('Elijo el shuter para IMPRIMIR la grilla')
-
-    # umbral
-        self.umbralLabel = QtGui.QLabel('Umbral')
-        self.umbralEdit = QtGui.QLineEdit('10')
-        self.umbralEdit.setFixedWidth(40)
-        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
-
-    # Defino el tipo de laser que quiero para hacer foco
-        self.focus_laser = QtGui.QComboBox()
-        self.focus_laser.addItems(shutters)
-        self.focus_laser.setCurrentIndex(1)
-        self.focus_laser.setToolTip('Elijo el shuter para HACER FOCO')
 
         self.locked_focus = False
 
@@ -255,13 +245,31 @@ class ScanWidget(QtGui.QFrame):
         QtGui.QShortcut(
             QtGui.QKeySequence('F9'), self, self.focus_autocorr)
 
+    # Cosas para la rutina de imprimir. Grid
+
+    # umbral
+        self.umbralLabel = QtGui.QLabel('Umbral')
+        self.umbralEdit = QtGui.QLineEdit('10')
+        self.umbralEdit.setFixedWidth(40)
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.grid_laser = QtGui.QComboBox()
+        self.grid_laser.addItems(shutters)
+        self.grid_laser.setCurrentIndex(0)
+        self.grid_laser.setToolTip('Elijo el shuter para IMPRIMIR la grilla')
+        self.grid_laser.setFixedWidth(80)
+        self.grid_laser.activated.connect(self.color_grid_laser)
+        self.color_grid_laser()
+
     # Buttons 
         self.cargar_archivo_button = QtGui.QPushButton('Cargar Archivo')
         self.cargar_archivo_button.clicked.connect(self.grid_read)
         self.cargar_archivo_button.setStyleSheet(
                 "QPushButton { background-color: orange; }"
                 "QPushButton:pressed { background-color: blue; }")
-        self.cargar_archivo_button.setToolTip('This is a tooltip message.')
+        self.cargar_archivo_button.setToolTip('Carga el archivo con la grilla,\
+                                              y plotea para ver si esta bien')
 
     # Print button. Que en realidad solo crea la carpeta
         self.imprimir_button = QtGui.QPushButton('IMPRIMIR (no)')
@@ -281,13 +289,79 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
         self.next_button.setToolTip('Empeiza o continua la grilla')
 
+    # go ref button.
+        self.go_ref_button = QtGui.QPushButton('go reference')
+        self.go_ref_button.setCheckable(False)
+#        self.go_ref_button.clicked.connect(self.gor_reference)
+        self.go_ref_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.go_ref_button.setToolTip('Va a la referencia seteada')
+        self.go_ref_button.setFixedWidth(80)
+
+    # set reference button.
+        self.set_ref_button = QtGui.QPushButton('set reference')
+        self.set_ref_button.setCheckable(False)
+#        self.set_ref_button.clicked.connect(self.set_reference)
+        self.set_ref_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.set_ref_button.setToolTip('setea la referencia')
+        self.set_ref_button.setFixedWidth(150)
+
     # La grid con las cosas de printing. Mas abajo entra en el dock
         self.grid_print = QtGui.QWidget()
         grid_print_layout = QtGui.QGridLayout()
         self.grid_print.setLayout(grid_print_layout)
-        grid_print_layout.addWidget(self.cargar_archivo_button, 1, 1) # QtGui.QLabel(" ")
-        grid_print_layout.addWidget(self.imprimir_button, 1, 2)
+        grid_print_layout.addWidget(self.cargar_archivo_button,   0, 1, 2, 1) # QtGui.QLabel(" ")
+        grid_print_layout.addWidget(self.imprimir_button,         0, 2, 2, 1)
+        grid_print_layout.addWidget(self.next_button,             2, 2, 2, 1)
+        grid_print_layout.addWidget(self.go_ref_button,           2, 1)
+        grid_print_layout.addWidget(self.set_ref_button,          3, 1)
+        grid_print_layout.addWidget(QtGui.QLabel('Print Laser'),  0, 3)
+        grid_print_layout.addWidget(self.grid_laser,              1, 3)
+        grid_print_layout.addWidget(self.umbralLabel,             2, 3)
+        grid_print_layout.addWidget(self.umbralEdit,              3, 3)
 
+
+    # Cosas para la parte del foco
+
+    # Defino el tipo de laser que quiero para hacer foco
+        self.focus_laser = QtGui.QComboBox()
+        self.focus_laser.addItems(shutters)
+        self.focus_laser.setCurrentIndex(2)
+        self.focus_laser.setToolTip('Elijo el shuter para HACER FOCO')
+        self.focus_laser.setFixedWidth(80)
+        self.focus_laser.activated.connect(self.color_focus_laser)
+        self.color_focus_laser()
+
+
+    # Boton para Lockear el foco
+        self.focus_lock_button = QtGui.QPushButton('Lock Focus')
+        self.focus_lock_button.setCheckable(False)
+        self.focus_lock_button.clicked.connect(self.focus_lock_focus)
+        self.focus_lock_button.setToolTip('guarda el patron en el z actual')
+
+    # Boton de Autocorrelacion, con el foco ya lockeado
+        self.focus_autocorr_button = QtGui.QPushButton('Autocorrelacion')
+        self.focus_autocorr_button.setCheckable(False)
+        self.focus_autocorr_button.clicked.connect(self.focus_autocorr)
+        self.focus_autocorr_button.setToolTip('guarda el patron en el z actual')
+
+    # Go to maximun
+        self.focus_gotomax_button = QtGui.QPushButton('go to maximun')
+        self.focus_gotomax_button.setCheckable(False)
+        self.focus_gotomax_button.clicked.connect(self.focus_go_to_maximun)
+        self.focus_gotomax_button.setToolTip('guarda el patron en el z actual')
+
+
+    # En otra grid poner las cosas del foco
+        self.grid_focus = QtGui.QWidget()
+        grid_focus_layout = QtGui.QGridLayout()
+        self.grid_focus.setLayout(grid_focus_layout)
+        grid_focus_layout.addWidget(self.focus_lock_button,       1, 1, 2, 1)
+        grid_focus_layout.addWidget(self.focus_autocorr_button,   2, 1, 2, 1)
+        grid_focus_layout.addWidget(self.focus_gotomax_button,    3, 1, 2, 1)
+        grid_focus_layout.addWidget(QtGui.QLabel('Focus Laser'),  2, 2)
+        grid_focus_layout.addWidget(self.focus_laser,             3, 2)
 
 # --- FIN COSAS PRINTING
 
@@ -410,10 +484,15 @@ class ScanWidget(QtGui.QFrame):
     # Shutters buttons
         self.shutter0button = QtGui.QCheckBox('shutter Green')
         self.shutter0button.clicked.connect(self.shutter0)
+        self.shutter0button.setStyleSheet("color: green; ")
+
         self.shutter1button = QtGui.QCheckBox('shutter Red')
         self.shutter1button.clicked.connect(self.shutter1)
+        self.shutter1button.setStyleSheet("color: red; ")
+
         self.shutter2button = QtGui.QCheckBox('shutter Blue')
         self.shutter2button.clicked.connect(self.shutter2)
+        self.shutter2button.setStyleSheet("color: blue; ")
 
         self.shutter0button.setToolTip('Open/close Green 532 Shutter')
         self.shutter1button.setToolTip('Open/close red 640 Shutter')
@@ -588,8 +667,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
-        subgrid2.addWidget(self.umbralLabel,      4, 2)
-        subgrid2.addWidget(self.umbralEdit,       5, 2)
+#        subgrid2.addWidget(self.umbralLabel,      4, 2)
+#        subgrid2.addWidget(self.umbralEdit,       5, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
         subgrid2.addWidget(self.stepcheck,             7, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           8, 2)
@@ -671,6 +752,11 @@ class ScanWidget(QtGui.QFrame):
         self.zDownButton.pressed.connect(self.zMoveDown)
         self.zStepEdit = QtGui.QLineEdit("1.0")
         self.zStepUnit = QtGui.QLabel(" µm")
+        self.zup2Button = QtGui.QPushButton("++z ▲▲")
+#        self.zup2Button.pressed.connect(self.zMoveUp2)
+        self.zDown2Button = QtGui.QPushButton("--z ▼▼")
+#        self.zDown2Button.pressed.connect(self.zMoveDown2)
+
 
         tamaño = 50
         self.xStepUnit.setFixedWidth(tamaño)
@@ -683,27 +769,30 @@ class ScanWidget(QtGui.QFrame):
         self.positioner.setLayout(layout)
         layout.addWidget(self.xname,       1, 0)
         layout.addWidget(self.xLabel,      1, 1)
-        layout.addWidget(self.xUpButton,   2, 4, 2, 1)
-        layout.addWidget(self.xDownButton, 2, 2, 2, 1)
+        layout.addWidget(self.xUpButton,   2, 6, 2, 1)
+        layout.addWidget(self.xDownButton, 2, 4, 2, 1)
 #        layout.addWidget(QtGui.QLabel("Step x"), 1, 6)
 #        layout.addWidget(self.xStepEdit, 1, 7)
 #        layout.addWidget(self.xStepUnit, 1, 8)
 
         layout.addWidget(self.yname,       2, 0)
         layout.addWidget(self.yLabel,      2, 1)
-        layout.addWidget(self.yUpButton,   1, 3, 2, 1)
-        layout.addWidget(self.yDownButton, 3, 3, 2, 1)
-        layout.addWidget(QtGui.QLabel("Length of step xy"), 1, 6)
-        layout.addWidget(self.yStepEdit,   2, 6)
-        layout.addWidget(self.yStepUnit,   2, 7)
+        layout.addWidget(self.yUpButton,   1, 5, 2, 1)
+        layout.addWidget(self.yDownButton, 3, 5, 2, 1)
+        layout.addWidget(QtGui.QLabel("step xy (­­­µm) "), 4, 6)
+        layout.addWidget(self.yStepEdit,   5, 6)
+#        layout.addWidget(self.yStepUnit,   5, 5)
 
         layout.addWidget(self.zname,       4, 0)
         layout.addWidget(self.zLabel,      4, 1)
-        layout.addWidget(self.zUpButton,   1, 5, 2, 1)
-        layout.addWidget(self.zDownButton, 3, 5, 2, 1)
-        layout.addWidget(QtGui.QLabel("Length of step z"), 3, 6)
-        layout.addWidget(self.zStepEdit,   4, 6)
-        layout.addWidget(self.zStepUnit,   4, 7)
+        layout.addWidget(self.zup2Button,   0, 9, 2, 1)
+        layout.addWidget(self.zUpButton,   1, 9, 3, 1)
+        layout.addWidget(self.zDownButton, 3, 9, 2, 1)
+        layout.addWidget(self.zDown2Button, 4, 9, 2, 1)
+        layout.addWidget(QtGui.QLabel("step z (­­­µm)"), 4, 10)
+        layout.addWidget(self.zStepEdit,   5, 10)
+#        layout.addWidget(self.zStepUnit,   2, 7)
+
 
         layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
 
@@ -712,6 +801,18 @@ class ScanWidget(QtGui.QFrame):
         self.zStepEdit.setFixedWidth(tamaño)
 #        self.yStepEdit.setValidator(self.onlypos)
 #        self.zStepEdit.setValidator(self.onlypos)
+        layout.addWidget(QtGui.QLabel("|"),  1, 2)
+        layout.addWidget(QtGui.QLabel("|"),  2, 2)
+        layout.addWidget(QtGui.QLabel("|"),  3, 2)
+        layout.addWidget(QtGui.QLabel("|"),  4, 2)
+        layout.addWidget(QtGui.QLabel("|"),  5, 2)
+
+        layout.addWidget(QtGui.QLabel("|"),  1, 8)
+        layout.addWidget(QtGui.QLabel("|"),  2, 8)
+        layout.addWidget(QtGui.QLabel("|"),  3, 8)
+        layout.addWidget(QtGui.QLabel("|"),  4, 8)
+        layout.addWidget(QtGui.QLabel("|"),  5, 8)
+#        layout.addWidget(QtGui.QLabel("|"),  6, 5)
 
         self.gotoWidget = QtGui.QWidget()
 #        grid.addWidget(self.gotoWidget, 1, 1)
@@ -805,9 +906,13 @@ class ScanWidget(QtGui.QFrame):
         scanDock2.addWidget(self.paramWidget2)
         dockArea.addDock(scanDock2, 'left', scanDock3)
 
-        grid_print_dock = Dock('Printing grids', size=(1, 10))
+        grid_print_dock = Dock('Printing grids', size=(5, 10))
         grid_print_dock.addWidget(self.grid_print)
         dockArea.addDock(grid_print_dock, 'bottom')
+
+        grid_focus_dock = Dock('Focus cosas', size=(2, 1))
+        grid_focus_dock.addWidget(self.grid_focus)
+        dockArea.addDock(grid_focus_dock, 'right', grid_print_dock)
 
 
         hbox.addWidget(dockArea)
@@ -2079,6 +2184,24 @@ class ScanWidget(QtGui.QFrame):
         """ Hace un confocal de la particula"""
         pass
 
+
+# Con estas funciones me encargo de que los menus tengan colores
+    def color_grid_laser(self):
+        self.color_menu(self.grid_laser)
+
+    def color_focus_laser(self):
+        self.color_menu(self.focus_laser)
+
+    def color_menu(self, QComboBox):
+        """ le pongo color a los menus"""
+        if QComboBox.currentText() == shutters[0]:  # verde
+            QComboBox.setStyleSheet("QComboBox{color: rgb(0,128,0);}\n")
+        elif QComboBox .currentText() == shutters[1]:  # rojo
+            QComboBox.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
+        elif QComboBox .currentText() == shutters[2]: # azul
+            QComboBox.setStyleSheet("QComboBox{color: rgb(0,0,255);}\n")
+
+
 # %% Point scan (inaplicable aca)
 # """
     def PointStart(self):
@@ -2187,13 +2310,13 @@ class ScanWidget(QtGui.QFrame):
 
     def doit(self):
         print("Opening a new popup window...")
-        self.w = MyPopup(self.main, self)
+        self.w = MyPopup_traza(self.main, self)
         self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
         self.w.show()
 
 
 # """
-class MyPopup(QtGui.QWidget):
+class MyPopup_traza(QtGui.QWidget):
 
     def closeEvent(self, event):
         self.stop()
@@ -2335,17 +2458,17 @@ class MyPopup(QtGui.QWidget):
 #        dc.drawLine(100, 0, 0, 100)
 
     def save_traza(self):
-        fig, ax = plt.subplots()
-        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
-        ax.set_xlabel('Tiempo (s) (puede fallar)')
-        ax.set_ylabel('Intensity (V)')
-        plt.show()
+#        fig, ax = plt.subplots()
+#        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
+#        ax.set_xlabel('Tiempo (s) (puede fallar)')
+#        ax.set_ylabel('Intensity (V)')
+#        plt.show()
 
         try:
             # filepath = self.file_path
             filepath = self.main.file_path
-            timestr = time.strftime("%d%m%Y-%H%M%S")
-            name = str(filepath + "/" + timestr + "Traza" + ".txt")
+            timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
+            name = str(filepath + "/" + timestr +"_"+ "Traza" + ".txt")
             f = open(name, "w")
             np.savetxt(name,
                        np.transpose([self.timeaxis[:self.ptr1],
@@ -2452,9 +2575,9 @@ class MyPopup(QtGui.QWidget):
             self.PointLabel.setStyleSheet(" background-color: orange")
             if not self.main.grid_traza_control:
                 print("medio=", np.round(medio))
+                self.save_traza()
                 self.stop()
                 self.close_win()
-#                self.save_traza
                 self.main.grid_traza_control = True
 #                self.main.Signal1.emit()
 
