@@ -20,10 +20,9 @@ from scipy import ndimage
 from scipy import optimize
 
 import re
-
 import tools
-
 from sys import stdout
+
 try:
     import viewbox_toolsQT5 as viewbox_tools
     stdout.write("\033[1;31m")
@@ -47,14 +46,15 @@ maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x']
 # V => µm; uso el doble para no errarle
 activeChannels = ["x", "y", "z"]
-AOchans = [0, 1]  # , 2]  # x,y,z
+AOchans = [0, 1]  # , 2]  # x,y,z  # TODO: agregar z
 detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
-COchans = [0, 1]  # apd rojo y verde
-PMTchan = 1
+COchans = [0, 1]  # apd rojo y verde  # TODO: ya no uso contadores
+PMTchan = 1  # TODO: pero uso varios "pmt" (son fotodiodos(pd))
 scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
 
-shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
+#shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
+shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']  # salida 1,2,3
 
 apdrate = 10**5
 
@@ -78,11 +78,12 @@ class MainWindow(QtGui.QMainWindow):
         print('New')
 
     def openCall(self):
-        os.startfile(self.file_path)
+        namebien = (self.form_widget.NameDirValue.text()).replace("/", "\\")
+        os.startfile(namebien)
+#        os.startfile(self.file_path)
         print('Open: ', self.file_path)
 
     def exitCall(self):
-        self.a = -1.5
         print('Exit app (no hace nada)')
 
     def localDir(self):
@@ -90,15 +91,34 @@ class MainWindow(QtGui.QMainWindow):
         root = tk.Tk()
         root.withdraw()
 
-        self.file_path = filedialog.askdirectory()
-        print("dire: \n", self.file_path, "\n")
-        self.form_widget.NameDirValue.setText(self.file_path)
-        self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
-#        self.form_widget.paramChanged()
+        file_path = filedialog.askdirectory()
+        if not file_path:
+            print("No elegiste nada")
+        else:
+            self.file_path = file_path
+            print("direccion elegida: \n", self.file_path, "\n")
+            self.form_widget.NameDirValue.setText(self.file_path)
+            self.form_widget.NameDirValue.setStyleSheet(" background-color: ")
+    #        self.form_widget.paramChanged()
 
     def create_daily_directory(self):
         root = tk.Tk()
         root.withdraw()
+
+        file_path = filedialog.askdirectory()
+        if not file_path:
+            print("No crea la carpeta")
+        else:
+            timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+
+            newpath = file_path + "/" + timestr
+            if not os.path.exists(newpath):
+                os.makedirs(newpath)
+            else:
+                print("Ya existe esa carpeta")
+            self.file_path = newpath
+            self.form_widget.NameDirValue.setText(self.file_path)
+            self.form_widget.NameDirValue.setStyleSheet(" background-color: ;")
 
         self.file_path = filedialog.askdirectory()
 

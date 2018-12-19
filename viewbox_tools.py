@@ -6,9 +6,18 @@ Created on Mon Dec 14 19:52:49 2015
 """
 
 import numpy as np
-from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
+from sys import stdout
 
+try:
+    from PyQt5 import QtCore, QtGui
+    stdout.write("\033[1;31m")
+    print("\n uso Qt5 \n")
+except:
+    from PyQt4 import QtCore, QtGui
+    stdout.write("\033[1;31m")
+    print("\n uso Qt4 \n")
+stdout.write("\033[0;0m")
 
 # taken from https://www.mrao.cam.ac.uk/~dag/CUBEHELIX/cubehelix.py
 def cubehelix(gamma=1.0, s=0.5, r=-1.5, h=1.0):
