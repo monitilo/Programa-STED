@@ -119,6 +119,7 @@ class MainWindow(QtGui.QMainWindow):
             newpath = file_path + "/" + timestr
             if not os.path.exists(newpath):
                 os.makedirs(newpath)
+                print("Carpeta creada!")
             else:
                 print("Ya existe esa carpeta")
             self.file_path = newpath
@@ -199,7 +200,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setGeometry(10, 40, 600, 550)  # (PosX, PosY, SizeX, SizeY)
         self.save_docks()
 
-        self.umbralLabel = self.form_widget.umbralLabel
+
         self.umbralEdit = self.form_widget.umbralEdit
         self.grid_traza_control = True
 
@@ -505,10 +506,6 @@ class ScanWidget(QtGui.QFrame):
 #        grid_grow.addWidget(QtGui.QLabel(''),          5, 0)
         grid_grow.addWidget(QtGui.QLabel(''),          6, 0)
 
-#        grid_grow.addWidget(self.shiftyLabel,  5, 0)
-#        grid_grow.addWidget(self.shiftyEdit,   6, 0)
-
-
 # --- FIN COSAS PRINTING
 
         # Parameters for smooth moving (to no shake hard the piezo)
@@ -528,6 +525,7 @@ class ScanWidget(QtGui.QFrame):
         self.AOchans = [0, 1, 2]     # Order corresponds to self.channelOrder
 
         self.step = 1
+
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
@@ -599,15 +597,15 @@ class ScanWidget(QtGui.QFrame):
         self.Continouscheck = QtGui.QCheckBox('Continous')
         self.Continouscheck.setChecked(False)
 
-    # XZ PSF scan
-        self.XYcheck = QtGui.QRadioButton('XZ psf scan')
-        self.XYcheck.setChecked(True)
-
-        self.XZcheck = QtGui.QRadioButton('XZ psf scan')
-        self.XZcheck.setChecked(False)
-
-        self.YZcheck = QtGui.QRadioButton('YZ psf scan')
-        self.YZcheck.setChecked(False)
+#    # XZ PSF scan
+#        self.XYcheck = QtGui.QRadioButton('XZ psf scan')
+#        self.XYcheck.setChecked(True)
+#
+#        self.XZcheck = QtGui.QRadioButton('XZ psf scan')
+#        self.XZcheck.setChecked(False)
+#
+#        self.YZcheck = QtGui.QRadioButton('YZ psf scan')
+#        self.YZcheck.setChecked(False)
 
     # para que guarde todo (trazas de Alan)
         self.Alancheck = QtGui.QCheckBox('"VIDEO" save')
@@ -629,16 +627,12 @@ class ScanWidget(QtGui.QFrame):
 #       This boolean is set to True when open the nidaq channels
         self.ischannelopen = False
 
-    # Point scan
-        self.PointButton = QtGui.QPushButton('TRAZA')
-        self.PointButton.setCheckable(False)
-        self.PointButton.clicked.connect(self.PointStart)
-        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
-        self.PointButton.setToolTip('continuously measures the APDs (Ctrl+T)')
-
-        self.PiontAction = QtGui.QAction(self)
-        QtGui.QShortcut(
-            QtGui.QKeySequence('Ctrl+T'), self, self.PointStart)
+    # autoLevel image
+        self.autoLevelscheck = QtGui.QCheckBox('Auto escale (or not)')
+        self.autoLevelscheck.setChecked(True)
+        self.autoLevelscheck.clicked.connect(self.autoLevelset)
+        self.autoLevelscheck.setToolTip('Switch between automatic \
+                                        colorbar normalization, or manually')
 
     # Scanning parameters
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
@@ -726,6 +720,17 @@ class ScanWidget(QtGui.QFrame):
         self.selectlineROIButton = QtGui.QPushButton('Plot line ROI')
         self.selectlineROIButton.clicked.connect(self.selectLineROI)
 
+    # Point scan
+        self.PointButton = QtGui.QPushButton('TRAZA')
+        self.PointButton.setCheckable(False)
+        self.PointButton.clicked.connect(self.PointStart)
+        self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
+        self.PointButton.setToolTip('continuously measures the APDs (Ctrl+T)')
+
+        self.PiontAction = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('Ctrl+T'), self, self.PointStart)
+
     # Max counts
         self.maxcountsLabel = QtGui.QLabel('Counts (max|mean)')
         self.maxcountsEdit = QtGui.QLabel('<strong> 0|0')
@@ -778,10 +783,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.pixelSizeValue,        10, 1)
         subgrid.addWidget(self.liveviewButton,        11, 1)
         subgrid.addWidget(self.Continouscheck,        12, 1)
-        subgrid.addWidget(QtGui.QLabel('Autolevels'), 13, 1)
+        subgrid.addWidget(self.autoLevelscheck,       13, 1)
         subgrid.addWidget(QtGui.QLabel('Img Check'),  14, 1)
         subgrid.addWidget(self.maxcountsLabel,        15, 1)
-        subgrid.addWidget(self.maxcountsEdit,         16, 2, 2, 1)
+        subgrid.addWidget(self.maxcountsEdit,         16, 1, 2, 1)
 
     # Columna 2
 #        subgrid2.addWidget(QtGui.QLabel("NameDir"),    0, 2)
@@ -942,7 +947,7 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(self.yLabel,      2, 1)
         layout.addWidget(self.yUpButton,   1, 5, 3, 1)
         layout.addWidget(self.yDownButton, 3, 5, 2, 1)
-        layout.addWidget(QtGui.QLabel("step xy µm) "), 4, 6, 1, 2)
+        layout.addWidget(QtGui.QLabel("step xy (µm) "), 4, 6, 1, 2)
         layout.addWidget(self.StepEdit,   5, 6)
 #        layout.addWidget(self.yStepUnit,   5, 5)
         layout.addWidget(self.yUp2Button,   0, 5, 2, 1)
@@ -999,7 +1004,7 @@ class ScanWidget(QtGui.QFrame):
         layout2.addWidget(self.ygotoLabel, 2, 2)
         layout2.addWidget(self.zgotoLabel, 3, 2)
         self.zgotoLabel.setValidator(self.onlypos)
-#        tamaño = 50
+        tamaño = 50
         self.xgotoLabel.setFixedWidth(tamaño)
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
@@ -1031,8 +1036,9 @@ class ScanWidget(QtGui.QFrame):
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
         self.goCMButton = QtGui.QPushButton("♥ Go Gauss ♦")
         self.goCMButton.pressed.connect(self.goGauss)
-        layout3.addWidget(self.goCMButton, 2, 4, 1, 2)  # , 2, 2)
+        layout3.addWidget(self.goCMButton, 2, 4, 1, 2)
         layout3.addWidget(self.Gausscheck, 2, 1, 1, 2)
+
 # --- fin POSITIONEERRRRRR---------------------------
 
 
@@ -1141,6 +1147,11 @@ class ScanWidget(QtGui.QFrame):
         self.dockArea = dockArea
         self.paramChanged()
 
+    def autoLevelset(self):
+        if self.autoLevelscheck.isChecked():
+            self.autoLevels = True
+        else:
+            self.autoLevels = False
 
 # --- Cosas pequeñas que agregue
     def PixelSizeChange(self):
@@ -1299,7 +1310,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.image[25, self.i] = 333
 #        self.image[9, -self.i] = 333
 
-        self.img.setImage(self.image, autoLevels=False)
+        self.img.setImage(self.image, autoLevels=self.autoLevels)
         self.MaxCounts()
 
         time = (ptime.time()-self.tic)
@@ -1390,44 +1401,6 @@ class ScanWidget(QtGui.QFrame):
         self.i = 0
         self.Z = self.Z  # + np.random.choice([1,-1])*0.01
 
-# %%--- Guardar imagen SAVE
-    def save_name_update(self):
-        self.edit_Name = str(self.edit_save.text())
-        self.number = 0
-        print("Actualizo el save name")
-
-#    def create_daily_directory(self):
-#        root = tk.Tk()
-#        root.withdraw()
-#
-#        self.file_path = filedialog.askdirectory()
-#
-#        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
-#
-#        newpath = self.file_path + "/" + timestr
-#        if not os.path.exists(newpath):
-#            os.makedirs(newpath)
-#        else:
-#            print("Ya existe esa carpeta")
-#        self.file_path = newpath
-#        self.NameDirValue.setText(self.file_path)
-#        self.NameDirValue.setStyleSheet(" background-color: ; ")
-
-    def guardarimagen(self):
-        try:
-            # filepath = self.file_path
-            filepath = self.main.file_path
-    #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/
-    #    Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/"
-#            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
-            name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")
-            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-            guardado.save(name)
-            self.number = self.number + 1
-            self.edit_save.setText(self.edit_Name + str(self.number))
-            print("\n Guardo la imagen\n")
-        except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
 # %%---Move----------------------------------------
     def move(self, axis, dist):
@@ -1505,15 +1478,15 @@ class ScanWidget(QtGui.QFrame):
 
 # %% Go Cm, go Gauss y go to
     def goCM(self):
-
+        rango2 = self.scanRange/2
         self.zgotoLabel.setStyleSheet(" background-color: ")
         print("arranco en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
-        self.moveto((float(self.CMxValue.text()) + startX)-(self.scanRange/2),
-                    (float(self.CMyValue.text()) + startY)-(self.scanRange/2),
+        self.moveto((float(self.CMxValue.text()) + startX) - rango2,
+                    (float(self.CMyValue.text()) + startY) - rango2,
                     float(self.zLabel.text()))
 
         print("termino en", float(self.xLabel.text()),
@@ -1555,7 +1528,7 @@ class ScanWidget(QtGui.QFrame):
             print("termino en", float(self.xLabel.text()),
                   float(self.yLabel.text()), float(self.zLabel.text()))
 
-            if float(self.zLabel.text()) == 0:  # para no ira z negativo
+            if float(self.zLabel.text()) == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
                     "QPushButton { background-color: red; }"
                     "QPushButton:pressed { background-color: blue; }")
@@ -1577,24 +1550,29 @@ class ScanWidget(QtGui.QFrame):
                  for ax in self.activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
         # falta el :  / convFactors['x']
-        rampx = np.linspace(float(initPos[0]), x, self.nSamples)
-        rampy = np.linspace(float(initPos[1]), y, self.nSamples)
-        rampz = np.linspace(float(initPos[2]), z, self.nSamples)
-#        ramp = np.array((rampx, rampy, rampz))
 
-        tuc = ptime.time()
-#        for i in range(self.nSamples):
-#            borrar = rampx[i] + rampy[i] + rampz[i]
-#            self.aotask.write([rampx[i] / convFactors['x'],
-#                               rampy[i] / convFactors['y'],
-#                               rampz[i] / convFactors['z']], auto_start=True)
-#            time.sleep(t / N)
-
-        print("se mueve todo en", np.round(ptime.time()-tuc, 3), "segs")
-
-        self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
-        self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
-        self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+        if float(initPos[0]) != x or float(initPos[1]) != y\
+           or float(initPos[2]) != z:
+            rampx = np.linspace(float(initPos[0]), x, self.nSamples)
+            rampy = np.linspace(float(initPos[1]), y, self.nSamples)
+            rampz = np.linspace(float(initPos[2]), z, self.nSamples)
+    #        ramp = np.array((rampx, rampy, rampz))
+    
+            tuc = ptime.time()
+    #        for i in range(self.nSamples):
+    #            borrar = rampx[i] + rampy[i] + rampz[i]
+    #            self.aotask.write([rampx[i] / convFactors['x'],
+    #                               rampy[i] / convFactors['y'],
+    #                               rampz[i] / convFactors['z']], auto_start=True)
+    #            time.sleep(t / N)
+    
+            print("se mueve todo en", np.round(ptime.time()-tuc, 3), "segs")
+    
+            self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
+            self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
+            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+        else:
+            print("¡YA ESTOY EN ESAS COORDENADAS!")
 
 # %%--- Shutter time --------------------------
 
@@ -1797,6 +1775,46 @@ class ScanWidget(QtGui.QFrame):
             self.liveview()
 #            self.liveviewStart()
 
+# %%--- Guardar imagen SAVE
+    def save_name_update(self):
+        self.edit_Name = str(self.edit_save.text())
+        self.number = 0
+        print("Actualizo el save name")
+
+#    def create_daily_directory(self):
+#        root = tk.Tk()
+#        root.withdraw()
+#
+#        self.file_path = filedialog.askdirectory()
+#
+#        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
+#
+#        newpath = self.file_path + "/" + timestr
+#        if not os.path.exists(newpath):
+#            os.makedirs(newpath)
+#        else:
+#            print("Ya existe esa carpeta")
+#        self.file_path = newpath
+#        self.NameDirValue.setText(self.file_path)
+#        self.NameDirValue.setStyleSheet(" background-color: ; ")
+
+    def guardarimagen(self):
+        try:
+            # filepath = self.file_path
+            filepath = self.main.file_path
+    #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/
+    #    Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/"
+#            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
+            name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")
+            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+            guardado.save(name)
+            self.number = self.number + 1
+            self.edit_save.setText(self.edit_Name + str(self.number))
+            print("\n Guardo la imagen\n")
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+
 # %% GaussMeasure
     def GaussMeasure(self):
         tic = ptime.time()
@@ -1840,17 +1858,17 @@ class ScanWidget(QtGui.QFrame):
         print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
 
 # %% buttos to open and select folder
-    def selectFolder(self):
-        root = tk.Tk()
-        root.withdraw()
-
-        self.file_path = filedialog.askdirectory()
-        print(self.file_path, 2)
-        self.NameDirValue.setText(self.file_path)
-        self.NameDirValue.setStyleSheet(" background-color: ; ")
-
-    def openFolder(self):
-        os.startfile(self.file_path)
+#    def selectFolder(self):
+#        root = tk.Tk()
+#        root.withdraw()
+#
+#        self.file_path = filedialog.askdirectory()
+#        print(self.file_path, 2)
+#        self.NameDirValue.setText(self.file_path)
+#        self.NameDirValue.setStyleSheet(" background-color: ; ")
+#
+#    def openFolder(self):
+#        os.startfile(self.file_path)
 
 # %%--- CM measure
     def CMmeasure(self):
@@ -2367,6 +2385,10 @@ class ScanWidget(QtGui.QFrame):
         """ Hace un confocal de la particula"""
         pass
 
+    def read_pos(self):
+        print("read pos")
+        a
+
 # para saber si esta en potencia alta o baja
     def power_change(self):
         if self.power_check.isChecked():
@@ -2502,6 +2524,7 @@ class ScanWidget(QtGui.QFrame):
 
 
 # """
+
 class MyPopup_traza(QtGui.QWidget):
 
     def closeEvent(self, event):
@@ -2557,12 +2580,12 @@ class MyPopup_traza(QtGui.QWidget):
                 "QPushButton:pressed { background-color: blue; }")
 
     # umbral
-        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
+#        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
         self.umbralEdit = self.ScanWidget.umbralEdit  # QtGui.QLineEdit('10')
 #        self.umbralEdit.settext()
 #        print("umbral",self.main.umbralEdit.text())
 #        self.umbralEdit.setFixedWidth(40)
-        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
+        self.umbralEdit.setToolTip('promedios de valores nuevo/anteriores ')
 
         self.PointLabel = QtGui.QLabel('<strong>0.00|0.00')
 
@@ -2604,6 +2627,7 @@ class MyPopup_traza(QtGui.QWidget):
 #             self.pointtimer.stop()
 
     def close_win(self):
+        self.stop()
         self.close()
 
     def play_pause_active(self):

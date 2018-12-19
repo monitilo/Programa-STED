@@ -1,4 +1,5 @@
-﻿# import scipy.ndimage as ndi
+﻿# %%
+""" Programa para Printign!!"""
 
 import os
 import tkinter as tk
@@ -21,17 +22,8 @@ from scipy import optimize
 
 import re
 import tools
-from sys import stdout
 
-try:
-    import viewbox_toolsQT5 as viewbox_tools
-    stdout.write("\033[1;31m")
-    print("\n uso Qt5 \n")
-except:
-    import viewbox_tools
-    stdout.write("\033[1;31m")
-    print("\n uso Qt4 \n")
-stdout.write("\033[0;0m")
+import viewbox_tools
 
 import nidaqmx
 
@@ -114,25 +106,12 @@ class MainWindow(QtGui.QMainWindow):
             newpath = file_path + "/" + timestr
             if not os.path.exists(newpath):
                 os.makedirs(newpath)
+                print("Carpeta creada!")
             else:
                 print("Ya existe esa carpeta")
             self.file_path = newpath
             self.form_widget.NameDirValue.setText(self.file_path)
             self.form_widget.NameDirValue.setStyleSheet(" background-color: ;")
-
-        self.file_path = filedialog.askdirectory()
-
-        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
-
-        newpath = self.file_path + "/" + timestr
-        if not os.path.exists(newpath):
-            os.makedirs(newpath)
-            print("Carpeta creada!")
-        else:
-            print("Ya existe esa carpeta")
-        self.file_path = newpath
-        self.form_widget.NameDirValue.setText(self.file_path)
-        self.form_widget.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def save_docks(self):
         self.form_widget.state = self.form_widget.dockArea.saveState()
@@ -209,6 +188,10 @@ class MainWindow(QtGui.QMainWindow):
         self.save_docks()
 
 
+        self.umbralEdit = self.form_widget.umbralEdit
+        self.grid_traza_control = True
+
+
 # %% ScanWidget
 class ScanWidget(QtGui.QFrame):
     def imageplot(self):
@@ -275,6 +258,276 @@ class ScanWidget(QtGui.QFrame):
         self.main = main
         self.nidaq = device  # esto tiene que ir
 
+# ---  COSAS DE PRINTIG!
+
+        self.locked_focus = False
+
+        self.grid_start_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F5'), self, self.grid_start)
+
+        self.focus_maximun_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F8'), self, self.focus_go_to_maximun)
+
+        self.grid_read_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F1'), self, self.grid_read)
+
+        self.grid_autocorr_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('F9'), self, self.focus_autocorr)
+
+    # Cosas para la rutina de imprimir. Grid
+
+    # umbral
+        self.umbralLabel = QtGui.QLabel('Umbral')
+        self.umbralEdit = QtGui.QLineEdit('10')
+        self.umbralEdit.setFixedWidth(40)
+        self.umbralEdit.setToolTip('promedios de valores nuevo/anteriores ')
+        self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
+
+    # umbral
+        self.tmaxLabel = QtGui.QLabel('t max (s)')
+        self.tmaxEdit = QtGui.QLineEdit('60')
+        self.tmaxEdit.setFixedWidth(40)
+        self.tmaxEdit.setToolTip('Tiempo que espera un envento. Si no, sigue')
+        self.tmaxLabel.setToolTip('Tiempo que espera un envento. Si no, sigue')
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.grid_laser = QtGui.QComboBox()
+        self.grid_laser.addItems(shutters)
+        self.grid_laser.setCurrentIndex(0)
+        self.grid_laser.setToolTip('Elijo el shuter para IMPRIMIR la grilla')
+        self.grid_laser.setFixedWidth(80)
+        self.grid_laser.activated.connect(
+                                    lambda: self.color_menu(self.grid_laser))
+        self.color_menu(self.grid_laser)
+        grid_laser_label = QtGui.QLabel('<strong> Print Laser')
+    # Buttons
+        self.cargar_archivo_button = QtGui.QPushButton('Cargar Archivo')
+        self.cargar_archivo_button.clicked.connect(self.grid_read)
+        self.cargar_archivo_button.setStyleSheet(
+                "QPushButton { background-color: orange; }"
+                "QPushButton:pressed { background-color: blue; }")
+        self.cargar_archivo_button.setToolTip('Carga el archivo con la grilla,\
+                                              y plotea para ver si esta bien')
+
+    # Print button. Que en realidad solo crea la carpeta
+        self.imprimir_button = QtGui.QPushButton('IMPRIMIR (no)')
+        self.imprimir_button.setCheckable(True)
+        self.imprimir_button.clicked.connect(self.grid_create_folder)
+        self.imprimir_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.imprimir_button.setToolTip('En realidad solo crea la carpeta\
+                                        El mundo es una gran mentira.')
+
+    # Print button. Que en realidad solo crea la carpeta
+        self.next_button = QtGui.QPushButton('Next ►')
+        self.next_button.setCheckable(False)
+        self.next_button.clicked.connect(self.grid_start)
+        self.next_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.next_button.setToolTip('Empeiza o continua la grilla')
+
+    # go ref button.
+        self.go_ref_button = QtGui.QPushButton('go reference')
+        self.go_ref_button.setCheckable(False)
+#        self.go_ref_button.clicked.connect(self.gor_reference)
+        self.go_ref_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.go_ref_button.setToolTip('Va a la referencia seteada')
+        self.go_ref_button.setFixedWidth(80)
+
+    # set reference button.
+        self.set_ref_button = QtGui.QPushButton('set reference')
+        self.set_ref_button.setCheckable(False)
+#        self.set_ref_button.clicked.connect(self.set_reference)
+        self.set_ref_button.setStyleSheet(
+                "QPushButton:pressed { background-color: blue; }")
+        self.set_ref_button.setToolTip('setea la referencia')
+        self.set_ref_button.setFixedWidth(150)
+
+    # La grid con las cosas de printing. Mas abajo entra en el dock
+        self.grid_print = QtGui.QWidget()
+        grid_print_layout = QtGui.QGridLayout()
+        self.grid_print.setLayout(grid_print_layout)
+        grid_print_layout.addWidget(self.cargar_archivo_button,   0, 1, 2, 1)
+        grid_print_layout.addWidget(self.imprimir_button,         0, 2, 2, 1)
+        grid_print_layout.addWidget(self.next_button,             2, 2, 2, 1)
+        grid_print_layout.addWidget(self.go_ref_button,           2, 1)
+        grid_print_layout.addWidget(self.set_ref_button,          3, 1)
+        grid_print_layout.addWidget(grid_laser_label,             0, 3, 1, 2)
+        grid_print_layout.addWidget(self.grid_laser,              1, 3, 1, 2)
+        grid_print_layout.addWidget(self.umbralLabel,             3, 3)
+        grid_print_layout.addWidget(self.umbralEdit,              4, 3)
+        grid_print_layout.addWidget(self.tmaxLabel,               3, 4)
+        grid_print_layout.addWidget(self.tmaxEdit,                4, 4)
+
+    # Cosas para la parte del foco
+
+    # Defino el tipo de laser que quiero para hacer foco
+        self.focus_laser = QtGui.QComboBox()
+        self.focus_laser.addItems(shutters)
+        self.focus_laser.setCurrentIndex(2)
+        self.focus_laser.setToolTip('Elijo el shuter para HACER FOCO')
+        self.focus_laser.setFixedWidth(80)
+        self.focus_laser.activated.connect(
+                                    lambda: self.color_menu(self.focus_laser))
+        self.color_menu(self.focus_laser)
+        focus_laser_label = QtGui.QLabel('<strong> Focus Laser')
+
+    # Boton para Lockear el foco
+        self.focus_lock_button = QtGui.QPushButton('Lock Focus')
+        self.focus_lock_button.setCheckable(False)
+        self.focus_lock_button.clicked.connect(self.focus_lock_focus)
+        self.focus_lock_button.setToolTip('guarda el patron en el z actual')
+
+    # Boton de Autocorrelacion, con el foco ya lockeado
+        self.focus_autocorr_button = QtGui.QPushButton('Autocorrelacion')
+        self.focus_autocorr_button.setCheckable(False)
+        self.focus_autocorr_button.clicked.connect(self.focus_autocorr)
+        self.focus_autocorr_button.setToolTip('guarda el patron nel z actual')
+
+    # Go to maximun
+        self.focus_gotomax_button = QtGui.QPushButton('go to maximun')
+        self.focus_gotomax_button.setCheckable(False)
+        self.focus_gotomax_button.clicked.connect(self.focus_go_to_maximun)
+        self.focus_gotomax_button.setToolTip('guarda el patron en el z actual')
+
+    # En otra grid poner las cosas del foco
+        self.grid_focus = QtGui.QWidget()
+        grid_focus_layout = QtGui.QGridLayout()
+        self.grid_focus.setLayout(grid_focus_layout)
+        grid_focus_layout.addWidget(self.focus_lock_button,       1, 1, 2, 1)
+        grid_focus_layout.addWidget(self.focus_autocorr_button,   2, 1, 2, 1)
+        grid_focus_layout.addWidget(self.focus_gotomax_button,    3, 1, 2, 1)
+        grid_focus_layout.addWidget(focus_laser_label,            2, 2)
+        grid_focus_layout.addWidget(self.focus_laser,             3, 2)
+
+    # particles to autofocus
+        self.autofocLabel = QtGui.QLabel('Particles after autofocus')
+        self.autofocEdit = QtGui.QLineEdit('10')
+        self.autofocEdit.setFixedWidth(40)
+        self.autofocEdit.setToolTip('Cantida de impresiones hasta autofoquear')
+
+    # shift x
+        self.shifxLabel = QtGui.QLabel('focus shift X [µm]')
+        self.shiftxEdit = QtGui.QLineEdit('10')
+        self.shiftxEdit.setFixedWidth(40)
+        self.shiftxEdit.setToolTip('Para que haga el autofoco corrido ')
+
+    # shift y
+        self.shiftyLabel = QtGui.QLabel('focus shift Y [µm]')
+        self.shiftyEdit = QtGui.QLineEdit('10')
+        self.shiftyEdit.setFixedWidth(40)
+        self.shiftyEdit.setToolTip('Para que haga el autofoco corrido ')
+
+    # En otra grid poner las cosas del foco
+        self.grid_shift = QtGui.QWidget()
+        grid_shift_layout = QtGui.QGridLayout()
+        self.grid_shift.setLayout(grid_shift_layout)
+        grid_shift_layout.addWidget(self.autofocLabel, 1, 0)
+        grid_shift_layout.addWidget(self.autofocEdit,  2, 0)
+        grid_shift_layout.addWidget(self.shifxLabel,   3, 0)
+        grid_shift_layout.addWidget(self.shiftxEdit,   4, 0)
+        grid_shift_layout.addWidget(self.shiftyLabel,  5, 0)
+        grid_shift_layout.addWidget(self.shiftyEdit,   6, 0)
+
+    # separo tambien los shutters y flipper
+        self.shuttersignal = [False, False, False]
+    # Shutters buttons
+        self.shutter0button = QtGui.QCheckBox('shutter Green')
+        self.shutter0button.clicked.connect(self.shutter0)
+        self.shutter0button.setStyleSheet("color: green; ")
+
+        self.shutter1button = QtGui.QCheckBox('shutter Red')
+        self.shutter1button.clicked.connect(self.shutter1)
+        self.shutter1button.setStyleSheet("color: red; ")
+
+        self.shutter2button = QtGui.QCheckBox('shutter Blue')
+        self.shutter2button.clicked.connect(self.shutter2)
+        self.shutter2button.setStyleSheet("color: blue; ")
+
+        self.shutter0button.setToolTip('Open/close Green 532 Shutter')
+        self.shutter1button.setToolTip('Open/close red 640 Shutter')
+        self.shutter2button.setToolTip('Open/close blue 405 Shutter')
+
+        self.power_check = QtGui.QCheckBox('Potencia')
+#        self.power_check.setChecked(False)
+        self.power_check.clicked.connect(self.power_change)
+        self.power_check.setToolTip('Picado es baja, no picado es alta')
+        self.power_change()
+
+        self.grid_shutters = QtGui.QWidget()
+        grid_shutters_layout = QtGui.QGridLayout()
+        self.grid_shutters.setLayout(grid_shutters_layout)
+        grid_shutters_layout.addWidget(self.shutter0button,        0, 1)
+        grid_shutters_layout.addWidget(self.shutter1button,        1, 1)
+        grid_shutters_layout.addWidget(self.shutter2button,        2, 1)
+        grid_shutters_layout.addWidget(self.power_check,           1, 2, 2, 2)
+
+    # boton de dimeros
+        self.dimeros_button = QtGui.QPushButton("DIMEROS")
+        self.dimeros_button.setCheckable(False)
+#        self.dimeros_button.clicked.connect(self.focus_go_to_maximun)
+        self.dimeros_button.setToolTip('no se que hace')
+
+    # Go to maximun
+        self.dimeros_next_button = QtGui.QPushButton("Next Dimer")
+        self.dimeros_next_button.setCheckable(False)
+#        self.dimeros_button.clicked.connect(self.focus_go_to_maximun)
+        self.dimeros_next_button.setToolTip('empieza')
+
+    # tiempo de espera dimeros
+        self.t_waitLabel = QtGui.QLabel('t espera (s)')
+        self.t_waitEdit = QtGui.QLineEdit('60')
+        self.t_waitEdit.setFixedWidth(40)
+        self.t_waitEdit.setToolTip('Tiempo que mantiene el laser prendido.')
+        self.t_waitLabel.setToolTip('Tiempo que mantiene el laser prendido.')
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.preescan_laser = QtGui.QComboBox()
+        self.preescan_laser.addItems(shutters)
+        self.preescan_laser.setCurrentIndex(1)
+        self.preescan_laser.setToolTip('Elijo el shuter para Preescanear el que ya está')
+        self.preescan_laser.setFixedWidth(80)
+        self.preescan_laser.activated.connect(
+                                lambda: self.color_menu(self.preescan_laser))
+        self.color_menu(self.preescan_laser)
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.dimerscan_laser = QtGui.QComboBox()
+        self.dimerscan_laser.addItems(shutters)
+        self.dimerscan_laser.setCurrentIndex(2)
+        self.dimerscan_laser.setToolTip('Elijo el shuter para escanear el dimero ')
+        self.dimerscan_laser.setFixedWidth(80)
+        self.dimerscan_laser.activated.connect(
+                                lambda: self.color_menu(self.dimerscan_laser))
+        self.color_menu(self.dimerscan_laser)
+
+
+    # En otra grid poner las cosas de crecimiento/Dimeros
+        self.grid_grow = QtGui.QWidget()
+        grid_grow = QtGui.QGridLayout()
+        self.grid_grow.setLayout(grid_grow)
+        grid_grow.addWidget(self.dimeros_button,       1, 0)
+        grid_grow.addWidget(self.dimeros_next_button,  1, 1)
+        grid_grow.addWidget(self.t_waitLabel,          3, 1)
+        grid_grow.addWidget(self.t_waitEdit,           4, 1)
+
+        grid_grow.addWidget(QtGui.QLabel('Pre scan Laser'),   4, 0)
+        grid_grow.addWidget(QtGui.QLabel('Dimer scan Laser'),  4, 2)
+        grid_grow.addWidget(self.preescan_laser,   5, 0)
+        grid_grow.addWidget(self.dimerscan_laser,  5, 2)
+
+        grid_grow.addWidget(QtGui.QLabel(''),          2, 0)
+#        grid_grow.addWidget(QtGui.QLabel(''),          5, 0)
+        grid_grow.addWidget(QtGui.QLabel(''),          6, 0)
+
+
+# --- FIN COSAS PRINTING
+
         imageWidget = pg.GraphicsLayoutWidget()
         self.vb = imageWidget.addViewBox(row=1, col=1)
 
@@ -282,6 +535,7 @@ class ScanWidget(QtGui.QFrame):
                                                     symbol='o', color='m')
         self.point_graph_CM = pg.ScatterPlotItem(size=10,
                                                  symbol='+', color='m')
+
     # Parameters for smooth moving (to no go hard on the piezo (or galvos))
         self.moveTime = 10 / 10**3  # total time to move (s ==>ms)
         self.moveSamples = 1000  # samples to move
@@ -354,22 +608,14 @@ class ScanWidget(QtGui.QFrame):
         self.edit_Name = str(self.edit_save.text())
         self.edit_save.textEdited.connect(self.save_name_update)
         self.save_name_update()
+        tamaño = 110
+        self.edit_save.setFixedWidth(tamaño)
+        self.saveimageButton.setFixedWidth(tamaño)
 
-#        self.NameDirButton = QtGui.QPushButton('Select Dir')
-#        self.NameDirButton.clicked.connect(self.selectFolder)
-#        filepath = main.file_path  # os.path.abspath("")
         self.file_path = os.path.abspath("")
         self.NameDirValue = QtGui.QLabel('')
         self.NameDirValue.setText(self.file_path)
         self.NameDirValue.setStyleSheet(" background-color: red; ")
-
-#        self.OpenButton = QtGui.QPushButton('open dir')
-#        self.OpenButton.clicked.connect(self.openFolder)
-#        self.NameDirButton.setToolTip('Select the folder where it saves')
-#        self.OpenButton.setToolTip('Open the folder where it saves')
-#        self.create_day_Button = QtGui.QPushButton('Create daily dir')
-#        self.create_day_Button.clicked.connect(self.create_daily_directory)
-#        self.create_day_Button.setToolTip('Create a year-mon-day name folder')
 
     # Select the wanted scan mode
         self.scanMode = QtGui.QComboBox()
@@ -420,16 +666,16 @@ class ScanWidget(QtGui.QFrame):
                                         colorbar normalization, or manually')
 
     # Shutters buttons
-        self.shutter0button = QtGui.QCheckBox('shutter Red')
-        self.shutter0button.clicked.connect(self.shutter0)
-        self.shutter1button = QtGui.QCheckBox('shutter STED')
-        self.shutter1button.clicked.connect(self.shutter1)
-        self.shutter2button = QtGui.QCheckBox('shutter Yellow')
-        self.shutter2button.clicked.connect(self.shutter2)
-
-        self.shutter0button.setToolTip('Open/close Red Shutter')
-        self.shutter1button.setToolTip('Open/close STED Shutter')
-        self.shutter2button.setToolTip('Open/close Yellow Shutter')
+#        self.shutter0button = QtGui.QCheckBox('shutter Red')
+#        self.shutter0button.clicked.connect(self.shutter0)
+#        self.shutter1button = QtGui.QCheckBox('shutter STED')
+#        self.shutter1button.clicked.connect(self.shutter1)
+#        self.shutter2button = QtGui.QCheckBox('shutter Yellow')
+#        self.shutter2button.clicked.connect(self.shutter2)
+#
+#        self.shutter0button.setToolTip('Open/close Red Shutter')
+#        self.shutter1button.setToolTip('Open/close STED Shutter')
+#        self.shutter2button.setToolTip('Open/close Yellow Shutter')
 
     # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this frame')
@@ -564,9 +810,12 @@ class ScanWidget(QtGui.QFrame):
         self.paramWidget3.setLayout(subgrid3)
 
     # Columna 1
-        subgrid.addWidget(self.shutter0button,      0, 1)
-        subgrid.addWidget(self.shutter2button,      1, 1)
-        subgrid.addWidget(self.shutter1button,      2, 1)
+#        subgrid.addWidget(self.shutter0button,      0, 1)
+#        subgrid.addWidget(self.shutter2button,      1, 1)
+#        subgrid.addWidget(self.shutter1button,      2, 1)
+        subgrid.addWidget(QtGui.QLabel('      '),   0, 1)
+        subgrid.addWidget(QtGui.QLabel('      '),   1, 1)
+        subgrid.addWidget(QtGui.QLabel('      '),   2, 1)
         subgrid.addWidget(self.scanRangeLabel,      3, 1)
         subgrid.addWidget(self.scanRangeEdit,       4, 1)
         subgrid.addWidget(self.pixelTimeLabel,      5, 1)
@@ -580,7 +829,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.autoLevelscheck,    13, 1)
         subgrid.addWidget(self.imagecheck,         14, 1)
         subgrid.addWidget(self.maxcountsLabel,     15, 1)
-        subgrid.addWidget(self.maxcountsEdit,      16, 2, 2, 1)
+        subgrid.addWidget(self.maxcountsEdit,      16, 1, 2, 1)
 
     # Columna 2
 #        subgrid2.addWidget(self.NameDirButton,       0, 2)
@@ -592,11 +841,12 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid2.addWidget(self.added_points_Edit,    7, 2)
 #        subgrid2.addWidget(self.vueltaLabel,         8, 2)
 #        subgrid2.addWidget(self.vueltaEdit,          9, 2)
-#        subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         1, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         2, 2)
         subgrid2.addWidget(self.detectMode,          3, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         4, 2)
-#        subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
-#        subgrid2.addWidget(QtGui.QLabel(""),         6, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         5, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),         6, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         7, 2)
         subgrid2.addWidget(QtGui.QLabel(""),         8, 2)
         subgrid2.addWidget(self.VideoCheck,          9, 2)
@@ -635,68 +885,110 @@ class ScanWidget(QtGui.QFrame):
 
 # ---  Positioner part ---------------------------------
         # Axes control
-        self.xLabel = QtGui.QLabel('-5.0')
+        self.xLabel = QtGui.QLabel('0.0')
         self.xLabel.setTextFormat(QtCore.Qt.RichText)
         self.xname = QtGui.QLabel("<strong>x =")
         self.xname.setTextFormat(QtCore.Qt.RichText)
         self.xUpButton = QtGui.QPushButton("(+x) ►")  # →
-        self.xUpButton.pressed.connect(self.xMoveUp)
+        self.xUpButton.pressed.connect(
+                       lambda: self.move("x", float(self.StepEdit.text())))
         self.xDownButton = QtGui.QPushButton("◄ (-x)")  # ←
-        self.xDownButton.pressed.connect(self.xMoveDown)
-        self.xStepEdit = QtGui.QLineEdit("1")
-        self.xStepUnit = QtGui.QLabel(" µm")
+        self.xDownButton.pressed.connect(
+                       lambda: self.move("x", -float(self.StepEdit.text())))
+        self.xStepEdit = QtGui.QLineEdit("1.0")  # estaban en 0.05<
+#        self.xStepUnit = QtGui.QLabel(" µm")
+        self.xUp2Button = QtGui.QPushButton("++x ►►")  # →
+        self.xUp2Button.pressed.connect(
+                       lambda: self.move("x", 10*float(self.StepEdit.text())))
+        self.xDown2Button = QtGui.QPushButton("◄◄ --x")  # ←
+        self.xDown2Button.pressed.connect(
+                       lambda: self.move("x", -10*float(self.StepEdit.text())))
 
-        self.yLabel = QtGui.QLabel('-5.0')
+        self.yLabel = QtGui.QLabel('0.0')
         self.yLabel.setTextFormat(QtCore.Qt.RichText)
         self.yname = QtGui.QLabel("<strong>y =")
         self.yname.setTextFormat(QtCore.Qt.RichText)
         self.yUpButton = QtGui.QPushButton("(+y) ▲")  # ↑
-        self.yUpButton.pressed.connect(self.yMoveUp)
+        self.yUpButton.pressed.connect(
+                       lambda: self.move("y", float(self.StepEdit.text())))
         self.yDownButton = QtGui.QPushButton("(-y) ▼")  # ↓
-        self.yDownButton.pressed.connect(self.yMoveDown)
-        self.yStepEdit = QtGui.QLineEdit("1")
-        self.yStepUnit = QtGui.QLabel(" µm")
+        self.yDownButton.pressed.connect(
+                       lambda: self.move("y", -float(self.StepEdit.text())))
+        self.StepEdit = QtGui.QLineEdit("1.0")
+#        self.yStepUnit = QtGui.QLabel(" µm")
+        self.yUp2Button = QtGui.QPushButton("++y ▲▲")  # ↑
+        self.yUp2Button.pressed.connect(
+                       lambda: self.move("y", 10*float(self.StepEdit.text())))
+        self.yDown2Button = QtGui.QPushButton("--y ▼▼")  # ↓
+        self.yDown2Button.pressed.connect(
+                       lambda: self.move("y", -10*float(self.StepEdit.text())))
 
-        self.zLabel = QtGui.QLabel('5.0')
+        self.zLabel = QtGui.QLabel('0.0')
         self.zLabel.setTextFormat(QtCore.Qt.RichText)
         self.zname = QtGui.QLabel("<strong>z =")
         self.zname.setTextFormat(QtCore.Qt.RichText)
         self.zUpButton = QtGui.QPushButton("+z ▲")
-        self.zUpButton.pressed.connect(self.zMoveUp)
+        self.zUpButton.pressed.connect(
+                       lambda: self.zMoveUp())
         self.zDownButton = QtGui.QPushButton("-z ▼")
-        self.zDownButton.pressed.connect(self.zMoveDown)
-        self.zStepEdit = QtGui.QLineEdit("1")
-        self.zStepUnit = QtGui.QLabel(" µm")
+        self.zDownButton.pressed.connect(
+                       lambda: self.zMoveDown())
+        self.zStepEdit = QtGui.QLineEdit("1.0")
+#        self.zStepUnit = QtGui.QLabel(" µm")
+        self.zup2Button = QtGui.QPushButton("++z ▲▲")
+        self.zup2Button.pressed.connect(
+                       lambda: self.zMoveUp(10))
+        self.zDown2Button = QtGui.QPushButton("--z ▼▼")
+        self.zDown2Button.pressed.connect(
+                       lambda: self.zMoveDown(10))
+
+        tamaño = 30
+        self.xLabel.setFixedWidth(tamaño)
+        self.yLabel.setFixedWidth(tamaño)
+        self.zLabel.setFixedWidth(tamaño)
+        tamaño = 50
+        self.xUp2Button.setFixedWidth(tamaño)
+        self.xDown2Button.setFixedWidth(tamaño)
+        self.xUpButton.setFixedWidth(tamaño)
+        self.xDownButton.setFixedWidth(tamaño)
+        self.yUp2Button.setFixedWidth(tamaño)
+        self.yDown2Button.setFixedWidth(tamaño)
+        self.yUpButton.setFixedWidth(tamaño)
+        self.yDownButton.setFixedWidth(tamaño)
 
         self.positioner = QtGui.QWidget()
 #        grid.addWidget(self.positioner, 1, 0)
         layout = QtGui.QGridLayout()
         self.positioner.setLayout(layout)
-        layout.addWidget(self.xname,       1, 0)
-        layout.addWidget(self.xLabel,      1, 1)
-        layout.addWidget(self.xUpButton,   2, 4, 2, 1)
-        layout.addWidget(self.xDownButton, 2, 2, 2, 1)
-#        layout.addWidget(QtGui.QLabel("Step x"), 1, 6)
-#        layout.addWidget(self.xStepEdit, 1, 7)
-#        layout.addWidget(self.xStepUnit, 1, 8)
+        layout.addWidget(self.xname,        1, 0)
+        layout.addWidget(self.xLabel,       1, 1)
+        layout.addWidget(self.xUpButton,    2, 6, 2, 1)
+        layout.addWidget(self.xDownButton,  2, 4, 2, 1)
+        layout.addWidget(self.xUp2Button,   2, 7, 2, 1)
+        layout.addWidget(self.xDown2Button, 2, 3, 2, 1)
 
         layout.addWidget(self.yname,       2, 0)
         layout.addWidget(self.yLabel,      2, 1)
-        layout.addWidget(self.yUpButton,   1, 3, 2, 1)
-        layout.addWidget(self.yDownButton, 3, 3, 2, 1)
-        layout.addWidget(QtGui.QLabel("Length of step xy"), 1, 6)
-        layout.addWidget(self.yStepEdit,   2, 6)
-        layout.addWidget(self.yStepUnit,   2, 7)
+        layout.addWidget(self.yUpButton,   1, 5, 3, 1)
+        layout.addWidget(self.yDownButton, 3, 5, 2, 1)
+        layout.addWidget(QtGui.QLabel("step xy (µm) "), 4, 6, 1, 2)
+        layout.addWidget(self.StepEdit,   5, 6)
+        layout.addWidget(self.yUp2Button,   0, 5, 2, 1)
+        layout.addWidget(self.yDown2Button, 4, 5, 2, 1)
 
         layout.addWidget(self.zname,       4, 0)
         layout.addWidget(self.zLabel,      4, 1)
-        layout.addWidget(self.zUpButton,   1, 5, 2, 1)
-        layout.addWidget(self.zDownButton, 3, 5, 2, 1)
-        layout.addWidget(QtGui.QLabel("Length of step z"), 3, 6)
-        layout.addWidget(self.zStepEdit,   4, 6)
-        layout.addWidget(self.zStepUnit,   4, 7)
+        layout.addWidget(self.zup2Button,   0, 9, 2, 1)
+        layout.addWidget(self.zUpButton,   1, 9, 3, 1)
+        layout.addWidget(self.zDownButton, 3, 9, 2, 1)
+        layout.addWidget(self.zDown2Button, 4, 9, 2, 1)
+        layout.addWidget(QtGui.QLabel("step z (­­­µm)"), 4, 10)
+        layout.addWidget(self.zStepEdit,   5, 10)
 
         layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
+#        Hline =QtGui.QLabel("________________________________________________________________________________________________")
+#        Hline.setFixedWidth(300)
+#        layout.addWidget(Hline,7, 0,1,7)
 
         tamaño = 40
         self.yStepEdit.setFixedWidth(tamaño)
@@ -704,24 +996,35 @@ class ScanWidget(QtGui.QFrame):
 #        self.yStepEdit.setValidator(self.onlypos)
 #        self.zStepEdit.setValidator(self.onlypos)
 
+        layout.addWidget(QtGui.QLabel("|"),  1, 2)
+        layout.addWidget(QtGui.QLabel("|"),  2, 2)
+        layout.addWidget(QtGui.QLabel("|"),  3, 2)
+        layout.addWidget(QtGui.QLabel("|"),  4, 2)
+        layout.addWidget(QtGui.QLabel("|"),  5, 2)
+
+        layout.addWidget(QtGui.QLabel("|"),  1, 8)
+        layout.addWidget(QtGui.QLabel("|"),  2, 8)
+        layout.addWidget(QtGui.QLabel("|"),  3, 8)
+        layout.addWidget(QtGui.QLabel("|"),  4, 8)
+        layout.addWidget(QtGui.QLabel("|"),  5, 8)
+
         self.gotoWidget = QtGui.QWidget()
-#        grid.addWidget(self.gotoWidget, 1, 1)
         layout2 = QtGui.QGridLayout()
         self.gotoWidget.setLayout(layout2)
-        layout2.addWidget(QtGui.QLabel("X"), 1, 1)
-        layout2.addWidget(QtGui.QLabel("Y"), 2, 1)
-        layout2.addWidget(QtGui.QLabel("Z"), 3, 1)
-        self.xgotoLabel = QtGui.QLineEdit("0")
-        self.ygotoLabel = QtGui.QLineEdit("0")
-        self.zgotoLabel = QtGui.QLineEdit("0")
+        layout2.addWidget(QtGui.QLabel("X [µm]"), 1, 1)
+        layout2.addWidget(QtGui.QLabel("Y [µm]"), 2, 1)
+        layout2.addWidget(QtGui.QLabel("Z [µm]"), 3, 1)
+        self.xgotoLabel = QtGui.QLineEdit("0.000")
+        self.ygotoLabel = QtGui.QLineEdit("0.000")
+        self.zgotoLabel = QtGui.QLineEdit("0.000")
         self.gotoButton = QtGui.QPushButton("♫ G0 To ♪")
         self.gotoButton.pressed.connect(self.goto)
-        layout2.addWidget(self.gotoButton, 1, 3, 2, 2)
+        layout2.addWidget(self.gotoButton, 1, 5, 2, 2)
         layout2.addWidget(self.xgotoLabel, 1, 2)
         layout2.addWidget(self.ygotoLabel, 2, 2)
         layout2.addWidget(self.zgotoLabel, 3, 2)
         self.zgotoLabel.setValidator(self.onlypos)
-#        tamaño = 50
+        tamaño = 50
         self.xgotoLabel.setFixedWidth(tamaño)
         self.ygotoLabel.setFixedWidth(tamaño)
         self.zgotoLabel.setFixedWidth(tamaño)
@@ -739,8 +1042,8 @@ class ScanWidget(QtGui.QFrame):
         layout3.addWidget(self.CMyValue, 4, 2)
         self.goCMButton = QtGui.QPushButton("♠ Go CM ♣")
         self.goCMButton.pressed.connect(self.goCM)
-        layout3.addWidget(self.goCMButton, 1, 4)  # , 2, 2)
-        layout3.addWidget(self.CMcheck, 1, 1)
+        layout3.addWidget(self.goCMButton, 1, 4, 1, 2)
+        layout3.addWidget(self.CMcheck, 1, 1, 1, 2)
 
         self.GaussxLabel = QtGui.QLabel('Gauss X')
         self.GaussxValue = QtGui.QLabel('NaN')
@@ -753,20 +1056,15 @@ class ScanWidget(QtGui.QFrame):
 #        layout3.addWidget(QtGui.QLabel(' '), 4, 4)
         self.goCMButton = QtGui.QPushButton("♥ Go Gauss ♦")
         self.goCMButton.pressed.connect(self.goGauss)
-        layout3.addWidget(self.goCMButton, 2, 4)  # , 2, 2)
-        layout3.addWidget(self.Gausscheck, 2, 1)
+        layout3.addWidget(self.goCMButton, 2, 4, 1, 2)
+        layout3.addWidget(self.Gausscheck, 2, 1, 1, 2)
 
 # ---- fin positioner part----------
 
-#        saveBtn = QtGui.QPushButton('Save dock state')
-#        restoreBtn = QtGui.QPushButton('Restore dock state')
-#        restoreBtn.setEnabled(False)
-#        subgrid2.addWidget(saveBtn,    5, 2)
-#        subgrid2.addWidget(restoreBtn, 6, 2)
 
-        self.state = None
 
 # ----DOCK cosas, mas comodo!
+        self.state = None
         hbox = QtGui.QHBoxLayout(self)
         dockArea = DockArea()
 
@@ -774,6 +1072,10 @@ class ScanWidget(QtGui.QFrame):
         viewDock.addWidget(imageWidget)
         viewDock.hideTitleBar()
         dockArea.addDock(viewDock, 'left')
+
+        scanDock = Dock('Scan parameters', size=(1, 1))
+        scanDock.addWidget(self.paramWidget)
+        dockArea.addDock(scanDock, 'right', viewDock)
 
         self.otrosDock = Dock('Other things', size=(1, 1))
 #        self.otrosDock.addWidget(HistoWidget)
@@ -797,11 +1099,28 @@ class ScanWidget(QtGui.QFrame):
 
         scanDock2 = Dock('Other parameters', size=(1, 1))
         scanDock2.addWidget(self.paramWidget2)
-        dockArea.addDock(scanDock2, 'above', scanDock3)
+        dockArea.addDock(scanDock2, 'left', scanDock3)
 
-        scanDock = Dock('Scan parameters', size=(1, 1))
-        scanDock.addWidget(self.paramWidget)
-        dockArea.addDock(scanDock, 'left', scanDock2)
+        grid_print_dock = Dock('Printing grids', size=(5, 10))
+        grid_print_dock.addWidget(self.grid_print)
+        dockArea.addDock(grid_print_dock, 'bottom')
+
+        grid_focus_dock = Dock('Focus cosas', size=(1, 1))
+        grid_focus_dock.addWidget(self.grid_focus)
+        dockArea.addDock(grid_focus_dock, 'bottom', scanDock2)
+
+        grid_shift_dock = Dock('Focus shift', size=(1, 1))
+        grid_shift_dock.addWidget(self.grid_shift)
+        dockArea.addDock(grid_shift_dock, 'right', grid_print_dock)
+
+        shutters_dock = Dock('Shutters', size=(1, 1))
+        shutters_dock.addWidget(self.grid_shutters)
+        dockArea.addDock(shutters_dock, 'bottom', scanDock3)
+
+        grow_dock = Dock('Dimeros/Crecimiento', size=(1, 1))
+        grow_dock.addWidget(self.grid_grow)
+        dockArea.addDock(grow_dock, 'right', grid_shift_dock)
+
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -844,10 +1163,10 @@ class ScanWidget(QtGui.QFrame):
         self.zeroImage()
         self.dy = 0
 
-        self.imageWidget = imageWidget
+#        self.imageWidget = imageWidget
 
         # self.startRutine()
-        # TODO: # que lea de algun lado la posicion y la setee como start x,y,z
+        # TODO: que lea de algun lado la posicion y la setee como start x,y,z
 
     # Agrego un atajo para que empieze tocando Ctrl+a
         self.liveviewAction = QtGui.QAction(self)
@@ -1939,33 +2258,33 @@ class ScanWidget(QtGui.QFrame):
 
         self.done()
 
-    def xMoveUp(self):
-        self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
+#    def xMoveUp(self):
+#        self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
+#
+#    def xMoveDown(self):
+#        self.move('x', -float(getattr(self, 'y' + "StepEdit").text()))
+#
+#    def yMoveUp(self):
+#        self.move('y', float(getattr(self, 'y' + "StepEdit").text()))
+#
+#    def yMoveDown(self):
+#        self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
 
-    def xMoveDown(self):
-        self.move('x', -float(getattr(self, 'y' + "StepEdit").text()))
-
-    def yMoveUp(self):
-        self.move('y', float(getattr(self, 'y' + "StepEdit").text()))
-
-    def yMoveDown(self):
-        self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
-
-    def zMoveUp(self):
-        self.moveZ(float(getattr(self, 'z' + "StepEdit").text()))
+    def zMoveUp(self, algo=1):
+        self.moveZ(algo*float(getattr(self, 'z' + "StepEdit").text()))
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
         self.zStepEdit.setStyleSheet(" background-color: ")
 
-    def zMoveDown(self):
+    def zMoveDown(self, algo=1):
         PosZ = self.initialPosition[2]
-        if PosZ < float(getattr(self, 'z' + "StepEdit").text()):
+        if PosZ < algo*float(getattr(self, 'z' + "StepEdit").text()):
             print("OJO!, te vas a Z's negativos")
             self.zStepEdit.setStyleSheet(" background-color: red; ")
 #            setStyleSheet("color: rgb(255, 0, 255);")
         else:
-            self.moveZ(-float(getattr(self, 'z' + "StepEdit").text()))
+            self.moveZ(-algo*float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet(" background-color: ")
             if self.initialPosition[2] == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
@@ -1976,6 +2295,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
             self.zDownButton.setEnabled(False)
 
+# TODO incluir el eje z a todo
     def moveZ(self, dist):
         """moves the position along the Z axis a distance dist."""
 
@@ -2059,7 +2379,7 @@ class ScanWidget(QtGui.QFrame):
             print("termino en", float(self.xLabel.text()),
                   float(self.yLabel.text()), float(self.zLabel.text()))
 
-            if float(self.zLabel.text()) == 0:  # para no ira z negativo
+            if float(self.zLabel.text()) == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
                     "QPushButton { background-color: red; }"
                     "QPushButton:pressed { background-color: blue; }")
@@ -2102,6 +2422,7 @@ class ScanWidget(QtGui.QFrame):
             self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
             self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
             self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+
             self.paramChanged()
             self.done()
 #            self.channelsOpen()
@@ -2250,6 +2571,7 @@ class ScanWidget(QtGui.QFrame):
         rango = self.scanRange
         texts = [getattr(self, ax + "Label").text() for ax in activeChannels]
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+
         x = np.linspace(0, rango, self.numberofPixels) + float(initPos[0])
         y = np.linspace(0, rango, self.numberofPixels) + float(initPos[1])
         X, Y = np.meshgrid(x, y)
@@ -2297,28 +2619,58 @@ class ScanWidget(QtGui.QFrame):
         toc = ptime.time()
         print("\n tiempo Plotlive", toc-tic, "\n")
 
+    def otroPlot(self):
+        Channels = self.activeChannels
+        texts = [getattr(self, ax + "Label").text() for ax in Channels]
+        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+        xv = np.linspace(0, self.scanRange,
+                         self.numberofPixels) + float(initPos[0])
+        yv = np.linspace(0, self.scanRange,
+                         self.numberofPixels) + float(initPos[1])
+        X, Y = np.meshgrid(xv, yv)
+#        data = np.flip(np.flip(self.image,0),1)
+        if self.GaussPlot:
+            plt.matshow(self.data, cmap=plt.cm.gist_earth_r, origin='lower',
+                        interpolation='none',
+                        extent=[xv[0], xv[-1], yv[0], yv[-1]])
+            plt.colorbar()
+            plt.grid(True)
+            plt.contour(self.fit(*np.indices(self.data.shape)),
+                        cmap=plt.cm.copper, interpolation='none',
+                        extent=[xv[0], xv[-1], yv[0], yv[-1]])
+            ax = plt.gca()
+            (height, x, y, width_x, width_y) = self.params
+#            xv = np.flip(xv)
+#            yv = np.flip(yv)
+
+            xc = int(np.floor(x))
+            yc = int(np.floor(y))
+            resol = 2
+            xsum, ysum = 0, 0
+            for i in range(resol):
+                for j in range(resol):
+                    ax.text(X[xc+i, yc+j], Y[xc+i, yc+j], "Ga", color='m')
+                    xsum = X[xc+i, yc+j] + xsum
+                    ysum = Y[xc+i, yc+j] + ysum
+            xmean = xsum / (resol**2)
+            ymean = ysum / (resol**2)
+            ax.text(xmean, ymean, "✔", color='r')
+#            Normal = self.scanRange / self.numberofPixels  # Normalizo
+#            ax.set_title((self.xcm*Normal + float(initPos[0]),
+#                          self.ycm*Normal + float(initPos[1])))
+            plt.text(0.95, 0.05, """x : %.2f y : %.2f """
+                     % (xmean, ymean),  # X[xc, yc], Y[xc, yc]
+                     fontsize=16, horizontalalignment='right',
+                     verticalalignment='bottom', transform=ax.transAxes)
+            print("x", xv[int(x)], X[xc, yc], xmean)
+#            Normal = self.scanRange / self.numberofPixels  # Normalizo
+            ax.set_title("Centro en x={:.3f}, y={:.3f}".format(xmean, ymean))
+            plt.show()
+
 # %%--- SaveFrame ---
     def save_name_update(self):
         self.edit_Name = str(self.edit_save.text())
         self.NameNumber = 0
-
-#    def create_daily_directory(self):
-#        root = tk.Tk()
-#        root.withdraw()
-#
-#        self.file_path = filedialog.askdirectory()
-#
-#        timestr = time.strftime("%Y-%m-%d")  # -%H%M%S")
-#
-#        newpath = self.file_path + "/" + timestr
-#        if not os.path.exists(newpath):
-#            os.makedirs(newpath)
-#        else:
-#            print("Ya existe esa carpeta")
-#
-#        self.file_path = newpath
-#        self.NameDirValue.setText(self.file_path)
-#        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def saveFrame(self):
         """ Config the path and name of the file to save, and save it"""
@@ -2361,16 +2713,6 @@ class ScanWidget(QtGui.QFrame):
 
         new_params = fitgaussian(self.image)
         (height, x, y, width_x, width_y) = new_params
-#        self.xGauss = x
-#        self.yGauss = y
-
-#        Channels = self.activeChannels
-#        texts = [getattr(self, ax + "Label").text() for ax in Channels]
-#        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-#        xv = np.linspace(0, self.scanRange,
-#                         self.numberofPixels) + float(initPos[0])
-#        yv = np.linspace(0, self.scanRange,
-#                         self.numberofPixels) + float(initPos[1])
 
         Normal = self.scanRange / self.numberofPixels  # Normalizo
         xx = x*Normal
@@ -2695,17 +3037,34 @@ class ScanWidget(QtGui.QFrame):
         toc = ptime.time()
         print("\n tiempo getInitPos", toc-tic, "\n")
 
+    def read_pos(self):
+        print("similar a lo que esta arriba^^")
+
 # %% Point scan ---+--- Hay que elegir APD
+
     def PointStart(self):
         self.done()
+        self.doit()
+        print("Trazando...")
+
+    def PointScanStop(self):
+        self.w.pointtimer.stop()
+#        self.pointtimer.stop()
+# #        self.pointtask.stop()
+# #        self.pointtask.close()
+# #        self.pointtask2.stop()
+# #        self.pointtask2.close()
+        print("fin traza")
+
+    def doit(self):
         print("Opening a new popup window...")
-        self.w = Traza(self.main, self)
+        self.w = MyPopup_traza(self.main, self)
         self.w.setGeometry(QtCore.QRect(750, 50, 450, 600))
         self.w.show()
 
 
 # %% Clase para TRAZA
-class Traza(QtGui.QWidget):
+class MyPopup_traza(QtGui.QWidget):
     """ new class to create a new window for the trace menu"""
 
     def closeEvent(self, event):
@@ -2730,7 +3089,7 @@ class Traza(QtGui.QWidget):
         self.line2 = self.p6.plot(open='y')
 
     #  buttons: play button
-        self.play_pause_Button = QtGui.QPushButton('► Play / Pause || (1)')
+        self.play_pause_Button = QtGui.QPushButton('► Play / Pause || (F1)')
         self.play_pause_Button.setCheckable(True)
         self.play_pause_Button.clicked.connect(self.play_pause)
         self.play_pause_Button.setToolTip('Pausa y continua la traza (F1)')
@@ -2746,14 +3105,14 @@ class Traza(QtGui.QWidget):
     # save button
         self.save_Button = QtGui.QPushButton('plot and/or save')
         self.save_Button.setCheckable(False)
-        self.save_Button.clicked.connect(self.save_plot)
+        self.save_Button.clicked.connect(self.save_traza)
         self.save_Button.setToolTip('Para Guardar la traza(tambien la plotea)')
         self.save_Button.setStyleSheet(
                 "QPushButton { background-color: rgb(200, 200, 10); }"
                 "QPushButton:pressed { background-color: blue; }")
 
     # umbral
-        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
+#        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
         self.umbralEdit = self.ScanWidget.umbralEdit  # QtGui.QLineEdit('10')
         self.umbralEdit.setFixedWidth(40)
         self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
@@ -2799,13 +3158,14 @@ class Traza(QtGui.QWidget):
 
     def play_pause(self):
         if self.play_pause_Button.isChecked():
-            # self.pause_Button.setStyleSheet(
-            #        "QPushButton { background-color: ; }")
+            print("play")
+            self.timer_inicio = ptime.time()
             if self.running:
                 self.pointtimer.start(self.tiempo)
             else:
                 self.PointScan()
         else:
+            print("pause")
             self.pointtimer.stop()
             # self.pause_Button.setStyleSheet(
             #        "QPushButton { background-color: red; }")
@@ -2828,8 +3188,7 @@ class Traza(QtGui.QWidget):
         except:  # pass
             print("pointtasktask2 no estaba abierto")
 
-    def save_plot(self):
-
+    def save_traza(self):
         try:
             print("va a aguardar")
             # filepath = self.file_path
@@ -2849,11 +3208,11 @@ class Traza(QtGui.QWidget):
         except IOError as e:
             print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
-        fig, ax = plt.subplots()
-        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
-        ax.set_xlabel('Tiempo (s) (puede fallar)')
-        ax.set_ylabel('Intensity (V)')
-        plt.show()
+#        fig, ax = plt.subplots()
+#        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
+#        ax.set_xlabel('Tiempo (s) (puede fallar)')
+#        ax.set_ylabel('Intensity (V)')
+#        plt.show()
 
     def PointScan(self):
         self.running = True
@@ -2981,20 +3340,31 @@ class Traza(QtGui.QWidget):
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(mediochico), float(mediochico2)))
 #        print(mediochico, mediochico2)
+        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
+            print("se paso el tiempo!!")
         if mediochico >= mediochico2*float(self.umbralEdit.text()):
             self.PointLabel.setStyleSheet(" background-color: orange")
         else:
             self.PointLabel.setStyleSheet(" background-color: ")
-
+    # Este if not es el que define si se esta corriendo una grilla
+        if not self.main.grid_traza_control:
+            if medio > medio2*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
+                print("medio=", np.round(medio))
+                self.save_traza()
+                self.stop()
+                self.close_win()
+                self.main.grid_traza_control = True
+        else:
+            self.PointLabel.setStyleSheet(" background-color: ")
         toc = ptime.time()
-#        print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
-#        print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")
-#        print("tiempo del medio", np.round((tec-tac)*10**3,3), "(ms)")
-#        print("tiempo armar promedios varios", np.round((tuc-tec)*10**3,3), "(ms)")
-#        print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
-#        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
-#        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
-#
+        print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
+        print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")
+        print("tiempo del medio", np.round((tec-tac)*10**3,3), "(ms)")
+        print("tiempo armar promedios varios", np.round((tuc-tec)*10**3,3), "(ms)")
+        print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
+        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
+        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
+
 
 # %% Otras Funciones
 def gaussian(height, center_x, center_y, width_x, width_y):
