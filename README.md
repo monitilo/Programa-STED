@@ -1,15 +1,7 @@
-# Programa-STED
+# Programa-STED; Printing
 
-to do list:
+El programa que corre en una pc normal es "PC position y scan general"
+El que corre en el laboratorio es "PythonScan-german" para STED; "aPyPrinting" para Printing.
+en el futuro unificare los dos, pero por lo pronto hay mas diferencias que similitudes entre ellos.
 
--hacerlo accesible de abrir al programa (no tener que andar escribiendo en la consola).
-
--Barrido discriminado Sted
-
--Moverse en funcionamiento (baja prioridad)
-
--Arreglar el tema trigger (baja prioridad)
-
--Probar el barrido ‘full’ que al final cambie lo del Napd y nunca lo miré. No sirve
-
--Probar con apdrate = 20*10**6
+En cualquier caso, solo es importante tener el archivo viewbox_tools. Este usa PyQt4, o 5 de acuerdo a la version de python con que se cuenta.
