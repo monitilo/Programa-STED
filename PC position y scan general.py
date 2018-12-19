@@ -251,7 +251,15 @@ class ScanWidget(QtGui.QFrame):
         self.umbralLabel = QtGui.QLabel('Umbral')
         self.umbralEdit = QtGui.QLineEdit('10')
         self.umbralEdit.setFixedWidth(40)
+        self.umbralEdit.setToolTip('promedios de valores nuevo/anteriores ')
         self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
+
+    # umbral
+        self.tmaxLabel = QtGui.QLabel('t max (s)')
+        self.tmaxEdit = QtGui.QLineEdit('60')
+        self.tmaxEdit.setFixedWidth(40)
+        self.tmaxEdit.setToolTip('Tiempo que espera un envento. Si no, sigue')
+        self.tmaxLabel.setToolTip('Tiempo que espera un envento. Si no, sigue')
 
     # Defino el tipo de laser que quiero para imprimir
         self.grid_laser = QtGui.QComboBox()
@@ -259,8 +267,8 @@ class ScanWidget(QtGui.QFrame):
         self.grid_laser.setCurrentIndex(0)
         self.grid_laser.setToolTip('Elijo el shuter para IMPRIMIR la grilla')
         self.grid_laser.setFixedWidth(80)
-        self.grid_laser.activated.connect(self.color_grid_laser)
-        self.color_grid_laser()
+        self.grid_laser.activated.connect(lambda: self.color_menu(self.grid_laser))
+        self.color_menu(self.grid_laser)
 
     # Buttons 
         self.cargar_archivo_button = QtGui.QPushButton('Cargar Archivo')
@@ -316,11 +324,12 @@ class ScanWidget(QtGui.QFrame):
         grid_print_layout.addWidget(self.next_button,             2, 2, 2, 1)
         grid_print_layout.addWidget(self.go_ref_button,           2, 1)
         grid_print_layout.addWidget(self.set_ref_button,          3, 1)
-        grid_print_layout.addWidget(QtGui.QLabel('<strong> Print Laser'),  0, 3)
-        grid_print_layout.addWidget(self.grid_laser,              1, 3)
-        grid_print_layout.addWidget(self.umbralLabel,             2, 3)
-        grid_print_layout.addWidget(self.umbralEdit,              3, 3)
-
+        grid_print_layout.addWidget(QtGui.QLabel('<strong> Print Laser'),  0, 3, 1, 2)
+        grid_print_layout.addWidget(self.grid_laser,              1, 3, 1, 2)
+        grid_print_layout.addWidget(self.umbralLabel,             3, 3)
+        grid_print_layout.addWidget(self.umbralEdit,              4, 3)
+        grid_print_layout.addWidget(self.tmaxLabel,               3, 4)
+        grid_print_layout.addWidget(self.tmaxEdit,                4, 4)
 
     # Cosas para la parte del foco
 
@@ -330,9 +339,8 @@ class ScanWidget(QtGui.QFrame):
         self.focus_laser.setCurrentIndex(2)
         self.focus_laser.setToolTip('Elijo el shuter para HACER FOCO')
         self.focus_laser.setFixedWidth(80)
-        self.focus_laser.activated.connect(self.color_focus_laser)
-        self.color_focus_laser()
-
+        self.focus_laser.activated.connect(lambda: self.color_menu(self.focus_laser))
+        self.color_menu(self.focus_laser)
 
     # Boton para Lockear el foco
         self.focus_lock_button = QtGui.QPushButton('Lock Focus')
@@ -352,7 +360,6 @@ class ScanWidget(QtGui.QFrame):
         self.focus_gotomax_button.clicked.connect(self.focus_go_to_maximun)
         self.focus_gotomax_button.setToolTip('guarda el patron en el z actual')
 
-
     # En otra grid poner las cosas del foco
         self.grid_focus = QtGui.QWidget()
         grid_focus_layout = QtGui.QGridLayout()
@@ -362,6 +369,152 @@ class ScanWidget(QtGui.QFrame):
         grid_focus_layout.addWidget(self.focus_gotomax_button,    3, 1, 2, 1)
         grid_focus_layout.addWidget(QtGui.QLabel('<strong> Focus Laser'),  2, 2)
         grid_focus_layout.addWidget(self.focus_laser,             3, 2)
+
+    # particles to autofocus
+        self.autofocLabel = QtGui.QLabel('Particles after autofocus')
+        self.autofocEdit = QtGui.QLineEdit('10')
+        self.autofocEdit.setFixedWidth(40)
+        self.autofocEdit.setToolTip('Cantida de impresiones hasta autofoquear ')
+
+    # shift x
+        self.shifxLabel = QtGui.QLabel('focus shift X [µm]')
+        self.shiftxEdit = QtGui.QLineEdit('10')
+        self.shiftxEdit.setFixedWidth(40)
+        self.shiftxEdit.setToolTip('Para que haga el autofoco corrido ')
+
+    # shift y
+        self.shiftyLabel = QtGui.QLabel('focus shift Y [µm]')
+        self.shiftyEdit = QtGui.QLineEdit('10')
+        self.shiftyEdit.setFixedWidth(40)
+        self.shiftyEdit.setToolTip('Para que haga el autofoco corrido ')
+
+    # En otra grid poner las cosas del foco
+        self.grid_shift = QtGui.QWidget()
+        grid_shift_layout = QtGui.QGridLayout()
+        self.grid_shift.setLayout(grid_shift_layout)
+        grid_shift_layout.addWidget(self.autofocLabel, 1, 0)
+        grid_shift_layout.addWidget(self.autofocEdit,  2, 0)
+        grid_shift_layout.addWidget(self.shifxLabel,   3, 0)
+        grid_shift_layout.addWidget(self.shiftxEdit,   4, 0)
+        grid_shift_layout.addWidget(self.shiftyLabel,  5, 0)
+        grid_shift_layout.addWidget(self.shiftyEdit,   6, 0)
+
+    # separo tambien los shutters y flipper
+        self.shuttersignal = [False, False, False]
+    # Shutters buttons
+        self.shutter0button = QtGui.QCheckBox('shutter Green')
+        self.shutter0button.clicked.connect(self.shutter0)
+        self.shutter0button.setStyleSheet("color: green; ")
+
+        self.shutter1button = QtGui.QCheckBox('shutter Red')
+        self.shutter1button.clicked.connect(self.shutter1)
+        self.shutter1button.setStyleSheet("color: red; ")
+
+        self.shutter2button = QtGui.QCheckBox('shutter Blue')
+        self.shutter2button.clicked.connect(self.shutter2)
+        self.shutter2button.setStyleSheet("color: blue; ")
+
+        self.shutter0button.setToolTip('Open/close Green 532 Shutter')
+        self.shutter1button.setToolTip('Open/close red 640 Shutter')
+        self.shutter2button.setToolTip('Open/close blue 405 Shutter')
+
+        self.power_check = QtGui.QCheckBox('Potencia')
+#        self.power_check.setChecked(False)
+        self.power_check.clicked.connect(self.power_change)
+        self.power_check.setToolTip('Picado es baja, no picado es alta')
+        self.power_change()
+
+        self.grid_shutters = QtGui.QWidget()
+        grid_shutters_layout = QtGui.QGridLayout()
+        self.grid_shutters.setLayout(grid_shutters_layout)
+        grid_shutters_layout.addWidget(self.shutter0button,        0, 1)
+        grid_shutters_layout.addWidget(self.shutter1button,        1, 1)
+        grid_shutters_layout.addWidget(self.shutter2button,        2, 1)
+        grid_shutters_layout.addWidget(self.power_check,           1, 2, 2, 2)
+
+
+    # boton de dimeros
+        self.dimeros_button = QtGui.QPushButton("DIMEROS")
+        self.dimeros_button.setCheckable(False)
+#        self.dimeros_button.clicked.connect(self.focus_go_to_maximun)
+        self.dimeros_button.setToolTip('no se que hace')
+
+    # Go to maximun
+        self.dimeros_next_button = QtGui.QPushButton("Next Dimer")
+        self.dimeros_next_button.setCheckable(False)
+#        self.dimeros_button.clicked.connect(self.focus_go_to_maximun)
+        self.dimeros_next_button.setToolTip('empieza')
+
+    # tiempo de espera dimeros
+        self.t_waitLabel = QtGui.QLabel('t espera (s)')
+        self.t_waitEdit = QtGui.QLineEdit('60')
+        self.t_waitEdit.setFixedWidth(40)
+        self.t_waitEdit.setToolTip('Tiempo que mantiene el laser prendido.')
+        self.t_waitLabel.setToolTip('Tiempo que mantiene el laser prendido.')
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.preescan_laser = QtGui.QComboBox()
+        self.preescan_laser.addItems(shutters)
+        self.preescan_laser.setCurrentIndex(1)
+        self.preescan_laser.setToolTip('Elijo el shuter para Preescanear el que ya está')
+        self.preescan_laser.setFixedWidth(80)
+        self.preescan_laser.activated.connect(lambda: self.color_menu(self.preescan_laser))
+        self.color_menu(self.preescan_laser)
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.dimerscan_laser = QtGui.QComboBox()
+        self.dimerscan_laser.addItems(shutters)
+        self.dimerscan_laser.setCurrentIndex(2)
+        self.dimerscan_laser.setToolTip('Elijo el shuter para escanear el dimero ')
+        self.dimerscan_laser.setFixedWidth(80)
+        self.dimerscan_laser.activated.connect(lambda: self.color_menu(self.dimerscan_laser))
+        self.color_menu(self.dimerscan_laser)
+
+#    # preescan laser
+#        self.preescan_laser_532 = QtGui.QRadioButton('preescan 532')
+#        self.preescan_laser_532.setChecked(True)
+#        self.preescan_laser_405 = QtGui.QRadioButton('preescan 405')
+#
+#
+#    # dimer scan laser
+#        self.dimerscan_laser_532 = QtGui.QRadioButton('Dimer scan 532')
+#        self.dimerscan_laser_532.setChecked(True)
+#        self.dimerscan_laser_405 = QtGui.QRadioButton('Dimer scan 405')
+
+    # En otra grid poner las cosas de crecimiento/Dimeros
+        self.grid_grow = QtGui.QWidget()
+
+#        group1 = QtGui.QButtonGroup(self.grid_grow)
+#        group1.addButton(self.preescan_laser_532)
+#        group1.addButton(self.preescan_laser_405)
+#
+#        group2 = QtGui.QButtonGroup(self.grid_grow)
+#        group2.addButton(self.dimerscan_laser_532)
+#        group2.addButton(self.dimerscan_laser_405)
+
+        grid_grow = QtGui.QGridLayout()
+        self.grid_grow.setLayout(grid_grow)
+        grid_grow.addWidget(self.dimeros_button,       1, 0)
+        grid_grow.addWidget(self.dimeros_next_button,  1, 1)
+        grid_grow.addWidget(self.t_waitLabel,          3, 1)
+        grid_grow.addWidget(self.t_waitEdit,           4, 1)
+#        grid_grow.addWidget(self.preescan_laser_532,   3, 0)
+#        grid_grow.addWidget(self.preescan_laser_405,   4, 0)
+#        grid_grow.addWidget(self.dimerscan_laser_532,  3, 2)
+#        grid_grow.addWidget(self.dimerscan_laser_405,  4, 2)
+        
+        grid_grow.addWidget(QtGui.QLabel('Pre scan Laser'),   4, 0)
+        grid_grow.addWidget(QtGui.QLabel('Dimer scan Laser'),  4, 2)
+        grid_grow.addWidget(self.preescan_laser,   5, 0)
+        grid_grow.addWidget(self.dimerscan_laser,  5, 2)
+
+        grid_grow.addWidget(QtGui.QLabel(''),          2, 0)
+#        grid_grow.addWidget(QtGui.QLabel(''),          5, 0)
+        grid_grow.addWidget(QtGui.QLabel(''),          6, 0)
+
+#        grid_grow.addWidget(self.shiftyLabel,  5, 0)
+#        grid_grow.addWidget(self.shiftyEdit,   6, 0)
+
 
 # --- FIN COSAS PRINTING
 
@@ -479,25 +632,6 @@ class ScanWidget(QtGui.QFrame):
     # Para alternar entre pasos de a 1 y de a 2 (en el programa final se va)
         self.stepcheck = QtGui.QCheckBox('hacerlo de a 2')
         self.stepcheck.clicked.connect(self.steptype)
-
-        self.shuttersignal = [False, False, False]
-    # Shutters buttons
-        self.shutter0button = QtGui.QCheckBox('shutter Green')
-        self.shutter0button.clicked.connect(self.shutter0)
-        self.shutter0button.setStyleSheet("color: green; ")
-
-        self.shutter1button = QtGui.QCheckBox('shutter Red')
-        self.shutter1button.clicked.connect(self.shutter1)
-        self.shutter1button.setStyleSheet("color: red; ")
-
-        self.shutter2button = QtGui.QCheckBox('shutter Blue')
-        self.shutter2button.clicked.connect(self.shutter2)
-        self.shutter2button.setStyleSheet("color: blue; ")
-
-        self.shutter0button.setToolTip('Open/close Green 532 Shutter')
-        self.shutter1button.setToolTip('Open/close red 640 Shutter')
-        self.shutter2button.setToolTip('Open/close blue 405 Shutter')
-
 
 #       This boolean is set to True when open the nidaq channels
         self.ischannelopen = False
@@ -635,23 +769,26 @@ class ScanWidget(QtGui.QFrame):
         group2.addButton(self.APDred)
         group2.addButton(self.APDgreen)
 
-        subgrid.addWidget(self.shutter0button,        0, 1)
-        subgrid.addWidget(self.shutter1button,        1, 1)
-        subgrid.addWidget(self.shutter2button,        2, 1)
-        subgrid.addWidget(self.scanRangeLabel,        3, 1)
-        subgrid.addWidget(self.scanRangeEdit,         4, 1)
-        subgrid.addWidget(pixelTimeLabel,             5, 1)
-        subgrid.addWidget(self.pixelTimeEdit,         6, 1)
-        subgrid.addWidget(numberofPixelsLabel,        7, 1)
-        subgrid.addWidget(self.numberofPixelsEdit,    8, 1)
-        subgrid.addWidget(self.pixelSizeLabel,        9, 1)
-        subgrid.addWidget(self.pixelSizeValue,       10, 1)
-        subgrid.addWidget(self.liveviewButton,       11, 1)
-        subgrid.addWidget(self.Continouscheck,       12, 1)
-        subgrid.addWidget(QtGui.QLabel('Autolevels'),         13, 1)
-        subgrid.addWidget(QtGui.QLabel('Img Check'), 14, 1)
-        subgrid.addWidget(self.maxcountsLabel,       15, 1)
-        subgrid.addWidget(self.maxcountsEdit,        16, 2, 2, 1)
+#        subgrid.addWidget(self.shutter0button,        0, 1)
+#        subgrid.addWidget(self.shutter1button,        1, 1)
+#        subgrid.addWidget(self.shutter2button,        2, 1)
+        subgrid.addWidget(QtGui.QLabel('         '),   0, 1)
+        subgrid.addWidget(QtGui.QLabel('         '),   1, 1)
+        subgrid.addWidget(QtGui.QLabel('         '),   2, 1)
+        subgrid.addWidget(self.scanRangeLabel,         3, 1)
+        subgrid.addWidget(self.scanRangeEdit,          4, 1)
+        subgrid.addWidget(pixelTimeLabel,              5, 1)
+        subgrid.addWidget(self.pixelTimeEdit,          6, 1)
+        subgrid.addWidget(numberofPixelsLabel,         7, 1)
+        subgrid.addWidget(self.numberofPixelsEdit,     8, 1)
+        subgrid.addWidget(self.pixelSizeLabel,         9, 1)
+        subgrid.addWidget(self.pixelSizeValue,        10, 1)
+        subgrid.addWidget(self.liveviewButton,        11, 1)
+        subgrid.addWidget(self.Continouscheck,        12, 1)
+        subgrid.addWidget(QtGui.QLabel('Autolevels'), 13, 1)
+        subgrid.addWidget(QtGui.QLabel('Img Check'),  14, 1)
+        subgrid.addWidget(self.maxcountsLabel,        15, 1)
+        subgrid.addWidget(self.maxcountsEdit,         16, 2, 2, 1)
 
     # Columna 2
 #        subgrid2.addWidget(QtGui.QLabel("NameDir"),    0, 2)
@@ -951,10 +1088,21 @@ class ScanWidget(QtGui.QFrame):
         grid_print_dock.addWidget(self.grid_print)
         dockArea.addDock(grid_print_dock, 'bottom')
 
-        grid_focus_dock = Dock('Focus cosas', size=(2, 1))
+        grid_focus_dock = Dock('Focus cosas', size=(1, 1))
         grid_focus_dock.addWidget(self.grid_focus)
-        dockArea.addDock(grid_focus_dock, 'right', grid_print_dock)
+        dockArea.addDock(grid_focus_dock, 'bottom', scanDock2)
 
+        grid_shift_dock = Dock('Focus shift', size=(1, 1))
+        grid_shift_dock.addWidget(self.grid_shift)
+        dockArea.addDock(grid_shift_dock, 'right', grid_print_dock)
+
+        shutters_dock = Dock('Shutters', size=(1, 1))
+        shutters_dock.addWidget(self.grid_shutters)
+        dockArea.addDock(shutters_dock, 'bottom', scanDock3)
+
+        grow_dock = Dock('Dimeros/Crecimiento', size=(1, 1))
+        grow_dock.addWidget(self.grid_grow)
+        dockArea.addDock(grow_dock, 'right', grid_shift_dock)
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -2097,13 +2245,13 @@ class ScanWidget(QtGui.QFrame):
             self.main.file_path = self.old_folder
             self.NameDirValue.setText(self.old_folder)
             self.NameDirValue.setStyleSheet(" background-color: ; ")
-        self.moveto("back to origin")
+#        self.moveto("back to origin")
 #            print("TERMINÓ LA GRILLA")
             QtGui.QMessageBox.question(self,
-                                       'Fin',
-                                       'FIN!\
-                                       \n fin',
-                                       QtGui.QMessageBox.Ok)
+                                           'Fin',
+                                           'FIN!\
+                                           \n fin',
+                                           QtGui.QMessageBox.Ok)
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
@@ -2229,14 +2377,17 @@ class ScanWidget(QtGui.QFrame):
         """ Hace un confocal de la particula"""
         pass
 
+# para saber si esta en potencia alta o baja
+    def power_change(self):
+        if self.power_check.isChecked():
+            self.power_check.setText('Potencia \n BAJA')
+            self.power_check.setStyleSheet("color: rgb(12, 183, 242); ")
 
-# Con estas funciones me encargo de que los menus tengan colores
-    def color_grid_laser(self):
-        self.color_menu(self.grid_laser)
+        else:
+            self.power_check.setText('Potencia \n ALTA')
+            self.power_check.setStyleSheet("color: rgb(155, 064, 032); ")
 
-    def color_focus_laser(self):
-        self.color_menu(self.focus_laser)
-
+# Con esta funcion me encargo de que los menus tengan colores
     def color_menu(self, QComboBox):
         """ le pongo color a los menus"""
         if QComboBox.currentText() == shutters[0]:  # verde
@@ -2476,6 +2627,8 @@ class MyPopup_traza(QtGui.QWidget):
     def play_pause(self):
         if self.play_pause_Button.isChecked():
             print("play")
+            self.timer_inicio = ptime.time()
+
             # self.pause_Button.setStyleSheet(
             #        "QPushButton { background-color: ; }")
             if self.running:
@@ -2545,6 +2698,7 @@ class MyPopup_traza(QtGui.QWidget):
 
         self.pointtimer = QtCore.QTimer()
         self.pointtimer.timeout.connect(self.updatePoint)
+        self.timer_inicio = ptime.time()
         self.pointtimer.start(self.tiempo)
 
     def updatePoint(self):
@@ -2615,16 +2769,26 @@ class MyPopup_traza(QtGui.QWidget):
 #        print(medio, medio2)
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(medio), float(medio2)))
-
+        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
+            print("se paso el tiempo!!")
         if medio > medio2*float(self.umbralEdit.text()):
             self.PointLabel.setStyleSheet(" background-color: orange")
-            if not self.main.grid_traza_control:
+#            if not self.main.grid_traza_control:
+#                print("medio=", np.round(medio))
+#                self.save_traza()
+#                self.stop()
+#                self.close_win()
+#                self.main.grid_traza_control = True
+##                self.main.Signal1.emit()
+        if not self.main.grid_traza_control:
+            if medio > medio2*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
                 print("medio=", np.round(medio))
                 self.save_traza()
                 self.stop()
                 self.close_win()
                 self.main.grid_traza_control = True
-#                self.main.Signal1.emit()
+
+
 
         else:
             self.PointLabel.setStyleSheet(" background-color: ")
