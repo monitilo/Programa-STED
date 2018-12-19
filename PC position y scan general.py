@@ -300,7 +300,7 @@ class ScanWidget(QtGui.QFrame):
     # set reference button.
         self.set_ref_button = QtGui.QPushButton('set reference')
         self.set_ref_button.setCheckable(False)
-#        self.set_ref_button.clicked.connect(self.set_reference)
+        self.set_ref_button.clicked.connect(self.set_reference)
         self.set_ref_button.setStyleSheet(
                 "QPushButton:pressed { background-color: blue; }")
         self.set_ref_button.setToolTip('setea la referencia')
@@ -505,6 +505,28 @@ class ScanWidget(QtGui.QFrame):
         grid_grow.addWidget(QtGui.QLabel(''),          2, 0)
 #        grid_grow.addWidget(QtGui.QLabel(''),          5, 0)
         grid_grow.addWidget(QtGui.QLabel(''),          6, 0)
+
+    # Go to maximun
+        self.read_pos_button = QtGui.QPushButton("Read")
+        self.read_pos_button.setCheckable(False)
+#        self.read_pos_button.clicked.connect(self.read_pos)
+        self.read_pos_button.setToolTip('Lee la posicion actual')
+        self.read_pos_Label = QtGui.QLabel('Posicion medida')
+
+    # Valores de refecencai
+        self.xrefLabel = QtGui.QLabel('6')
+        self.yrefLabel = QtGui.QLabel('6')
+        self.zrefLabel = QtGui.QLabel('6')
+
+        self.grid_reference = QtGui.QWidget()
+        grid_reference = QtGui.QGridLayout()
+        self.grid_reference.setLayout(grid_reference)
+        grid_reference.addWidget(self.xrefLabel,            1, 1)
+        grid_reference.addWidget(self.yrefLabel,            2, 1)
+        grid_reference.addWidget(self.zrefLabel,            3, 1)
+        grid_reference.addWidget(QtGui.QLabel('x ref ='),   1, 0)
+        grid_reference.addWidget(QtGui.QLabel('y ref ='),   2, 0)
+        grid_reference.addWidget(QtGui.QLabel('z ref ='),   3, 0)
 
 # --- FIN COSAS PRINTING
 
@@ -751,10 +773,10 @@ class ScanWidget(QtGui.QFrame):
         subgrid2 = QtGui.QGridLayout()
         self.paramWidget2.setLayout(subgrid2)
 
-        group1 = QtGui.QButtonGroup(self.paramWidget)
-        group1.addButton(self.XYcheck)
-        group1.addButton(self.XZcheck)
-        group1.addButton(self.YZcheck)
+#        group1 = QtGui.QButtonGroup(self.paramWidget)
+#        group1.addButton(self.XYcheck)
+#        group1.addButton(self.XZcheck)
+#        group1.addButton(self.YZcheck)
 
         self.aLabel = QtGui.QLabel('a')
         self.bLabel = QtGui.QLabel('b')
@@ -969,6 +991,8 @@ class ScanWidget(QtGui.QFrame):
 
         layout.addWidget(self.NameDirValue, 8, 0, 1, 7)
 
+        layout.addWidget(self.read_pos_button, 0, 0, 1, 2)
+
         tamaño = 40
         self.StepEdit.setFixedWidth(tamaño)
         self.zStepEdit.setFixedWidth(tamaño)
@@ -1047,7 +1071,7 @@ class ScanWidget(QtGui.QFrame):
         hbox = QtGui.QHBoxLayout(self)
         dockArea = DockArea()
 
-        viewDock = Dock('viewbox', size=(500, 450))
+        viewDock = Dock('viewbox', size=(50, 45))
         viewDock.addWidget(imageWidget)
         viewDock.hideTitleBar()
         dockArea.addDock(viewDock, 'left')
@@ -1080,7 +1104,7 @@ class ScanWidget(QtGui.QFrame):
         scanDock2.addWidget(self.paramWidget2)
         dockArea.addDock(scanDock2, 'left', scanDock3)
 
-        grid_print_dock = Dock('Printing grids', size=(5, 10))
+        grid_print_dock = Dock('Printing grids', size=(1, 1))
         grid_print_dock.addWidget(self.grid_print)
         dockArea.addDock(grid_print_dock, 'bottom')
 
@@ -1099,6 +1123,11 @@ class ScanWidget(QtGui.QFrame):
         grow_dock = Dock('Dimeros/Crecimiento', size=(1, 1))
         grow_dock.addWidget(self.grid_grow)
         dockArea.addDock(grow_dock, 'right', grid_shift_dock)
+
+        grid_reference_Dock = Dock('Reference pos', size=(1, 1))
+        grid_reference_Dock.addWidget(self.grid_reference)
+        dockArea.addDock(grid_reference_Dock, 'left', posDock)
+
 
         hbox.addWidget(dockArea)
         self.setLayout(hbox)
@@ -2389,6 +2418,8 @@ class ScanWidget(QtGui.QFrame):
         print("read pos")
         a
 
+    def set_reference(self):
+        pass
 # para saber si esta en potencia alta o baja
     def power_change(self):
         if self.power_check.isChecked():
