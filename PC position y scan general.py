@@ -244,7 +244,7 @@ class ScanWidget(QtGui.QFrame):
         self.umbralEdit.setToolTip('promedios de valores nuevo/anteriores ')
         self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
 
-    # umbral
+    # Tiempo de espera maximo
         self.tmaxLabel = QtGui.QLabel('t max (s)')
         self.tmaxEdit = QtGui.QLineEdit('60')
         self.tmaxEdit.setFixedWidth(40)
@@ -261,6 +261,7 @@ class ScanWidget(QtGui.QFrame):
                                     lambda: self.color_menu(self.grid_laser))
         self.color_menu(self.grid_laser)
         grid_laser_label = QtGui.QLabel('<strong> Print Laser')
+
     # Buttons
         self.cargar_archivo_button = QtGui.QPushButton('Cargar Archivo')
         self.cargar_archivo_button.clicked.connect(self.grid_read)
@@ -291,7 +292,7 @@ class ScanWidget(QtGui.QFrame):
     # go ref button.
         self.go_ref_button = QtGui.QPushButton('go reference')
         self.go_ref_button.setCheckable(False)
-#        self.go_ref_button.clicked.connect(self.gor_reference)
+        self.go_ref_button.clicked.connect(self.go_reference)
         self.go_ref_button.setStyleSheet(
                 "QPushButton:pressed { background-color: blue; }")
         self.go_ref_button.setToolTip('Va a la referencia seteada')
@@ -305,6 +306,24 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
         self.set_ref_button.setToolTip('setea la referencia')
         self.set_ref_button.setFixedWidth(150)
+
+        self.scan_check = QtGui.QCheckBox('scan?')
+        self.scan_check.clicked.connect(self.scan_change)
+        self.scan_check.setStyleSheet("color: green; ")
+        self.scan_change()
+
+    # particulas totales
+        self.particulasLabel = QtGui.QLabel('Cantidad de puntos')
+        self.particulasEdit = QtGui.QLabel('0')
+        self.particulasEdit.setFixedWidth(40)
+        self.particulasEdit.setToolTip('Cantidad de particulas totales a imprimir')
+        self.particulasLabel.setToolTip('Cantidad de particulas totales a imprimir')
+    # Indice actual
+        self.indiceLabel = QtGui.QLabel('Indice de impresion')
+        self.indiceEdit = QtGui.QLabel('0')
+        self.indiceEdit.setFixedWidth(40)
+
+
 
     # La grid con las cosas de printing. Mas abajo entra en el dock
         self.grid_print = QtGui.QWidget()
@@ -321,6 +340,11 @@ class ScanWidget(QtGui.QFrame):
         grid_print_layout.addWidget(self.umbralEdit,              4, 3)
         grid_print_layout.addWidget(self.tmaxLabel,               3, 4)
         grid_print_layout.addWidget(self.tmaxEdit,                4, 4)
+        grid_print_layout.addWidget(self.scan_check,              4, 2)
+        grid_print_layout.addWidget(self.particulasLabel,         0, 5)
+        grid_print_layout.addWidget(self.particulasEdit,          1, 5)
+        grid_print_layout.addWidget(self.indiceLabel,             2, 5)
+        grid_print_layout.addWidget(self.indiceEdit,              3, 5)
 
     # Cosas para la parte del foco
 
@@ -509,7 +533,7 @@ class ScanWidget(QtGui.QFrame):
     # Go to maximun
         self.read_pos_button = QtGui.QPushButton("Read")
         self.read_pos_button.setCheckable(False)
-#        self.read_pos_button.clicked.connect(self.read_pos)
+        self.read_pos_button.clicked.connect(self.read_pos)
         self.read_pos_button.setToolTip('Lee la posicion actual')
         self.read_pos_Label = QtGui.QLabel('Posicion medida')
 
@@ -655,7 +679,7 @@ class ScanWidget(QtGui.QFrame):
         self.autoLevelscheck.clicked.connect(self.autoLevelset)
         self.autoLevelscheck.setToolTip('Switch between automatic \
                                         colorbar normalization, or manually')
-
+        self.autoLevelset()
     # Scanning parameters
 #        self.initialPositionLabel = QtGui.QLabel('Initial Pos [x0 y0] (µm)')
 #        self.initialPositionEdit = QtGui.QLineEdit('1 2 3')  # no lo uso mas
@@ -1320,8 +1344,8 @@ class ScanWidget(QtGui.QFrame):
             print("NO, QUE TOCASTE, ESE NO ANDAAAAAA\n AAAAAAAHH!!!")
             ptime.sleep(0.1)
 
-        if self.XZcheck.isChecked():
-            print("intercambio y por z")  # falla si y,z iniciales son iguales
+#        if self.XZcheck.isChecked():
+#            print("intercambio y por z")  # falla si y,z iniciales son iguales
 
         if self.step == 1:
             self.lineData = self.cuentas  # self.inputImage[:, self.dy]
@@ -2217,7 +2241,6 @@ class ScanWidget(QtGui.QFrame):
         time.sleep(1)
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
-        self.grid_openshutter()
 #            self.aotask.write(np.array(
 #                [self.grid_x[self.i_global] + startX / convFactors['x'],
 #                 self.grid_y[self.i_global] + startY / convFactors['y']]),
@@ -2226,20 +2249,16 @@ class ScanWidget(QtGui.QFrame):
               self.grid_x[self.i_global] + startX,
               self.grid_y[self.i_global] + startY)
 
+        self.grid_openshutter()
         self.grid_traza()
 
     def grid_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""
         time.sleep(1)
-        if self.grid_laser.currentText() == shutters[0]:  # Verde
-            self.openShutter(shutters[0])
-            self.grid_shutterabierto = shutters[0]
-        elif self.grid_laser.currentText() == shutters[1]:  # rojo
-            self.openShutter(shutters[1])
-            self.grid_shutterabierto = shutters[1]
-        elif self.grid_laser.currentText() == shutters[2]:  # azul
-            self.openShutter(shutters[2])
-            self.grid_shutterabierto = shutters[2]
+        for i in range(len(shutters)):
+            if self.grid_laser.currentText() == shutters[i]:
+                self.openShutter(shutters[i])
+                self.grid_shutterabierto = shutters[i]
 
     def grid_traza(self):
         """ Abre la ventana nueva y mide la traza,
@@ -2267,18 +2286,21 @@ class ScanWidget(QtGui.QFrame):
         self.closeShutter(self.grid_shutterabierto)
 #        time.sleep(1)
         self.i_global += 1
-        print(" i global ", self.i_global)
+
         Nmax = 6  # self.Nmax  cantidad total de particulas
         autofoco = 2  # self.autofoco cada tanto
         multifoco = np.arange(0, Nmax, autofoco)  # ie:np.arange(0,6,2)=[0,2,4]
-        if self.i_global < Nmax:
-            if self.i_global in multifoco:
-                print("Estoy haciendo foco")
-                time.sleep(1)
+        if self.scan_check.isChecked():
+            self.grid_scan()
+
+        if self.i_global in multifoco:
+            print("Estoy haciendo foco")
+            time.sleep(1)
 #                #self.grid_autofoco()
-            print(" i global ", self.i_global, "?")
-            self.grid_move()
-        else:
+
+        print(" i global ", self.i_global, "?")
+
+        if self.i_global >= Nmax:
             self.main.file_path = self.old_folder
             self.NameDirValue.setText(self.old_folder)
             self.NameDirValue.setStyleSheet(" background-color: ; ")
@@ -2289,6 +2311,8 @@ class ScanWidget(QtGui.QFrame):
                                        'FIN!\
                                        \n fin',
                                        QtGui.QMessageBox.Ok)
+        else:
+            self.grid_move()
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
@@ -2331,15 +2355,9 @@ class ScanWidget(QtGui.QFrame):
     def focus_openshutter(self):
         """ abre el shutter con el que se hace foco"""
         time.sleep(1)
-        if self.focus_laser.currentText() == shutters[0]:  # Verde
-            self.openShutter(shutters[0])
-            self.focus_shutterabierto = shutters[0]
-        elif self.focus_laser.currentText() == shutters[1]:  # rojo
-            self.openShutter(shutters[1])
-            self.focus_shutterabierto = shutters[1]
-        elif self.focus_laser.currentText() == shutters[2]:  # azul
-            self.openShutter(shutters[2])
-            self.focus_shutterabierto = shutters[2]
+        for i in range(len(shutters)):
+            if self.focus_laser.currentText() == shutters[i]:
+                self.openShutter(shutters[i])
         time.sleep(1)
 
     def read_PD(self, color):
@@ -2412,23 +2430,46 @@ class ScanWidget(QtGui.QFrame):
 
     def grid_scan(self):
         """ Hace un confocal de la particula"""
-        pass
+        print("grid scan")
 
     def read_pos(self):
         print("read pos")
-        a
+        
+
+    def go_reference(self):
+        print("arranco en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
+
+        self.moveto(float(self.xrefLabel.text()),
+                    float(self.yrefLabel.text()),
+                    float(self.zrefLabel.text()))
+
+        print("termino en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
     def set_reference(self):
-        pass
+        self.read_pos()
+        self.xrefLabel.setText(str(self.xLabel.text()))
+        self.yrefLabel.setText(str(self.yLabel.text()))
+        self.zrefLabel.setText(str(self.zLabel.text()))
+
+
 # para saber si esta en potencia alta o baja
     def power_change(self):
         if self.power_check.isChecked():
             self.power_check.setText('Potencia \n BAJA')
             self.power_check.setStyleSheet("color: rgb(12, 183, 242); ")
-
         else:
             self.power_check.setText('Potencia \n ALTA')
             self.power_check.setStyleSheet("color: rgb(155, 064, 032); ")
+
+    def scan_change(self):
+        if self.scan_check.isChecked():
+            self.scan_check.setText('scan? = SI')
+            self.scan_check.setStyleSheet("color: orange; ")
+        else:
+            self.scan_check.setText('scan? = NO')
+            self.scan_check.setStyleSheet("color: blue; ")
 
 # Con esta funcion me encargo de que los menus tengan colores
     def color_menu(self, QComboBox):

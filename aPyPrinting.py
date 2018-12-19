@@ -3040,7 +3040,304 @@ class ScanWidget(QtGui.QFrame):
     def read_pos(self):
         print("similar a lo que esta arriba^^")
 
-# %% Point scan ---+--- Hay que elegir APD
+
+# %% FUNCIONES PRINTING
+
+    def grid_read(self):
+        """ select the file where the grid comes from"""
+        root = tk.Tk()
+        root.withdraw()
+#        name = "C://.../sarasa/10x15"
+        name = filedialog.askopenfilename()
+        f = open(name, "r")
+        datos = np.loadtxt(name, unpack=True)
+        f.close()
+        self.grid_name = name
+#        self.grid_create_folder()
+        self.grid_x = datos[0, :]
+        self.grid_y = datos[1, :]
+#        z = datos[2, :]  # siempre cero en general.
+        self.grid_plot()
+
+    def grid_plot(self):
+        """hace un plot de la grilla cargada para estar seguro que es lo que
+        se quiere imprimir (nunca esta de mas)"""
+        try:
+            fig, ax = plt.subplots()
+            plt.plot(self.grid_x, self.grid_y, 'o')
+            ax.set_xlabel('x (µm)')
+            ax.set_ylabel('y (µm)')
+            ax.grid(True)
+            plt.show()
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+            print("^ No hay nada cargado ^")
+
+    def grid_create_folder(self):
+        """ Crea una carpeta para este archivo particular.
+        Si es una grilla, puede tener esa data en el nombre (ej: 10x15)"""
+        base = os.path.basename(self.grid_name)
+#        grid_name = filedialog.askopenfilename()
+
+        q = base
+        w = [""]*len(q)
+        j = 0
+        for i in range(len(q)):
+            try:
+                float(q[i]) == float
+                print(q[i])
+                w[j] = w[j] + str(q[i])
+            except:
+                print("separador", q[i])
+                j = j+1
+        print(w)
+        numeros = [int(s) for s in w if s.isdigit()]
+
+        timestr = time.strftime("%H-%M-%S")  # %Y%m%d-
+        self.old_folder = self.main.file_path
+        try:
+            print("la grilla es de {}x{}".format(numeros[0], numeros[1]))
+            new_folder = self.main.file_path + "/" + timestr +\
+                "_Grilla {}x{}".format(numeros[0], numeros[1])
+
+        except IOError as e:
+            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#            print("No lo tomo como grilla, AVISAR!")
+            QtGui.QMessageBox.question(self,
+                                       'Algo raro paso',
+                                       'No lo tomo como grilla, AVISAR!\
+                                       \n Pero igual creó una carpeta',
+                                       QtGui.QMessageBox.Ok)
+
+            new_folder = self.main.file_path + "/" + timestr + "_algo"
+        os.makedirs(new_folder)
+#        self.file_path = newpath  # no quiero perder el nombre anterior,
+#        asi despues vuelvo
+        self.NameDirValue.setText(new_folder)
+        self.NameDirValue.setStyleSheet(" background-color: green ; ")
+        self.main.file_path = new_folder
+        self.i_global = 0
+
+    def grid_start(self):
+        """funcion que empieza el programa de imprimir una grilla
+        (u otra cosa)"""
+        self.i_global = 0  # Este no va aca. Queda en el de la carpeta
+        self.a = np.zeros(11)
+        self.grid_timer_traza = QtCore.QTimer()
+        self.grid_timer_traza.timeout.connect(self.grid_detect_signal)
+        self.grid_move()
+
+    def grid_move(self):
+        """ se mueve siguiendo las coordenadas que lee del archivo"""
+        time.sleep(1)
+        startX = float(self.xLabel.text())
+        startY = float(self.yLabel.text())
+        self.grid_openshutter()
+        self.aotask.write(np.array(
+                [self.grid_x[self.i_global] + startX / convFactors['x'],
+                 self.grid_y[self.i_global] + startY / convFactors['y']]),
+                auto_start=True)
+        print("me muevo",
+              self.grid_x[self.i_global] + startX,
+              self.grid_y[self.i_global] + startY)
+
+        self.grid_traza()
+
+    def grid_openshutter(self):
+        """ abre el shutter que se va a utilizar para imprimir"""
+        for i in range(len(shutters)):
+            if self.grid_laser.currentText() == shutters[i]:
+                self.openShutter(shutters[i])
+
+    def grid_traza(self):
+        """ Abre la ventana nueva y mide la traza,
+        preparado para detectar eventos de impresion"""
+        self.main.grid_traza_control = False
+        self.grid_timer_traza.start(10)  # no se que tiempo poner
+        self.doit()
+
+    def grid_detect_signal(self):
+        """ Espera hasta detectar el evento de impresion.
+        grid_timer_traza connect here"""
+        if self.main.grid_traza_control:
+            self.grid_timer_traza.stop()
+            self.grid_detect()
+
+    def grid_detect(self):
+        """ Cuando detecta un evento de impresion, entra aca.
+        Esta funcion define el paso siguiente.
+        Puede ser: hacer autofoco, un scan de la PSF, o simplemente seguir """
+        self.closeShutter(self.grid_shutterabierto)
+#        time.sleep(1)
+        self.i_global += 1
+        print(" i global ", self.i_global)
+        Nmax = 6  # self.Nmax  cantidad total de particulas
+        autofoco = 2  # self.autofoco cada tanto
+        multifoco = np.arange(0, Nmax, autofoco)  # ie:np.arange(0,6,2)=[0,2,4]
+        if self.i_global < Nmax:
+            if self.i_global in multifoco:
+                print("Estoy haciendo foco")
+                time.sleep(1)
+#                #self.grid_autofoco()
+            print(" i global ", self.i_global, "?")
+            self.grid_move()
+        else:
+            self.main.file_path = self.old_folder
+            self.NameDirValue.setText(self.old_folder)
+            self.NameDirValue.setStyleSheet(" background-color: ; ")
+#        self.moveto("back to origin")
+#            print("TERMINÓ LA GRILLA")
+            QtGui.QMessageBox.question(self,
+                                       'Fin',
+                                       'FIN!\
+                                       \n fin',
+                                       QtGui.QMessageBox.Ok)
+
+    def move_z(self, dist):
+        """moves the position along the Z axis a distance dist."""
+#        time.sleep(0.1)
+        dist = dist
+        print("me muevo en z", dist)
+        with nidaqmx.Task("Ztask") as Ztask:
+            self.Ztask = nidaqmx.Task('Ztask')
+            # Following loop creates the voltage channels
+            n = 2
+            Ztask.ao_channels.add_ao_voltage_chan(
+                physical_channel='Dev1/ao{}'.format(n),
+                name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                min_val=minVolt[activeChannels[n]],
+                max_val=maxVolt[activeChannels[n]])
+
+            N = abs(int(dist*2000))
+        # read initial position for all channels
+            toc = ptime.time()
+            rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
+            for i in range(N):
+                Ztask.write([rampz[i] / convFactors['z']], auto_start=True)
+
+            print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+        # update position text
+            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+
+#        self.Ztask.stop()
+#        self.Ztask.close()
+#        self.paramChanged()
+
+    def focus_go_to_maximun(self):
+        """ barre en z mientras mira el PD, y va al maximo de intensidad"""
+        self.focus_lock_focus()
+        z_max = (np.max(self.z_profile))
+#        print(self.z_profile, np.where(self.z_profile == z_max)[0][0], z_max)
+#        print("\n z vector",self.z_vector)
+        print("paso go to maximun")
+        self.move_z(self.z_vector[np.where(self.z_profile == z_max)[0][0]])
+
+    def focus_openshutter(self):
+        """ abre el shutter con el que se hace foco"""
+        for i in range(len(shutters)):
+            if self.focus_laser.currentText() == shutters[i]:
+                self.openShutter(shutters[i])
+
+    def read_PD(self, color):
+        """ Read de photodiode of the selecter 'color' """
+        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
+#        time.sleep(0.1)
+        print("abre canal pmt")  # , channel)
+        with nidaqmx.Task("PDtask") as PDtask:
+            self.PDtask = nidaqmx.Task('PDtask')
+            PDtask.ai_channels.add_ai_voltage_chan(
+                physical_channel='Dev1/ai{}'.format(channel[color]),
+                name_to_assign_to_channel='chan_PD')
+            z_profile = PDtask.read()
+#        read = np.random.rand(10)[0]*50
+        return z_profile
+
+    def focus_lock_focus(self):
+        """ guarda el patron de intensidades, barriendo z en el foco actual"""
+        self.Npasos = int(self.numberofPixelsEdit.text())  # algun numero de pasos a definir (50 dice en algun lado)
+        z_start = float(self.zLabel.text()) - (self.scanRange/2)
+        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+        self.z_profile = np.zeros((self.Npasos))
+        self.focus_openshutter()
+        for i in range(self.Npasos):
+            self.move_z(self.z_vector[i])
+            self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
+        # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
+        self.closeShutter(self.focus_shutterabierto)
+        print("tengo el z_profile")
+        self.locked_focus = True
+        self.move_z((self.zLabel.text()))
+
+    def focus_autocorr(self):
+        """ correlaciona la medicion de intensidad moviendo z,
+        respecto del que se lockeo con loc focus"""
+        if self.locked_focus:
+            Ncorrelations = 6  # tambien a definir....
+            self.new_profile = np.zeros((Ncorrelations, self.Npasos))
+            correlations = np.zeros((self.Npasos))
+            maxcorr = np.zeros(Ncorrelations)
+            z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
+#        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+            for j in range(Ncorrelations):
+                z_vector_corr[j, :] = self.z_vector-3+j
+                for i in range(self.Npasos):
+                    self.move_z(z_vector_corr[j, i])
+                    self.new_profile[j, i] = self.read_PD(
+                                                    self.focus_shutterabierto)
+                correlations[:] = np.correlate(self.new_profile[j, :],
+                                               self.z_profile, "same")
+                maxcorr[j] = np.max(correlations)
+#                plt.plot(z_vector_corr[j, :])
+#                plt.plot(self.new_profile)
+#                plt.plot(self.z_profile,'.-k')
+#                plt.plot(correlations)
+#                plt.plot(np.where(correlations==np.max(correlations)),
+#                          np.max(correlations), marker='o')
+
+            j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
+            z_max = np.max(self.new_profile[j_final, :])
+            donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
+
+            plt.plot(self.new_profile[j_final, :], 'o-')
+            plt.show()
+            print(j_final, z_vector_corr[j_final, donde_z_max])
+
+        else:
+            print("No esta Lockeado el foco")
+
+    def grid_scan(self):
+        """ Hace un confocal de la particula"""
+        pass
+
+    def read_pos(self):
+        print("read pos")
+#        a
+
+    def set_reference(self):
+        pass
+
+# para saber si esta en potencia alta o baja
+    def power_change(self):
+        if self.power_check.isChecked():
+            self.power_check.setText('Potencia \n BAJA')
+            self.power_check.setStyleSheet("color: rgb(12, 183, 242); ")
+        else:
+            self.power_check.setText('Potencia \n ALTA')
+            self.power_check.setStyleSheet("color: rgb(155, 064, 032); ")
+
+# Con esta funcion me encargo de que los menus tengan colores
+    def color_menu(self, QComboBox):
+        """ le pongo color a los menus"""
+        if QComboBox.currentText() == shutters[0]:  # verde
+            QComboBox.setStyleSheet("QComboBox{color: rgb(0,128,0);}\n")
+        elif QComboBox .currentText() == shutters[1]:  # rojo
+            QComboBox.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
+        elif QComboBox .currentText() == shutters[2]: # azul
+            QComboBox.setStyleSheet("QComboBox{color: rgb(0,0,255);}\n")
+
+# %% Point scan , que ahora es traza
 
     def PointStart(self):
         self.done()
@@ -3063,7 +3360,6 @@ class ScanWidget(QtGui.QFrame):
         self.w.show()
 
 
-# %% Clase para TRAZA
 class MyPopup_traza(QtGui.QWidget):
     """ new class to create a new window for the trace menu"""
 
