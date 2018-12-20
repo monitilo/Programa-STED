@@ -318,12 +318,14 @@ class ScanWidget(QtGui.QFrame):
         self.particulasEdit.setFixedWidth(40)
         self.particulasEdit.setToolTip('Cantidad de particulas totales a imprimir')
         self.particulasLabel.setToolTip('Cantidad de particulas totales a imprimir')
+        self.particulasEdit.setStyleSheet(
+                                        " background-color: rgb(200,200,200)")
     # Indice actual
-        self.indiceLabel = QtGui.QLabel('Indice de impresion')
-        self.indiceEdit = QtGui.QLabel('0')
-        self.indiceEdit.setFixedWidth(40)
-
-
+        self.indice_impresionLabel = QtGui.QLabel('Indice de impresion')
+        self.indice_impresionEdit = QtGui.QLabel('0')
+        self.indice_impresionEdit.setFixedWidth(40)
+        self.indice_impresionEdit.setStyleSheet(
+                                        " background-color: rgb(200,200,200)")
 
     # La grid con las cosas de printing. Mas abajo entra en el dock
         self.grid_print = QtGui.QWidget()
@@ -343,8 +345,9 @@ class ScanWidget(QtGui.QFrame):
         grid_print_layout.addWidget(self.scan_check,              4, 2)
         grid_print_layout.addWidget(self.particulasLabel,         0, 5)
         grid_print_layout.addWidget(self.particulasEdit,          1, 5)
-        grid_print_layout.addWidget(self.indiceLabel,             2, 5)
-        grid_print_layout.addWidget(self.indiceEdit,              3, 5)
+        grid_print_layout.addWidget(self.indice_impresionLabel,             2, 5)
+        grid_print_layout.addWidget(self.indice_impresionEdit,              3, 5)
+
 
     # Cosas para la parte del foco
 
@@ -364,6 +367,10 @@ class ScanWidget(QtGui.QFrame):
         self.focus_lock_button.setCheckable(False)
         self.focus_lock_button.clicked.connect(self.focus_lock_focus)
         self.focus_lock_button.setToolTip('guarda el patron en el z actual')
+        self.focus_lock_button.setStyleSheet(
+                "QPushButton { background-color: rgb(254,100,100) ; }"
+                "QPushButton:pressed { background-color: blue; }")
+
 
     # Boton de Autocorrelacion, con el foco ya lockeado
         self.focus_autocorr_button = QtGui.QPushButton('Autocorrelacion')
@@ -389,9 +396,10 @@ class ScanWidget(QtGui.QFrame):
 
     # particles to autofocus
         self.autofocLabel = QtGui.QLabel('Particles after autofocus')
-        self.autofocEdit = QtGui.QLineEdit('10')
+        self.autofocEdit = QtGui.QLineEdit('2')
         self.autofocEdit.setFixedWidth(40)
         self.autofocEdit.setToolTip('Cantida de impresiones hasta autofoquear')
+        self.autofocEdit.setValidator(QtGui.QIntValidator(0, 5000))
 
     # shift x
         self.shifxLabel = QtGui.QLabel('focus shift X [µm]')
@@ -488,6 +496,28 @@ class ScanWidget(QtGui.QFrame):
                                 lambda: self.color_menu(self.dimerscan_laser))
         self.color_menu(self.dimerscan_laser)
 
+    # particulas totales
+        self.dimero_totalLabel = QtGui.QLabel('Dimeros totales')
+        self.dimero_totalEdit = QtGui.QLabel('0')
+        self.dimero_totalEdit.setFixedWidth(40)
+        self.dimero_totalEdit.setToolTip('Cantidad de particulas totales a imprimir')
+    # Indice actual
+        self.indice_dimeroLabel = QtGui.QLabel('Indice dimero')
+        self.indice_dimeroEdit = QtGui.QLabel('0')
+        self.indice_dimeroEdit.setFixedWidth(40)
+        self.indice_dimeroEdit.setStyleSheet(
+                                        " background-color: rgb(200,200,200)")
+
+    # Posicion a imprimir el dimero
+        self.dimero_posxLabel = QtGui.QLabel('Dx [µm]')
+        self.dimero_posxEdit = QtGui.QLineEdit('10')
+        self.dimero_posxEdit.setFixedWidth(40)
+        self.dimero_posxEdit.setToolTip('distancia en x donde imprimir.')
+        self.dimero_posyLabel = QtGui.QLabel('Dy [µm]')
+        self.dimero_posyEdit = QtGui.QLineEdit('0')
+        self.dimero_posyEdit.setFixedWidth(40)
+        self.dimero_posyEdit.setToolTip('distancia en y donde imprimir')
+
 #    # preescan laser
 #        self.preescan_laser_532 = QtGui.QRadioButton('preescan 532')
 #        self.preescan_laser_532.setChecked(True)
@@ -514,17 +544,24 @@ class ScanWidget(QtGui.QFrame):
         self.grid_grow.setLayout(grid_grow)
         grid_grow.addWidget(self.dimeros_button,       1, 0)
         grid_grow.addWidget(self.dimeros_next_button,  1, 1)
-        grid_grow.addWidget(self.t_waitLabel,          3, 1)
-        grid_grow.addWidget(self.t_waitEdit,           4, 1)
+        grid_grow.addWidget(self.t_waitLabel,          4, 1)
+        grid_grow.addWidget(self.t_waitEdit,           5, 1)
+
+        grid_grow.addWidget(self.dimero_posxLabel,     2, 1)
+        grid_grow.addWidget(self.dimero_posxEdit,      3, 1)
+        grid_grow.addWidget(self.dimero_posyLabel,     2, 2)
+        grid_grow.addWidget(self.dimero_posyEdit,      3, 2)
 #        grid_grow.addWidget(self.preescan_laser_532,   3, 0)
 #        grid_grow.addWidget(self.preescan_laser_405,   4, 0)
 #        grid_grow.addWidget(self.dimerscan_laser_532,  3, 2)
 #        grid_grow.addWidget(self.dimerscan_laser_405,  4, 2)
         
         grid_grow.addWidget(QtGui.QLabel('Pre scan Laser'),   4, 0)
-        grid_grow.addWidget(QtGui.QLabel('Dimer scan Laser'),  4, 2)
+        grid_grow.addWidget(QtGui.QLabel('Dimer scan Laser'),  4, 4)
         grid_grow.addWidget(self.preescan_laser,   5, 0)
-        grid_grow.addWidget(self.dimerscan_laser,  5, 2)
+        grid_grow.addWidget(self.dimerscan_laser,  5, 4)
+        grid_grow.addWidget(self.indice_dimeroLabel,             1, 4)
+        grid_grow.addWidget(self.indice_dimeroEdit,              2, 4)
 
         grid_grow.addWidget(QtGui.QLabel(''),          2, 0)
 #        grid_grow.addWidget(QtGui.QLabel(''),          5, 0)
@@ -545,6 +582,9 @@ class ScanWidget(QtGui.QFrame):
         self.grid_reference = QtGui.QWidget()
         grid_reference = QtGui.QGridLayout()
         self.grid_reference.setLayout(grid_reference)
+        grid_reference.addWidget(QtGui.QLabel(''),          0, 0)
+        grid_reference.addWidget(QtGui.QLabel(''),          4, 0)
+        grid_reference.addWidget(QtGui.QLabel(''),          5, 0)
         grid_reference.addWidget(self.xrefLabel,            1, 1)
         grid_reference.addWidget(self.yrefLabel,            2, 1)
         grid_reference.addWidget(self.zrefLabel,            3, 1)
@@ -1604,13 +1644,21 @@ class ScanWidget(QtGui.QFrame):
         initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
         # falta el :  / convFactors['x']
 
+        restax = abs(float(initPos[0]) - x)
+        restay = abs(float(initPos[0]) - y)
+        restaz = abs(float(initPos[0]) - z)
+        lejos = 20
+        nSamples = self.nSamples
+        if restax > lejos or restay > lejos or restaz > lejos:
+            nSamples = nSamples*5
+
         if float(initPos[0]) != x or float(initPos[1]) != y\
            or float(initPos[2]) != z:
             rampx = np.linspace(float(initPos[0]), x, self.nSamples)
             rampy = np.linspace(float(initPos[1]), y, self.nSamples)
             rampz = np.linspace(float(initPos[2]), z, self.nSamples)
     #        ramp = np.array((rampx, rampy, rampz))
-    
+
             tuc = ptime.time()
     #        for i in range(self.nSamples):
     #            borrar = rampx[i] + rampy[i] + rampz[i]
@@ -2164,6 +2212,8 @@ class ScanWidget(QtGui.QFrame):
 #        self.grid_create_folder()
         self.grid_x = datos[0, :]
         self.grid_y = datos[1, :]
+        print(len(self.grid_x), len(self.grid_y))
+        self.particulasEdit.setText(str(len(self.grid_x)))
 #        z = datos[2, :]  # siempre cero en general.
         self.grid_plot()
 
@@ -2225,13 +2275,13 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setText(new_folder)
         self.NameDirValue.setStyleSheet(" background-color: green ; ")
         self.main.file_path = new_folder
-        self.i_global = 0
+        self.i_global = 1
+
 
     def grid_start(self):
         """funcion que empieza el programa de imprimir una grilla
         (u otra cosa)"""
-        self.i_global = 0  # Este no va aca. Queda en el de la carpeta
-        self.a = np.zeros(11)
+
         self.grid_timer_traza = QtCore.QTimer()
         self.grid_timer_traza.timeout.connect(self.grid_detect_signal)
         self.grid_move()
@@ -2239,15 +2289,29 @@ class ScanWidget(QtGui.QFrame):
     def grid_move(self):
         """ se mueve siguiendo las coordenadas que lee del archivo"""
         time.sleep(1)
+        self.indice_impresionEdit.setText(str(self.i_global))
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
+        startZ = float(self.zLabel.text())
+
 #            self.aotask.write(np.array(
 #                [self.grid_x[self.i_global] + startX / convFactors['x'],
 #                 self.grid_y[self.i_global] + startY / convFactors['y']]),
 #                auto_start=True)
+        self.moveto(self.grid_x[self.i_global] + startX,
+                    self.grid_y[self.i_global] + startY, startZ)
         print("me muevo",
               self.grid_x[self.i_global] + startX,
               self.grid_y[self.i_global] + startY)
+
+        multifoco = np.arange(0,
+                              int(self.particulasEdit.text())-1,
+                              int(self.autofocEdit.text()))
+
+        if self.i_global in multifoco:
+            print("Estoy haciendo foco en el i=", self.i_global)
+            time.sleep(2)
+            self.focus_autocorr()
 
         self.grid_openshutter()
         self.grid_traza()
@@ -2285,18 +2349,11 @@ class ScanWidget(QtGui.QFrame):
         Puede ser: hacer autofoco, un scan de la PSF, o simplemente seguir """
         self.closeShutter(self.grid_shutterabierto)
 #        time.sleep(1)
-        self.i_global += 1
 
-        Nmax = 6  # self.Nmax  cantidad total de particulas
-        autofoco = 2  # self.autofoco cada tanto
-        multifoco = np.arange(0, Nmax, autofoco)  # ie:np.arange(0,6,2)=[0,2,4]
+
+        Nmax = int(self.particulasEdit.text())-1  # self.Nmax  cantidad total de particulas
         if self.scan_check.isChecked():
             self.grid_scan()
-
-        if self.i_global in multifoco:
-            print("Estoy haciendo foco")
-            time.sleep(1)
-#                #self.grid_autofoco()
 
         print(" i global ", self.i_global, "?")
 
@@ -2305,6 +2362,7 @@ class ScanWidget(QtGui.QFrame):
             self.NameDirValue.setText(self.old_folder)
             self.NameDirValue.setStyleSheet(" background-color: ; ")
 #        self.moveto("back to origin")
+            self.go_reference()
 #            print("TERMINÓ LA GRILLA")
             QtGui.QMessageBox.question(self,
                                        'Fin',
@@ -2312,6 +2370,7 @@ class ScanWidget(QtGui.QFrame):
                                        \n fin',
                                        QtGui.QMessageBox.Ok)
         else:
+            self.i_global += 1
             self.grid_move()
 
     def move_z(self, dist):
@@ -2358,6 +2417,7 @@ class ScanWidget(QtGui.QFrame):
         for i in range(len(shutters)):
             if self.focus_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
+                self.focus_shutterabierto = shutters[i]
         time.sleep(1)
 
     def read_PD(self, color):
@@ -2371,7 +2431,7 @@ class ScanWidget(QtGui.QFrame):
 #                physical_channel='Dev1/ai{}'.format(channel[color]),
 #                name_to_assign_to_channel='chan_PD')
 #            z_profile = PDtask.read()
-        read = np.random.rand(10)[0]*50
+        read = np.random.normal(10)  # np.random.rand(10)[0]*50
         return read
 
     def focus_lock_focus(self):
@@ -2390,6 +2450,9 @@ class ScanWidget(QtGui.QFrame):
         print("tengo el z_profile")
         self.locked_focus = True
         self.move_z((self.zLabel.text()))
+        self.focus_lock_button.setStyleSheet(
+                "QPushButton { background-color: ; }"
+                "QPushButton:pressed { background-color: blue; }")
 
     def focus_autocorr(self):
         """ correlaciona la medicion de intensidad moviendo z,
@@ -2421,6 +2484,7 @@ class ScanWidget(QtGui.QFrame):
             z_max = np.max(self.new_profile[j_final, :])
             donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
 
+            fig, ax = plt.subplots()
             plt.plot(self.new_profile[j_final, :], 'o-')
             plt.show()
             print(j_final, z_vector_corr[j_final, donde_z_max])
@@ -2433,6 +2497,7 @@ class ScanWidget(QtGui.QFrame):
         print("grid scan")
 
     def read_pos(self):
+        """lee las entradas analogicas que manda la platina y se donde estoy"""
         print("read pos")
         
 
