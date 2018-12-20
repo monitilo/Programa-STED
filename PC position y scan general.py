@@ -828,6 +828,28 @@ class ScanWidget(QtGui.QFrame):
         newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold)
         self.maxcountsEdit.setFont(newfont)
 
+    # Defino el tipo de laser que quiero para imprimir
+        self.scan_laser = QtGui.QComboBox()
+        self.scan_laser.addItems(shutters)
+        self.scan_laser.setCurrentIndex(0)
+        self.scan_laser.setToolTip('Elijo el shuter para scanear')
+        self.scan_laser.setFixedWidth(80)
+        self.scan_laser.activated.connect(
+                                    lambda: self.color_menu(self.scan_laser))
+        self.color_menu(self.scan_laser)
+        scan_laser = QtGui.QLabel('<strong> Scan Laser')
+
+    # Defino el tipo de laser que quiero para imprimir
+        self.traza_laser = QtGui.QComboBox()
+        self.traza_laser.addItems(shutters)
+        self.traza_laser.setCurrentIndex(0)
+        self.traza_laser.setToolTip('Elijo el shuter para las trazas')
+        self.traza_laser.setFixedWidth(80)
+        self.traza_laser.activated.connect(
+                                    lambda: self.color_menu(self.traza_laser))
+        self.color_menu(self.traza_laser)
+        traza_laser = QtGui.QLabel('<strong> Trazas Laser')
+
         self.paramWidget = QtGui.QWidget()
 
 #        grid = QtGui.QGridLayout()
@@ -861,8 +883,10 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid.addWidget(self.shutter0button,        0, 1)
 #        subgrid.addWidget(self.shutter1button,        1, 1)
 #        subgrid.addWidget(self.shutter2button,        2, 1)
-        subgrid.addWidget(QtGui.QLabel('         '),   0, 1)
-        subgrid.addWidget(QtGui.QLabel('         '),   1, 1)
+        subgrid.addWidget(scan_laser,                  0, 1)
+        subgrid.addWidget(self.scan_laser,             1, 1)
+#        subgrid.addWidget(QtGui.QLabel('         '),   0, 1)
+#        subgrid.addWidget(QtGui.QLabel('         '),   1, 1)
         subgrid.addWidget(QtGui.QLabel('         '),   2, 1)
         subgrid.addWidget(self.scanRangeLabel,         3, 1)
         subgrid.addWidget(self.scanRangeEdit,          4, 1)
@@ -875,9 +899,12 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.liveviewButton,        11, 1)
         subgrid.addWidget(self.Continouscheck,        12, 1)
         subgrid.addWidget(self.autoLevelscheck,       13, 1)
-        subgrid.addWidget(QtGui.QLabel('Img Check'),  14, 1)
-        subgrid.addWidget(self.maxcountsLabel,        15, 1)
-        subgrid.addWidget(self.maxcountsEdit,         16, 1, 2, 1)
+#        subgrid.addWidget(QtGui.QLabel('Img Check'),  14, 1)
+#        subgrid.addWidget(self.maxcountsLabel,        15, 1)
+#        subgrid.addWidget(self.maxcountsEdit,         16, 1, 2, 1)
+#        subgrid.addWidget(QtGui.QLabel('         '),  17, 1)
+        subgrid.addWidget(self.a,                     14, 1)
+        subgrid.addWidget(self.b,                     15, 1)
 
     # Columna 2
 #        subgrid2.addWidget(QtGui.QLabel("NameDir"),    0, 2)
@@ -885,26 +912,28 @@ class ScanWidget(QtGui.QFrame):
 #        subgrid2.addWidget(QtGui.QLabel("CreateDir"),  2, 2)
 #        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
-
-#        subgrid2.addWidget(self.aLabel,                1, 2)
-        subgrid2.addWidget(self.a,                     1, 2)
-#        subgrid2.addWidget(self.bLabel,                3, 2)
-        subgrid2.addWidget(self.b,                     2, 2)
-        subgrid2.addWidget(QtGui.QLabel("DetectMode"), 3, 2)
+        subgrid2.addWidget(traza_laser,                0, 2)
+        subgrid2.addWidget(self.traza_laser,           1, 2)
+#        subgrid3.addWidget(self.PointLabel,          9, 3)
+        subgrid2.addWidget(self.PointButton,           2, 2)
+        subgrid2.addWidget(QtGui.QLabel("          "), 5, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
 #        subgrid2.addWidget(self.umbralLabel,      4, 2)
 #        subgrid2.addWidget(self.umbralEdit,       5, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
+        subgrid2.addWidget(QtGui.QLabel("move to cm"), 4, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           3, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
         subgrid2.addWidget(self.stepcheck,             7, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           8, 2)
-        subgrid2.addWidget(self.Alancheck,             9, 2)
+#        subgrid2.addWidget(self.Alancheck,             9, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           10, 2)
-        subgrid2.addWidget(label_save,                 11, 2)  # , 1, 2)
-        subgrid2.addWidget(self.edit_save,             12, 2)  # , 1, 2)
-        subgrid2.addWidget(self.saveimageButton,       13, 2)
+#        subgrid2.addWidget(label_save,                 11, 2)  # , 1, 2)
+#        subgrid2.addWidget(self.edit_save,             12, 2)  # , 1, 2)
+#        subgrid2.addWidget(self.saveimageButton,       13, 2)
+        subgrid2.addWidget(QtGui.QLabel("x/y scan"),   11, 2)
+        subgrid2.addWidget(QtGui.QLabel("x/z scan"),   12, 2)
+        subgrid2.addWidget(QtGui.QLabel("z/y scan"),   13, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           14, 2)
         subgrid2.addWidget(self.presetsMode,           15, 2)
         subgrid2.addWidget(self.timeTotalLabel,        16, 2)
@@ -929,10 +958,9 @@ class ScanWidget(QtGui.QFrame):
         subgrid3.addWidget(self.selectlineROIButton,  4, 3)
         subgrid3.addWidget(self.histogramROIButton,   6, 3)
         subgrid3.addWidget(QtGui.QLabel(""),          5, 3)
-#        subgrid3.addWidget(QtGui.QLabel(""),          7, 3)
-#        subgrid3.addWidget(QtGui.QLabel(""),          8, 3)
-        subgrid3.addWidget(self.PointButton,          9, 3)
-        subgrid3.addWidget(self.PointLabel,          10, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),          7, 3)
+        subgrid3.addWidget(QtGui.QLabel(""),          8, 3)
+
         subgrid3.addWidget(QtGui.QLabel(""),         11, 3)
         subgrid3.addWidget(QtGui.QLabel("scanplot"), 12, 3)  # graphcheck
         subgrid3.addWidget(self.plotLivebutton,      13, 3)
@@ -1038,7 +1066,7 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(self.yLabel,      2, 1)
         layout.addWidget(self.yUpButton,   1, 5, 3, 1)
         layout.addWidget(self.yDownButton, 3, 5, 2, 1)
-        layout.addWidget(QtGui.QLabel("step xy (µm) "), 4, 6, 1, 2)
+        layout.addWidget(QtGui.QLabel("step x/y [µm] "), 4, 6, 1, 2)
         layout.addWidget(self.StepEdit,   5, 6)
 #        layout.addWidget(self.yStepUnit,   5, 5)
         layout.addWidget(self.yUp2Button,   0, 5, 2, 1)
@@ -1050,7 +1078,7 @@ class ScanWidget(QtGui.QFrame):
         layout.addWidget(self.zUpButton,   1, 9, 3, 1)
         layout.addWidget(self.zDownButton, 3, 9, 2, 1)
         layout.addWidget(self.zDown2Button, 4, 9, 2, 1)
-        layout.addWidget(QtGui.QLabel("step z (­­­µm)"), 4, 10)
+        layout.addWidget(QtGui.QLabel("step z [µm]"), 4, 10)
         layout.addWidget(self.zStepEdit,   5, 10)
 #        layout.addWidget(self.zStepUnit,   2, 7)
 
@@ -1354,7 +1382,7 @@ class ScanWidget(QtGui.QFrame):
         """ Image live view when not recording"""
         if self.liveviewButton.isChecked():
             self.paramChangedInitialize()
-            self.openShutter(shutters[0])
+            self.scan_openshutter()
             self.liveviewStart()
 
         else:
@@ -1373,10 +1401,17 @@ class ScanWidget(QtGui.QFrame):
 #            print("PMT")
 
     def liveviewStop(self):
-        self.closeShutter(shutters[0])
+        self.closeShutter(self.scan_shutterabierto)
         self.liveviewButton.setChecked(False)
         self.viewtimer.stop()
 #        self.done()
+
+    def scan_openshutter(self):
+        """ abre el shutter que se va a utilizar para imprimir"""
+        for i in range(len(shutters)):
+            if self.traza_laser.currentText() == shutters[i]:
+                self.openShutter(shutters[i])
+                self.scan_shutterabierto = shutters[i]
 
 
 # %%---updateView -----------------
@@ -1409,7 +1444,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.image[9, -self.i] = 333
 
         self.img.setImage(self.image, autoLevels=self.autoLevels)
-        self.MaxCounts()
+#        self.MaxCounts()
 
         time = (ptime.time()-self.tic)
         self.actualizar.setText("{}".format(str(time)))
@@ -1429,17 +1464,17 @@ class ScanWidget(QtGui.QFrame):
             else:
                 self.liveviewStop()
 
-# %% MAX Counts
-    def MaxCounts(self):
-        m = np.max(self.image)
-        m2 = np.mean(self.image)
-        m3 = np.median(self.image)
-        m4 = np.min(self.image)
-        self.maxcountsEdit.setText("<strong> {}|{}".format(int(m), int(m2)) +
-                                   " \n" + " {}|{}".format(int(m3), int(m4)))
-        maxsecure = 5  # (5000 * self.pixelTime*10**3)
-        if m >= maxsecure or m2 >= maxsecure:
-            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
+## %% MAX Counts
+#    def MaxCounts(self):
+#        m = np.max(self.image)
+#        m2 = np.mean(self.image)
+#        m3 = np.median(self.image)
+#        m4 = np.min(self.image)
+#        self.maxcountsEdit.setText("<strong> {}|{}".format(int(m), int(m2)) +
+#                                   " \n" + " {}|{}".format(int(m3), int(m4)))
+#        maxsecure = 5  # (5000 * self.pixelTime*10**3)
+#        if m >= maxsecure or m2 >= maxsecure:
+#            self.maxcountsEdit.setStyleSheet(" background-color: red; ")
 
 # %% Barridos
     def barridos(self):
@@ -1477,6 +1512,39 @@ class ScanWidget(QtGui.QFrame):
 #                borrar = 2
 #            time.sleep(self.pixelTime*self.numberofPixels*2)
     #        print("linea")
+
+# %% rampas
+    def rampas(self):
+        N = self.numberofPixels
+        a = float(self.a.text())
+        b = float(self.b.text())
+        r = self.scanRange/2
+        X = np.linspace(-r, r, N)
+        Y = np.linspace(-r, r, N)
+        X, Y = np.meshgrid(X, Y)
+        R = np.sqrt((X-a)**2 + (Y-b)**2)
+        Z = np.cos(R)
+        for i in range(N):
+            for j in range(N):
+                if Z[i, j] < 0:
+                    Z[i, j] = 0
+        self.Z = Z
+        print("rampsa")
+
+    def linearampa(self):
+        Z = self.Z
+        if self.step == 1:
+            self.cuentas = np.zeros((self.numberofPixels))
+            self.cuentas = Z[self.i, :] * 5
+#            for i in range(self.numberofPixels):
+#                borrar = 2
+#            time.sleep(self.pixelTime*self.numberofPixels)
+    #        print("linearampa")
+        else:  # para hacerlo de a lineas y que no sea de 2 en 2:
+            self.cuentas = np.concatenate((Z[self.i, :], Z[self.i+1, :]))
+#            for i in range(2*self.numberofPixels):
+#                borrar = 2
+#            time.sleep(self.pixelTime*2*self.numberofPixels)
 
 # %% MovetoStart
     def MovetoStart(self):
@@ -1680,97 +1748,6 @@ class ScanWidget(QtGui.QFrame):
         else:
             print("¡YA ESTOY EN ESAS COORDENADAS!")
 
-# %%--- Shutter time --------------------------
-
-    def shutter0(self):
-        if self.shutter0button.isChecked():
-            self.openShutter(shutters[0])
-        else:
-            self.closeShutter(shutters[0])
-
-    def shutter1(self):
-        if self.shutter1button.isChecked():
-            self.openShutter(shutters[1])
-        else:
-            self.closeShutter(shutters[1])
-
-    def shutter2(self):
-        if self.shutter2button.isChecked():
-            self.openShutter(shutters[2])
-        else:
-            self.closeShutter(shutters[2])
-
-    def openShutter(self, p):
-        for i in range(3):
-            if p == shutters[i]:
-                self.shuttersignal[i] = True
-#        self.shuttertask.write(self.shuttersignal, auto_start=True)
-        print(self.shuttersignal)
-        self.checkShutters()
-        print("open", p)
-
-    def closeShutter(self, p):
-        for i in range(len(shutters)):
-            if p == shutters[i]:
-                self.shuttersignal[i] = False
-#        self.shuttertask.write(self.shuttersignal, auto_start=True)
-        print(self.shuttersignal)
-        self.checkShutters()
-        print("close", p)
-
-    def checkShutters(self):
-        if self.shuttersignal[0]:
-            self.shutter0button.setChecked(True)
-        else:
-            self.shutter0button.setChecked(False)
-        if self.shuttersignal[1]:
-            self.shutter1button.setChecked(True)
-        else:
-            self.shutter1button.setChecked(False)
-        if self.shuttersignal[2]:
-            self.shutter2button.setChecked(True)
-        else:
-            self.shutter2button.setChecked(False)
-#        if self.shuttergreen.isChecked():
-#            print("shutter verde")
-#
-#        if self.shutterotro.isChecked():
-#            print("shutter otro")
-# Es una idea de lo que tendria que hacer la funcion
-
-# %% rampas
-    def rampas(self):
-        N = self.numberofPixels
-        a = float(self.a.text())
-        b = float(self.b.text())
-        r = self.scanRange/2
-        X = np.linspace(-r, r, N)
-        Y = np.linspace(-r, r, N)
-        X, Y = np.meshgrid(X, Y)
-        R = np.sqrt((X-a)**2 + (Y-b)**2)
-        Z = np.cos(R)
-        for i in range(N):
-            for j in range(N):
-                if Z[i, j] < 0:
-                    Z[i, j] = 0
-        self.Z = Z
-        print("rampsa")
-
-    def linearampa(self):
-        Z = self.Z
-        if self.step == 1:
-            self.cuentas = np.zeros((self.numberofPixels))
-            self.cuentas = Z[self.i, :] * 5
-#            for i in range(self.numberofPixels):
-#                borrar = 2
-#            time.sleep(self.pixelTime*self.numberofPixels)
-    #        print("linearampa")
-        else:  # para hacerlo de a lineas y que no sea de 2 en 2:
-            self.cuentas = np.concatenate((Z[self.i, :], Z[self.i+1, :]))
-#            for i in range(2*self.numberofPixels):
-#                borrar = 2
-#            time.sleep(self.pixelTime*2*self.numberofPixels)
-
 # %%--- ploting in live
     def plotLive(self):
         Channels = self.activeChannels
@@ -1963,7 +1940,7 @@ class ScanWidget(QtGui.QFrame):
         tac = ptime.time()
         print(np.round((tac-tic)*10**3, 3), "(ms)solo Gauss\n")
 
-# %% buttos to open and select folder
+## %% buttos to open and select folder
 #    def selectFolder(self):
 #        root = tk.Tk()
 #        root.withdraw()
@@ -2175,6 +2152,63 @@ class ScanWidget(QtGui.QFrame):
         ax.set_ylabel('Intensity (N photons)')
         plt.show()
 
+# %%--- Shutter time --------------------------
+
+    def shutter0(self):
+        if self.shutter0button.isChecked():
+            self.openShutter(shutters[0])
+        else:
+            self.closeShutter(shutters[0])
+
+    def shutter1(self):
+        if self.shutter1button.isChecked():
+            self.openShutter(shutters[1])
+        else:
+            self.closeShutter(shutters[1])
+
+    def shutter2(self):
+        if self.shutter2button.isChecked():
+            self.openShutter(shutters[2])
+        else:
+            self.closeShutter(shutters[2])
+
+    def openShutter(self, p):
+        for i in range(3):
+            if p == shutters[i]:
+                self.shuttersignal[i] = True
+#        self.shuttertask.write(self.shuttersignal, auto_start=True)
+        print(self.shuttersignal)
+        self.checkShutters()
+        print("open", p)
+
+    def closeShutter(self, p):
+        for i in range(len(shutters)):
+            if p == shutters[i]:
+                self.shuttersignal[i] = False
+#        self.shuttertask.write(self.shuttersignal, auto_start=True)
+        print(self.shuttersignal)
+        self.checkShutters()
+        print("close", p)
+
+    def checkShutters(self):
+        if self.shuttersignal[0]:
+            self.shutter0button.setChecked(True)
+        else:
+            self.shutter0button.setChecked(False)
+        if self.shuttersignal[1]:
+            self.shutter1button.setChecked(True)
+        else:
+            self.shutter1button.setChecked(False)
+        if self.shuttersignal[2]:
+            self.shutter2button.setChecked(True)
+        else:
+            self.shutter2button.setChecked(False)
+#        if self.shuttergreen.isChecked():
+#            print("shutter verde")
+#
+#        if self.shutterotro.isChecked():
+#            print("shutter otro")
+# Es una idea de lo que tendria que hacer la funcion
 
 # %% Presets copiados del inspector
     def Presets(self):
@@ -2369,7 +2403,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.moveto("back to origin")
             self.go_reference()
 #            print("TERMINÓ LA GRILLA")
-            self.indice_impresionEdit.setText(str(self.i_global)+1)
+            self.indice_impresionEdit.setText(str(self.i_global+1))
             QtGui.QMessageBox.question(self,
                                        'Fin',
                                        'FIN!\
@@ -2500,7 +2534,20 @@ class ScanWidget(QtGui.QFrame):
 
     def grid_scan(self):
         """ Hace un confocal de la particula"""
+        time.sleep(2)
         print("grid scan")
+        self.vectores_scan()  # armo los barrido donde estoy
+        self.liveviewStart()  # probablemente tenga que usar otro,
+                              # para no tocar "barrido" o "rampas"
+        # luego tiene que abrir shutter
+        # escanear mientas lo dibuja en vivo
+        # cerrar shutter
+        # guardar
+
+    def vectores_scan(self):
+        self.read_pos()  # de aca leo x y
+#        x = np.linspace(xini,xfin,Npunts)
+#        y = np.linspace(xini,xfin,Npunts)
 
     def read_pos(self):
         """lee las entradas analogicas que manda la platina y se donde estoy"""
@@ -2758,6 +2805,7 @@ class MyPopup_traza(QtGui.QWidget):
         QtGui.QShortcut(
             QtGui.QKeySequence('ESC'), self, self.close_win)
 
+        self.traza_openshutter()
 #        self.connect(self, QtCore.SIGNAL('triggered()'), self.hola)
 # TODO: a seguir mejorando esta parte
 #     def play(self):
@@ -2784,6 +2832,7 @@ class MyPopup_traza(QtGui.QWidget):
     def play_pause(self):
         if self.play_pause_Button.isChecked():
             print("play")
+            self.traza_openshutter()
             self.timer_inicio = ptime.time()
 
             # self.pause_Button.setStyleSheet(
@@ -2794,6 +2843,7 @@ class MyPopup_traza(QtGui.QWidget):
                 self.PointScan()
         else:
             print("pause")
+            self.ScanWidget.closeShutter(self.traza_shutterabierto)
             self.pointtimer.stop()
             # self.pause_Button.setStyleSheet(
             #        "QPushButton { background-color: red; }")
@@ -2812,17 +2862,26 @@ class MyPopup_traza(QtGui.QWidget):
 #        dc.drawLine(0, 0, 100, 100)
 #        dc.drawLine(100, 0, 0, 100)
 
-    def save_traza(self):
+    def traza_openshutter(self):
+        """ abre el shutter que se va a utilizar para imprimir"""
+        for i in range(len(shutters)):
+            if self.ScanWidget.traza_laser.currentText() == shutters[i]:
+                self.ScanWidget.openShutter(shutters[i])
+                self.traza_shutterabierto = shutters[i]
+
+    def save_traza(self, imprimiendo=False):
 #        fig, ax = plt.subplots()
 #        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
 #        ax.set_xlabel('Tiempo (s) (puede fallar)')
 #        ax.set_ylabel('Intensity (V)')
 #        plt.show()
-
+    
         try:
             # filepath = self.file_path
             filepath = self.main.file_path
             timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
+            if imprimiendo:
+                timestr = str("Particula-") + str(self.ScanWidget.i_global)
             name = str(filepath + "/" + timestr + "_" + "Traza" + ".txt")
             f = open(name, "w")
             np.savetxt(name,
@@ -2940,7 +2999,7 @@ class MyPopup_traza(QtGui.QWidget):
         if not self.main.grid_traza_control:
             if medio > medio2*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
                 print("medio=", np.round(medio))
-                self.save_traza()
+                self.save_traza(True)
                 self.stop()
                 self.close_win()
                 self.main.grid_traza_control = True
