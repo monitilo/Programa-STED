@@ -231,9 +231,14 @@ class ScanWidget(QtGui.QFrame):
         QtGui.QShortcut(
             QtGui.QKeySequence('F1'), self, self.grid_read)
 
-        self.grid_autocorr_action = QtGui.QAction(self)
+        self.focus_autocorr_action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('F9'), self, self.focus_autocorr)
+
+        self.lock_focus_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+f'), self, self.focus_lock_focus)
+
 
     # Cosas para la rutina de imprimir. Grid
 
@@ -951,10 +956,10 @@ class ScanWidget(QtGui.QFrame):
                        lambda: self.move("x", -float(self.StepEdit.text())))
         self.xStepEdit = QtGui.QLineEdit("1.0")  # estaban en 0.05<
 #        self.xStepUnit = QtGui.QLabel(" µm")
-        self.xUp2Button = QtGui.QPushButton("++x ►►")  # →
+        self.xUp2Button = QtGui.QPushButton("► x ►")  # →
         self.xUp2Button.pressed.connect(
                        lambda: self.move("x", 10*float(self.StepEdit.text())))
-        self.xDown2Button = QtGui.QPushButton("◄◄ --x")  # ←
+        self.xDown2Button = QtGui.QPushButton("◄ x ◄")  # ←
         self.xDown2Button.pressed.connect(
                        lambda: self.move("x", -10*float(self.StepEdit.text())))
 
@@ -971,10 +976,10 @@ class ScanWidget(QtGui.QFrame):
                        lambda: self.move("y", -float(self.StepEdit.text())))
         self.StepEdit = QtGui.QLineEdit("1.0")
 #        self.yStepUnit = QtGui.QLabel(" µm")
-        self.yUp2Button = QtGui.QPushButton("++y ▲▲")  # ↑
+        self.yUp2Button = QtGui.QPushButton("▲ y ▲")  # ↑
         self.yUp2Button.pressed.connect(
                        lambda: self.move("y", 10*float(self.StepEdit.text())))
-        self.yDown2Button = QtGui.QPushButton("--y ▼▼")  # ↓
+        self.yDown2Button = QtGui.QPushButton("▼ y ▼")  # ↓
         self.yDown2Button.pressed.connect(
                        lambda: self.move("y", -10*float(self.StepEdit.text())))
 
@@ -991,10 +996,10 @@ class ScanWidget(QtGui.QFrame):
                        lambda: self.zMoveDown())
         self.zStepEdit = QtGui.QLineEdit("1.0")
 #        self.zStepUnit = QtGui.QLabel(" µm")
-        self.zup2Button = QtGui.QPushButton("++z ▲▲")
+        self.zup2Button = QtGui.QPushButton("▲ z ▲")
         self.zup2Button.pressed.connect(
                        lambda: self.zMoveUp(10))
-        self.zDown2Button = QtGui.QPushButton("--z ▼▼")
+        self.zDown2Button = QtGui.QPushButton("▼ z ▼")
         self.zDown2Button.pressed.connect(
                        lambda: self.zMoveDown(10))
 
@@ -2364,6 +2369,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.moveto("back to origin")
             self.go_reference()
 #            print("TERMINÓ LA GRILLA")
+            self.indice_impresionEdit.setText(str(self.i_global)+1)
             QtGui.QMessageBox.question(self,
                                        'Fin',
                                        'FIN!\
@@ -2398,8 +2404,8 @@ class ScanWidget(QtGui.QFrame):
 #            print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
 #        # update position text
 #            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-#        self.Ztask.stop()
-#        self.Ztask.close()
+#        #self.Ztask.stop()
+#        #self.Ztask.close()
 #        self.paramChanged()
 
     def focus_go_to_maximun(self):
@@ -2465,7 +2471,7 @@ class ScanWidget(QtGui.QFrame):
             z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
 #        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
             for j in range(Ncorrelations):
-                z_vector_corr[j, :] = self.z_vector-3+j
+                z_vector_corr[j, :] = self.z_vector-4+j
                 for i in range(self.Npasos):
                     self.move_z(z_vector_corr[j, i])
                     self.new_profile[j, i] = self.read_PD(
@@ -2484,9 +2490,9 @@ class ScanWidget(QtGui.QFrame):
             z_max = np.max(self.new_profile[j_final, :])
             donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
 
-            fig, ax = plt.subplots()
-            plt.plot(self.new_profile[j_final, :], 'o-')
-            plt.show()
+#            fig, ax = plt.subplots()
+#            plt.plot(self.new_profile[j_final, :], 'o-')
+#            plt.show()
             print(j_final, z_vector_corr[j_final, donde_z_max])
 
         else:
