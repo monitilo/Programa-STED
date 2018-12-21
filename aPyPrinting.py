@@ -278,6 +278,10 @@ class ScanWidget(QtGui.QFrame):
         QtGui.QShortcut(
             QtGui.QKeySequence('F9'), self, self.focus_autocorr)
 
+        self.lock_focus_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+f'), self, self.focus_lock_focus)
+
     # Cosas para la rutina de imprimir. Grid
 
     # umbral
@@ -287,7 +291,7 @@ class ScanWidget(QtGui.QFrame):
         self.umbralEdit.setToolTip('promedios de valores nuevo/anteriores ')
         self.umbralLabel.setToolTip('promedios de valores nuevo/anteriores ')
 
-    # umbral
+    # Tiempo de espera maximo
         self.tmaxLabel = QtGui.QLabel('t max (s)')
         self.tmaxEdit = QtGui.QLineEdit('60')
         self.tmaxEdit.setFixedWidth(40)
@@ -304,6 +308,7 @@ class ScanWidget(QtGui.QFrame):
                                     lambda: self.color_menu(self.grid_laser))
         self.color_menu(self.grid_laser)
         grid_laser_label = QtGui.QLabel('<strong> Print Laser')
+
     # Buttons
         self.cargar_archivo_button = QtGui.QPushButton('Cargar Archivo')
         self.cargar_archivo_button.clicked.connect(self.grid_read)
@@ -321,6 +326,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
         self.imprimir_button.setToolTip('En realidad solo crea la carpeta\
                                         El mundo es una gran mentira.')
+#                "QPushButton:checked {color: white; background-color: blue;}")
 
     # Print button. Que en realidad solo crea la carpeta
         self.next_button = QtGui.QPushButton('Next ►')
@@ -333,7 +339,7 @@ class ScanWidget(QtGui.QFrame):
     # go ref button.
         self.go_ref_button = QtGui.QPushButton('go reference')
         self.go_ref_button.setCheckable(False)
-#        self.go_ref_button.clicked.connect(self.gor_reference)
+        self.go_ref_button.clicked.connect(self.go_reference)
         self.go_ref_button.setStyleSheet(
                 "QPushButton:pressed { background-color: blue; }")
         self.go_ref_button.setToolTip('Va a la referencia seteada')
@@ -342,11 +348,31 @@ class ScanWidget(QtGui.QFrame):
     # set reference button.
         self.set_ref_button = QtGui.QPushButton('set reference')
         self.set_ref_button.setCheckable(False)
-#        self.set_ref_button.clicked.connect(self.set_reference)
+        self.set_ref_button.clicked.connect(self.set_reference)
         self.set_ref_button.setStyleSheet(
                 "QPushButton:pressed { background-color: blue; }")
         self.set_ref_button.setToolTip('setea la referencia')
         self.set_ref_button.setFixedWidth(150)
+
+        self.scan_check = QtGui.QCheckBox('scan?')
+        self.scan_check.clicked.connect(self.scan_change)
+        self.scan_check.setStyleSheet("color: green; ")
+        self.scan_change()
+
+    # particulas totales
+        self.particulasLabel = QtGui.QLabel('Cantidad de puntos')
+        self.particulasEdit = QtGui.QLabel('0')
+        self.particulasEdit.setFixedWidth(40)
+        self.particulasEdit.setToolTip('Cantidad de particulas totales a imprimir')
+        self.particulasLabel.setToolTip('Cantidad de particulas totales a imprimir')
+        self.particulasEdit.setStyleSheet(
+                                        " background-color: rgb(200,200,200)")
+    # Indice actual
+        self.indice_impresionLabel = QtGui.QLabel('Indice de impresion')
+        self.indice_impresionEdit = QtGui.QLabel('0')
+        self.indice_impresionEdit.setFixedWidth(40)
+        self.indice_impresionEdit.setStyleSheet(
+                                        " background-color: rgb(200,200,200)")
 
     # La grid con las cosas de printing. Mas abajo entra en el dock
         self.grid_print = QtGui.QWidget()
@@ -363,6 +389,12 @@ class ScanWidget(QtGui.QFrame):
         grid_print_layout.addWidget(self.umbralEdit,              4, 3)
         grid_print_layout.addWidget(self.tmaxLabel,               3, 4)
         grid_print_layout.addWidget(self.tmaxEdit,                4, 4)
+        grid_print_layout.addWidget(self.scan_check,              4, 2)
+        grid_print_layout.addWidget(self.particulasLabel,         0, 5)
+        grid_print_layout.addWidget(self.particulasEdit,          1, 5)
+        grid_print_layout.addWidget(self.indice_impresionLabel,             2, 5)
+        grid_print_layout.addWidget(self.indice_impresionEdit,              3, 5)
+
 
     # Cosas para la parte del foco
 
@@ -506,26 +538,79 @@ class ScanWidget(QtGui.QFrame):
                                 lambda: self.color_menu(self.dimerscan_laser))
         self.color_menu(self.dimerscan_laser)
 
+    # particulas totales
+        self.dimero_totalLabel = QtGui.QLabel('Dimeros totales')
+        self.dimero_totalEdit = QtGui.QLabel('0')
+        self.dimero_totalEdit.setFixedWidth(40)
+        self.dimero_totalEdit.setToolTip('Cantidad de particulas totales a imprimir')
+    # Indice actual
+        self.indice_dimeroLabel = QtGui.QLabel('Indice dimero')
+        self.indice_dimeroEdit = QtGui.QLabel('0')
+        self.indice_dimeroEdit.setFixedWidth(40)
+        self.indice_dimeroEdit.setStyleSheet(
+                                        " background-color: rgb(200,200,200)")
+
+    # Posicion a imprimir el dimero
+        self.dimero_posxLabel = QtGui.QLabel('Dx [µm]')
+        self.dimero_posxEdit = QtGui.QLineEdit('10')
+        self.dimero_posxEdit.setFixedWidth(40)
+        self.dimero_posxEdit.setToolTip('distancia en x donde imprimir.')
+        self.dimero_posyLabel = QtGui.QLabel('Dy [µm]')
+        self.dimero_posyEdit = QtGui.QLineEdit('0')
+        self.dimero_posyEdit.setFixedWidth(40)
+        self.dimero_posyEdit.setToolTip('distancia en y donde imprimir')
 
     # En otra grid poner las cosas de crecimiento/Dimeros
         self.grid_grow = QtGui.QWidget()
+
         grid_grow = QtGui.QGridLayout()
         self.grid_grow.setLayout(grid_grow)
         grid_grow.addWidget(self.dimeros_button,       1, 0)
         grid_grow.addWidget(self.dimeros_next_button,  1, 1)
-        grid_grow.addWidget(self.t_waitLabel,          3, 1)
-        grid_grow.addWidget(self.t_waitEdit,           4, 1)
+        grid_grow.addWidget(self.t_waitLabel,          4, 1)
+        grid_grow.addWidget(self.t_waitEdit,           5, 1)
 
+        grid_grow.addWidget(self.dimero_posxLabel,     2, 1)
+        grid_grow.addWidget(self.dimero_posxEdit,      3, 1)
+        grid_grow.addWidget(self.dimero_posyLabel,     2, 2)
+        grid_grow.addWidget(self.dimero_posyEdit,      3, 2)
+        
         grid_grow.addWidget(QtGui.QLabel('Pre scan Laser'),   4, 0)
-        grid_grow.addWidget(QtGui.QLabel('Dimer scan Laser'),  4, 2)
+        grid_grow.addWidget(QtGui.QLabel('Dimer scan Laser'),  4, 4)
         grid_grow.addWidget(self.preescan_laser,   5, 0)
-        grid_grow.addWidget(self.dimerscan_laser,  5, 2)
+        grid_grow.addWidget(self.dimerscan_laser,  5, 4)
+        grid_grow.addWidget(self.indice_dimeroLabel,             1, 4)
+        grid_grow.addWidget(self.indice_dimeroEdit,              2, 4)
 
         grid_grow.addWidget(QtGui.QLabel(''),          2, 0)
-#        grid_grow.addWidget(QtGui.QLabel(''),          5, 0)
         grid_grow.addWidget(QtGui.QLabel(''),          6, 0)
 
+    # Go to maximun
+        self.read_pos_button = QtGui.QPushButton("Read")
+        self.read_pos_button.setCheckable(False)
+        self.read_pos_button.clicked.connect(self.read_pos)
+        self.read_pos_button.setToolTip('Lee la posicion actual')
+        self.read_pos_Label = QtGui.QLabel('Posicion medida')
 
+    # Valores de refecencai
+        self.xrefLabel = QtGui.QLabel('6')
+        self.yrefLabel = QtGui.QLabel('6')
+        self.zrefLabel = QtGui.QLabel('6')
+
+        self.grid_reference = QtGui.QWidget()
+        grid_reference = QtGui.QGridLayout()
+        self.grid_reference.setLayout(grid_reference)
+        grid_reference.addWidget(QtGui.QLabel(''),          0, 0)
+        grid_reference.addWidget(QtGui.QLabel(''),          4, 0)
+        grid_reference.addWidget(QtGui.QLabel(''),          5, 0)
+        grid_reference.addWidget(self.xrefLabel,            1, 1)
+        grid_reference.addWidget(self.yrefLabel,            2, 1)
+        grid_reference.addWidget(self.zrefLabel,            3, 1)
+        grid_reference.addWidget(QtGui.QLabel('x ref ='),   1, 0)
+        grid_reference.addWidget(QtGui.QLabel('y ref ='),   2, 0)
+        grid_reference.addWidget(QtGui.QLabel('z ref ='),   3, 0)
+
+        
 # --- FIN COSAS PRINTING
 
         imageWidget = pg.GraphicsLayoutWidget()
@@ -1392,6 +1477,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.closeShutter("red")
         self.closeAllShutters()
         self.done()
+        self.grid_scan_control = True  # es parte del flujo en grid_start
         print("-----------------------------------------------------------")
 
 #    def startingSteps(self):
@@ -3037,8 +3123,6 @@ class ScanWidget(QtGui.QFrame):
         toc = ptime.time()
         print("\n tiempo getInitPos", toc-tic, "\n")
 
-    def read_pos(self):
-        print("similar a lo que esta arriba^^")
 
 
 # %% FUNCIONES PRINTING
@@ -3117,20 +3201,28 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setText(new_folder)
         self.NameDirValue.setStyleSheet(" background-color: green ; ")
         self.main.file_path = new_folder
-        self.i_global = 0
+        self.i_global = 1
 
     def grid_start(self):
         """funcion que empieza el programa de imprimir una grilla
         (u otra cosa)"""
-        self.i_global = 0  # Este no va aca. Queda en el de la carpeta
-        self.a = np.zeros(11)
         self.grid_timer_traza = QtCore.QTimer()
-        self.grid_timer_traza.timeout.connect(self.grid_detect_signal)
+        self.grid_timer_traza.timeout.connect(self.grid_detect_traza)
+
+        self.grid_timer_scan = QtCore.QTimer()
+        self.grid_timer_scan.timeout.connect(self.grid_detect_scan)
+
+        self.grid_continue()
+
+    def grid_continue(self):
         self.grid_move()
+        self.grid_autofoco()
+        self.grid_openshutter()
+        self.grid_traza()
 
     def grid_move(self):
         """ se mueve siguiendo las coordenadas que lee del archivo"""
-        time.sleep(1)
+
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
         self.grid_openshutter()
@@ -3142,13 +3234,24 @@ class ScanWidget(QtGui.QFrame):
               self.grid_x[self.i_global] + startX,
               self.grid_y[self.i_global] + startY)
 
-        self.grid_traza()
+
+    def grid_autofoco(self):
+        print("aa")
+        multifoco = np.arange(0,
+                              int(self.particulasEdit.text())-1,
+                              int(self.autofocEdit.text()))
+
+        if self.i_global in multifoco:
+            print("Estoy haciendo foco en el i=", self.i_global)
+            time.sleep(2)
+            self.focus_autocorr()
 
     def grid_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""
         for i in range(len(shutters)):
             if self.grid_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
+                self.grid_shutterabierto = shutters[i]
 
     def grid_traza(self):
         """ Abre la ventana nueva y mide la traza,
@@ -3157,11 +3260,22 @@ class ScanWidget(QtGui.QFrame):
         self.grid_timer_traza.start(10)  # no se que tiempo poner
         self.doit()
 
-    def grid_detect_signal(self):
+    def grid_detect_traza(self):
         """ Espera hasta detectar el evento de impresion.
         grid_timer_traza connect here"""
         if self.main.grid_traza_control:
             self.grid_timer_traza.stop()
+#            self.grid_detect()
+            self.grid_scan_signal()
+
+    def grid_scan_signal(self):
+        self.grid_scan_control = False
+        self.grid_timer_scan.start(10)  # no se que tiempo poner
+        self.grid_scan()
+
+    def grid_detect_scan(self):
+        if self.grid_scan_control:
+            self.grid_timer_scan.stop()
             self.grid_detect()
 
     def grid_detect(self):
@@ -3170,29 +3284,39 @@ class ScanWidget(QtGui.QFrame):
         Puede ser: hacer autofoco, un scan de la PSF, o simplemente seguir """
         self.closeShutter(self.grid_shutterabierto)
 #        time.sleep(1)
-        self.i_global += 1
-        print(" i global ", self.i_global)
-        Nmax = 6  # self.Nmax  cantidad total de particulas
-        autofoco = 2  # self.autofoco cada tanto
-        multifoco = np.arange(0, Nmax, autofoco)  # ie:np.arange(0,6,2)=[0,2,4]
-        if self.i_global < Nmax:
-            if self.i_global in multifoco:
-                print("Estoy haciendo foco")
-                time.sleep(1)
-#                #self.grid_autofoco()
-            print(" i global ", self.i_global, "?")
-            self.grid_move()
-        else:
+
+        Nmax = int(self.particulasEdit.text())-1  # self.Nmax  cantidad total de particulas
+#        if self.scan_check.isChecked():
+#            self.grid_scan()
+
+        print(" i global ", self.i_global, "?")
+
+        if self.i_global >= Nmax:
             self.main.file_path = self.old_folder
             self.NameDirValue.setText(self.old_folder)
             self.NameDirValue.setStyleSheet(" background-color: ; ")
 #        self.moveto("back to origin")
+            self.go_reference()
 #            print("TERMINÓ LA GRILLA")
+            self.indice_impresionEdit.setText(str(self.i_global+1))
             QtGui.QMessageBox.question(self,
                                        'Fin',
                                        'FIN!\
                                        \n fin',
                                        QtGui.QMessageBox.Ok)
+        else:
+            self.i_global += 1
+            self.grid_continue()
+#            self.grid_move()
+
+    def grid_scan(self):
+        """ Hace un confocal de la particula"""
+#        time.sleep(2)
+        print("grid scan")
+        if self.scan_check.isChecked():
+            self.liveviewButton.setChecked(True)
+            self.liveview()
+
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
@@ -3269,6 +3393,9 @@ class ScanWidget(QtGui.QFrame):
         print("tengo el z_profile")
         self.locked_focus = True
         self.move_z((self.zLabel.text()))
+        self.focus_lock_button.setStyleSheet(
+                "QPushButton { background-color: ; }"
+                "QPushButton:pressed { background-color: blue; }")
 
     def focus_autocorr(self):
         """ correlaciona la medicion de intensidad moviendo z,
@@ -3280,6 +3407,7 @@ class ScanWidget(QtGui.QFrame):
             maxcorr = np.zeros(Ncorrelations)
             z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
 #        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+            self.focus_openshutter()
             for j in range(Ncorrelations):
                 z_vector_corr[j, :] = self.z_vector-3+j
                 for i in range(self.Npasos):
@@ -3295,7 +3423,7 @@ class ScanWidget(QtGui.QFrame):
 #                plt.plot(correlations)
 #                plt.plot(np.where(correlations==np.max(correlations)),
 #                          np.max(correlations), marker='o')
-
+            self.closeShutter(self.scan_shutterabierto)
             j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
             z_max = np.max(self.new_profile[j_final, :])
             donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
@@ -3307,16 +3435,27 @@ class ScanWidget(QtGui.QFrame):
         else:
             print("No esta Lockeado el foco")
 
-    def grid_scan(self):
-        """ Hace un confocal de la particula"""
-        pass
-
     def read_pos(self):
+        """lee las entradas analogicas que manda la platina y se donde estoy"""
         print("read pos")
-#        a
+        print("similar a get init (mas arriba)^^")
+
+    def go_reference(self):
+        print("arranco en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
+
+        self.moveto(float(self.xrefLabel.text()),
+                    float(self.yrefLabel.text()),
+                    float(self.zrefLabel.text()))
+
+        print("termino en", float(self.xLabel.text()),
+              float(self.yLabel.text()), float(self.zLabel.text()))
 
     def set_reference(self):
-        pass
+        self.read_pos()
+        self.xrefLabel.setText(str(self.xLabel.text()))
+        self.yrefLabel.setText(str(self.yLabel.text()))
+        self.zrefLabel.setText(str(self.zLabel.text()))
 
 # para saber si esta en potencia alta o baja
     def power_change(self):
@@ -3326,6 +3465,14 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.power_check.setText('Potencia \n ALTA')
             self.power_check.setStyleSheet("color: rgb(155, 064, 032); ")
+
+    def scan_change(self):
+        if self.scan_check.isChecked():
+            self.scan_check.setText('scan? = SI')
+            self.scan_check.setStyleSheet("color: orange; ")
+        else:
+            self.scan_check.setText('scan? = NO')
+            self.scan_check.setStyleSheet("color: blue; ")
 
 # Con esta funcion me encargo de que los menus tengan colores
     def color_menu(self, QComboBox):
@@ -3484,12 +3631,15 @@ class MyPopup_traza(QtGui.QWidget):
         except:  # pass
             print("pointtasktask2 no estaba abierto")
 
-    def save_traza(self):
+    def save_traza(self, imprimiendo=False):
         try:
             print("va a aguardar")
             # filepath = self.file_path
             filepath = self.main.file_path
             timestr = time.strftime("%d%m%Y-%H%M%S")
+            if imprimiendo:
+                timestr = str("Particula-") + str(self.ScanWidget.i_global)
+                self.ScanWidget.edit_save.setText(str(timestr))
             name = str(filepath + "/" + timestr + "-Traza" + ".txt")
             print("va a abrir el name")
             f = open(name, "w")
@@ -3636,22 +3786,23 @@ class MyPopup_traza(QtGui.QWidget):
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(mediochico), float(mediochico2)))
 #        print(mediochico, mediochico2)
-        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
-            print("se paso el tiempo!!")
+
+#        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
+#            print("se paso el tiempo!!")
+
         if mediochico >= mediochico2*float(self.umbralEdit.text()):
             self.PointLabel.setStyleSheet(" background-color: orange")
         else:
             self.PointLabel.setStyleSheet(" background-color: ")
     # Este if not es el que define si se esta corriendo una grilla
         if not self.main.grid_traza_control:
-            if medio > medio2*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
-                print("medio=", np.round(medio))
-                self.save_traza()
+            if mediochico > mediochico2*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
+                print("medio=", np.round(mediochico))
+                self.save_traza(True)
                 self.stop()
                 self.close_win()
                 self.main.grid_traza_control = True
-        else:
-            self.PointLabel.setStyleSheet(" background-color: ")
+
         toc = ptime.time()
         print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
         print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")

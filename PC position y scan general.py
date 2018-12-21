@@ -200,8 +200,6 @@ class MainWindow(QtGui.QMainWindow):
         self.setGeometry(10, 40, 600, 550)  # (PosX, PosY, SizeX, SizeY)
         self.save_docks()
 
-
-        self.umbralEdit = self.form_widget.umbralEdit
         self.grid_traza_control = True
 
 
@@ -899,7 +897,7 @@ class ScanWidget(QtGui.QFrame):
         subgrid.addWidget(self.liveviewButton,        11, 1)
         subgrid.addWidget(self.Continouscheck,        12, 1)
         subgrid.addWidget(self.autoLevelscheck,       13, 1)
-#        subgrid.addWidget(QtGui.QLabel('Img Check'),  14, 1)
+        subgrid.addWidget(QtGui.QLabel('Img Check'),  14, 1)
 #        subgrid.addWidget(self.maxcountsLabel,        15, 1)
 #        subgrid.addWidget(self.maxcountsEdit,         16, 1, 2, 1)
 #        subgrid.addWidget(QtGui.QLabel('         '),  17, 1)
@@ -916,24 +914,26 @@ class ScanWidget(QtGui.QFrame):
         subgrid2.addWidget(self.traza_laser,           1, 2)
 #        subgrid3.addWidget(self.PointLabel,          9, 3)
         subgrid2.addWidget(self.PointButton,           2, 2)
-        subgrid2.addWidget(QtGui.QLabel("          "), 5, 2)
+#        subgrid2.addWidget(QtGui.QLabel("          "), 5, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
 #        subgrid2.addWidget(QtGui.QLabel(""),           5, 2)
 #        subgrid2.addWidget(self.umbralLabel,      4, 2)
 #        subgrid2.addWidget(self.umbralEdit,       5, 2)
-        subgrid2.addWidget(QtGui.QLabel("move to cm"), 4, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),           3, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
-        subgrid2.addWidget(self.stepcheck,             7, 2)
-        subgrid2.addWidget(QtGui.QLabel(""),           8, 2)
+        subgrid2.addWidget(QtGui.QLabel("move to cm"), 3, 2)
+        subgrid2.addWidget(QtGui.QLabel(""),           4, 2)
+        subgrid2.addWidget(self.stepcheck,             5, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           6, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           7, 2)
+#        subgrid2.addWidget(QtGui.QLabel(""),           8, 2)
+        subgrid2.addWidget(QtGui.QLabel("x/y scan"),   6, 2)
+        subgrid2.addWidget(QtGui.QLabel("x/z scan"),   7, 2)
+        subgrid2.addWidget(QtGui.QLabel("z/y scan"),   8, 2)
 #        subgrid2.addWidget(self.Alancheck,             9, 2)
         subgrid2.addWidget(QtGui.QLabel(""),           10, 2)
-#        subgrid2.addWidget(label_save,                 11, 2)  # , 1, 2)
-#        subgrid2.addWidget(self.edit_save,             12, 2)  # , 1, 2)
-#        subgrid2.addWidget(self.saveimageButton,       13, 2)
-        subgrid2.addWidget(QtGui.QLabel("x/y scan"),   11, 2)
-        subgrid2.addWidget(QtGui.QLabel("x/z scan"),   12, 2)
-        subgrid2.addWidget(QtGui.QLabel("z/y scan"),   13, 2)
+        subgrid2.addWidget(label_save,                 11, 2)  # , 1, 2)
+        subgrid2.addWidget(self.edit_save,             12, 2)  # , 1, 2)
+        subgrid2.addWidget(self.saveimageButton,       13, 2)
+
         subgrid2.addWidget(QtGui.QLabel(""),           14, 2)
         subgrid2.addWidget(self.presetsMode,           15, 2)
         subgrid2.addWidget(self.timeTotalLabel,        16, 2)
@@ -1404,12 +1404,14 @@ class ScanWidget(QtGui.QFrame):
         self.closeShutter(self.scan_shutterabierto)
         self.liveviewButton.setChecked(False)
         self.viewtimer.stop()
+        self.grid_scan_control = True  # es parte del flujo en grid_start
+
 #        self.done()
 
     def scan_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""
         for i in range(len(shutters)):
-            if self.traza_laser.currentText() == shutters[i]:
+            if self.scan_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
                 self.scan_shutterabierto = shutters[i]
 
@@ -1451,8 +1453,7 @@ class ScanWidget(QtGui.QFrame):
         if self.i < self.numberofPixels-self.step:
             self.i = self.i + self.step
         else:
-            if self.Alancheck.isChecked():
-                self.guardarimagen()  # para guardar siempre (Alan idea)
+            self.guardarimagen()  # para guardar siempre
             if self.CMcheck.isChecked():
                 self.CMmeasure()
             if self.Gausscheck.isChecked():
@@ -1887,8 +1888,9 @@ class ScanWidget(QtGui.QFrame):
             filepath = self.main.file_path
     #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/
     #    Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/"
-#            timestr = time.strftime("%Y%m%d-%H%M%S")  + str(self.number)
-            name = str(filepath + "/" + str(self.edit_save.text()) + ".tiff")
+#            timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
+            name = str(filepath + "/" + str(self.edit_save.text()) +
+                       "_" + "Scan" + ".tiff")
             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
             guardado.save(name)
             self.number = self.number + 1
@@ -2322,8 +2324,18 @@ class ScanWidget(QtGui.QFrame):
         (u otra cosa)"""
 
         self.grid_timer_traza = QtCore.QTimer()
-        self.grid_timer_traza.timeout.connect(self.grid_detect_signal)
+        self.grid_timer_traza.timeout.connect(self.grid_detect_traza)
+
+        self.grid_timer_scan = QtCore.QTimer()
+        self.grid_timer_scan.timeout.connect(self.grid_detect_scan)
+        self.grid_continue()
+#        self.grid_move()
+
+    def grid_continue(self):
         self.grid_move()
+        self.grid_autofoco()
+        self.grid_openshutter()
+        self.grid_traza()
 
     def grid_move(self):
         """ se mueve siguiendo las coordenadas que lee del archivo"""
@@ -2342,7 +2354,10 @@ class ScanWidget(QtGui.QFrame):
         print("me muevo",
               self.grid_x[self.i_global] + startX,
               self.grid_y[self.i_global] + startY)
+#        self.grid_autofoco()
 
+    def grid_autofoco(self):
+        print("aa")
         multifoco = np.arange(0,
                               int(self.particulasEdit.text())-1,
                               int(self.autofocEdit.text()))
@@ -2351,9 +2366,9 @@ class ScanWidget(QtGui.QFrame):
             print("Estoy haciendo foco en el i=", self.i_global)
             time.sleep(2)
             self.focus_autocorr()
+#        self.grid_openshutter()
+#        self.grid_traza()
 
-        self.grid_openshutter()
-        self.grid_traza()
 
     def grid_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""
@@ -2375,11 +2390,22 @@ class ScanWidget(QtGui.QFrame):
 #        self.grid_detect()
 #        self.main.grid_timer_traza.start(10)  # no se que tiempo poner
 
-    def grid_detect_signal(self):
+    def grid_detect_traza(self):
         """ Espera hasta detectar el evento de impresion.
         grid_timer_traza connect here"""
         if self.main.grid_traza_control:
             self.grid_timer_traza.stop()
+#            self.grid_detect()
+            self.grid_scan_signal()
+
+    def grid_scan_signal(self):
+        self.grid_scan_control = False
+        self.grid_timer_scan.start(10)  # no se que tiempo poner
+        self.grid_scan()
+
+    def grid_detect_scan(self):
+        if self.grid_scan_control:
+            self.grid_timer_scan.stop()
             self.grid_detect()
 
     def grid_detect(self):
@@ -2389,10 +2415,9 @@ class ScanWidget(QtGui.QFrame):
         self.closeShutter(self.grid_shutterabierto)
 #        time.sleep(1)
 
-
         Nmax = int(self.particulasEdit.text())-1  # self.Nmax  cantidad total de particulas
-        if self.scan_check.isChecked():
-            self.grid_scan()
+#        if self.scan_check.isChecked():
+#            self.grid_scan()
 
         print(" i global ", self.i_global, "?")
 
@@ -2411,7 +2436,16 @@ class ScanWidget(QtGui.QFrame):
                                        QtGui.QMessageBox.Ok)
         else:
             self.i_global += 1
-            self.grid_move()
+            self.grid_continue()
+#            self.grid_move()
+
+    def grid_scan(self):
+        """ Hace un confocal de la particula"""
+#        time.sleep(2)
+        print("grid scan")
+        if self.scan_check.isChecked():
+            self.liveviewButton.setChecked(True)
+            self.liveview()
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
@@ -2498,12 +2532,13 @@ class ScanWidget(QtGui.QFrame):
         """ correlaciona la medicion de intensidad moviendo z,
         respecto del que se lockeo con loc focus"""
         if self.locked_focus:
-            Ncorrelations = 6  # tambien a definir....
+            Ncorrelations = 6  # tambien a definir.... ¿50?
             self.new_profile = np.zeros((Ncorrelations, self.Npasos))
             correlations = np.zeros((self.Npasos))
             maxcorr = np.zeros(Ncorrelations)
             z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
 #        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+            self.focus_openshutter()
             for j in range(Ncorrelations):
                 z_vector_corr[j, :] = self.z_vector-4+j
                 for i in range(self.Npasos):
@@ -2519,6 +2554,7 @@ class ScanWidget(QtGui.QFrame):
 #                plt.plot(correlations)
 #                plt.plot(np.where(correlations==np.max(correlations)),
 #                          np.max(correlations), marker='o')
+            self.closeShutter(self.scan_shutterabierto)
 
             j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
             z_max = np.max(self.new_profile[j_final, :])
@@ -2531,23 +2567,6 @@ class ScanWidget(QtGui.QFrame):
 
         else:
             print("No esta Lockeado el foco")
-
-    def grid_scan(self):
-        """ Hace un confocal de la particula"""
-        time.sleep(2)
-        print("grid scan")
-        self.vectores_scan()  # armo los barrido donde estoy
-        self.liveviewStart()  # probablemente tenga que usar otro,
-                              # para no tocar "barrido" o "rampas"
-        # luego tiene que abrir shutter
-        # escanear mientas lo dibuja en vivo
-        # cerrar shutter
-        # guardar
-
-    def vectores_scan(self):
-        self.read_pos()  # de aca leo x y
-#        x = np.linspace(xini,xfin,Npunts)
-#        y = np.linspace(xini,xfin,Npunts)
 
     def read_pos(self):
         """lee las entradas analogicas que manda la platina y se donde estoy"""
@@ -2598,7 +2617,6 @@ class ScanWidget(QtGui.QFrame):
             QComboBox.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
         elif QComboBox .currentText() == shutters[2]: # azul
             QComboBox.setStyleSheet("QComboBox{color: rgb(0,0,255);}\n")
-
 
 # %% Point scan (inaplicable aca)
 # """
@@ -2882,6 +2900,7 @@ class MyPopup_traza(QtGui.QWidget):
             timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
             if imprimiendo:
                 timestr = str("Particula-") + str(self.ScanWidget.i_global)
+                self.ScanWidget.edit_save.setText(str(timestr))
             name = str(filepath + "/" + timestr + "_" + "Traza" + ".txt")
             f = open(name, "w")
             np.savetxt(name,
@@ -2923,7 +2942,7 @@ class MyPopup_traza(QtGui.QWidget):
         points[:] = np.random.rand(len(points))  # self.pointtask.read(N)
         points2[:] = np.random.rand(len(points2))  # self.pointtask.read(N)
 
-        sig = np.mean(points) + np.log(self.ptr1+1)**2 + points[0]
+        sig = np.mean(points) + np.log(self.ptr1+1) + points[0]
         if self.ptr1 > 150:
             sig = self.ptr1**5
 #        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
@@ -2946,8 +2965,8 @@ class MyPopup_traza(QtGui.QWidget):
 
         m = np.mean(self.data1[:self.ptr1])
         m1 = np.max(self.data1[:self.ptr1])
-        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
-                                           float(m), float(m1)))
+#        self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
+#                                           float(m), float(m1)))
 #        self.p7.addLine(x=None, y=m, pen=pg.mkPen('y', width=1))
         self.line.setData(self.timeaxis[:self.ptr1],
                           np.ones(len(self.timeaxis[:self.ptr1])) * m,
@@ -2980,13 +2999,12 @@ class MyPopup_traza(QtGui.QWidget):
         self.line12.setData(self.timeaxis2[:-10],
                             np.ones(M-10) * medio2, pen=pg.mkPen('y', width=2))
 
-#        self.PointLabel.setText("<strong>{:.2}|{:.2}".format(
-#                                float(m), float(medio)))
-#        print(medio, medio2)
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(medio), float(medio2)))
-        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
-            print("se paso el tiempo!!")
+
+#        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
+#            print("se paso el tiempo!!")
+
         if medio > medio2*float(self.umbralEdit.text()):
             self.PointLabel.setStyleSheet(" background-color: orange")
 #            if not self.main.grid_traza_control:
@@ -2996,6 +3014,8 @@ class MyPopup_traza(QtGui.QWidget):
 #                self.close_win()
 #                self.main.grid_traza_control = True
 ##                self.main.Signal1.emit()
+        else:
+            self.PointLabel.setStyleSheet(" background-color: ")
         if not self.main.grid_traza_control:
             if medio > medio2*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
                 print("medio=", np.round(medio))
@@ -3003,8 +3023,7 @@ class MyPopup_traza(QtGui.QWidget):
                 self.stop()
                 self.close_win()
                 self.main.grid_traza_control = True
-        else:
-            self.PointLabel.setStyleSheet(" background-color: ")
+
 
 
 # %% Otras Funciones
