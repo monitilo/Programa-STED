@@ -2868,6 +2868,7 @@ class MyPopup_traza(QtGui.QWidget):
 
     def stop(self):
         print("stop")
+        self.ScanWidget.closeShutter(self.traza_shutterabierto)
         try:
             self.pointtimer.stop()
         except IOError as e:
