@@ -28,8 +28,8 @@ import viewbox_tools
 import nidaqmx
 
 device = nidaqmx.system.System.local().devices['Dev1']
-
-convFactors = {'x': 25, 'y': 25, 'z': 1.683}  # TODO: CAMBIAR!!!!!
+# z =  1.683
+convFactors = {'x': 25, 'y': 25, 'z': 25}  # TODO: CAMBIAR!!!!!
 # la calibracion es 1 µm = 40 mV en x,y (galvos);
 # en z, 0.17 µm = 0.1 V  ==> 1 µm = 0.58 V
 # 1.68 um = 1 V ==> 1 um = 0.59V  # asi que promedie, y lo puse a ojo.
@@ -38,7 +38,7 @@ maxVolt = {'x': 10, 'y': 10, 'z': 10}
 resolucionDAQ = 0.0003 * 2 * convFactors['x']
 # V => µm; uso el doble para no errarle
 activeChannels = ["x", "y", "z"]
-AOchans = [0, 1]  # , 2]  # x,y,z  # TODO: agregar z
+AOchans = [0, 1, 2]  # , 2]  # x,y,z  # TODO: agregar z
 detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
 COchans = [0, 1]  # apd rojo y verde  # TODO: ya no uso contadores
@@ -737,7 +737,8 @@ class ScanWidget(QtGui.QFrame):
 #        self.inStart = False
 #        self.working = False
         self.shuttering = False
-        self.shuttersignal = [False, False, False]
+        self.shuttersignal = np.zeros(len(shutters), dtype='bool')
+#        self.shuttersignal = [False, False, False]
 #        self.preseteado = False  # Era por si fijaba los valores, pero no
         self.autoLevels = True
         self.YZ = False
@@ -1041,7 +1042,7 @@ class ScanWidget(QtGui.QFrame):
         self.yDown2Button.pressed.connect(
                        lambda: self.move("y", -10*float(self.StepEdit.text())))
 
-        self.zLabel = QtGui.QLabel('0.0')
+        self.zLabel = QtGui.QLabel('10.0')
 #            "<strong>z = {0:.2f} µm</strong>".format(self.z))
         self.zLabel.setTextFormat(QtCore.Qt.RichText)
         self.zname = QtGui.QLabel("<strong>z =")
@@ -1997,9 +1998,9 @@ class ScanWidget(QtGui.QFrame):
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
             if self.YZ:
-                AOchans2 = [0, 1, 2]
-            else:
                 AOchans2 = AOchans
+            else:
+                AOchans2 = AOchans[:2]
         # Following loop creates the voltage channels
             for n in range(len(AOchans2)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
@@ -2028,9 +2029,10 @@ class ScanWidget(QtGui.QFrame):
         # Create the channels
             self.aotask = nidaqmx.Task('aotask')
         # Following loop creates the voltage channels
-            for n in range(len(AOchans)):
+            AOchans2 = AOchans[:2]
+            for n in range(len(AOchans2)):
                 self.aotask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % AOchans[n],
+                    physical_channel='Dev1/ao%s' % AOchans2[n],
                     name_to_assign_to_channel='chan_%s' % activeChannels[n],
                     min_val=minVolt[activeChannels[n]],
                     max_val=maxVolt[activeChannels[n]])
@@ -2444,7 +2446,7 @@ class ScanWidget(QtGui.QFrame):
                 min_val=minVolt[activeChannels[n]],
                 max_val=maxVolt[activeChannels[n]])
 
-            N = abs(int(dist*2000))
+            N = abs(int(dist*200))
         # read initial position for all channels
             toc = ptime.time()
             rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
@@ -2585,7 +2587,7 @@ class ScanWidget(QtGui.QFrame):
             self.closeShutter(shutters[2])
 
     def openShutter(self, p):
-        for i in range(3):
+        for i in range(len(shutters)):
             if p == shutters[i]:
                 self.shuttersignal[i] = True
         self.shuttertask.write(self.shuttersignal, auto_start=True)
@@ -2648,11 +2650,12 @@ class ScanWidget(QtGui.QFrame):
             self.done()
 
     #         Creates the voltage channels to move "slowly"
+            AOchans2 = AOchans[:2]
             with nidaqmx.Task("aotask") as aotask:
                 # self.aotask = nidaqmx.Task('aotask')
-                for n in range(len(AOchans)):
+                for n in range(len(AOchans2)):
                     aotask.ao_channels.add_ao_voltage_chan(
-                        physical_channel='Dev1/ao%s' % AOchans[n],
+                        physical_channel='Dev1/ao%s' % AOchans2[n],
                         name_to_assign_to_channel='cha_%s' % activeChannels[n],
                         min_val=minVolt[activeChannels[n]],
                         max_val=maxVolt[activeChannels[n]])
@@ -2935,7 +2938,9 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.vb.removeItem(self.roi)
             self.roi.hide()
-            self.roi.disconnect()
+            try:
+                self.roi.disconnect()
+            except: pass
             if self.ROIButton.isChecked():
                 ROIpos = (0.5 * self.numberofPixels - 64,
                           0.5 * self.numberofPixels - 64)
@@ -2994,7 +2999,7 @@ class ScanWidget(QtGui.QFrame):
                       self.numberofPixels-int(newPos_px[1])]
             y, x = np.histogram(roizone,
                                 bins=np.linspace(
-                                 -0.5, np.ceil(np.max(self.image))+2,
+                                 0.5, np.ceil(np.max(self.image))+2,
                                  np.ceil(np.max(self.image))+3))
             m = np.mean(roizone)
             m2 = np.max(roizone)
@@ -3253,6 +3258,7 @@ class ScanWidget(QtGui.QFrame):
         self.NameDirValue.setStyleSheet(" background-color: green ; ")
         self.main.file_path = new_folder
         self.i_global = 1
+        self.indice_impresionEdit.setText(str(self.i_global))
 
     def grid_start(self):
         """funcion que empieza el programa de imprimir una grilla
@@ -3373,9 +3379,9 @@ class ScanWidget(QtGui.QFrame):
         """moves the position along the Z axis a distance dist."""
 #        time.sleep(0.1)
         dist = dist
-        print("me muevo en z", dist)
+        print("me muevo a z", dist)
         with nidaqmx.Task("Ztask") as Ztask:
-            self.Ztask = nidaqmx.Task('Ztask')
+#            self.Ztask = nidaqmx.Task('Ztask')
             # Following loop creates the voltage channels
             n = 2
             Ztask.ao_channels.add_ao_voltage_chan(
@@ -3384,13 +3390,13 @@ class ScanWidget(QtGui.QFrame):
                 min_val=minVolt[activeChannels[n]],
                 max_val=maxVolt[activeChannels[n]])
 
-            N = abs(int(dist*2000))
+            N = abs(int(dist*100))
         # read initial position for all channels
             toc = ptime.time()
-            rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
+            rampz = np.linspace(float(self.zLabel.text()), dist, N)
             for i in range(N):
-                Ztask.write([rampz[i] / convFactors['z']], auto_start=True)
-
+                Ztask.write([rampz[i] / (convFactors['z'])], auto_start=True)
+#            Ztask.wait_until_done()
             print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
         # update position text
             self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
@@ -3413,6 +3419,7 @@ class ScanWidget(QtGui.QFrame):
         for i in range(len(shutters)):
             if self.focus_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
+                self.focus_shutterabierto = shutters[i]
 
     def read_PD(self, color):
         """ Read de photodiode of the selecter 'color' """
@@ -3420,7 +3427,7 @@ class ScanWidget(QtGui.QFrame):
 #        time.sleep(0.1)
         print("abre canal pmt")  # , channel)
         with nidaqmx.Task("PDtask") as PDtask:
-            self.PDtask = nidaqmx.Task('PDtask')
+#            self.PDtask = nidaqmx.Task('PDtask')
             PDtask.ai_channels.add_ai_voltage_chan(
                 physical_channel='Dev1/ai{}'.format(PD_channels[color]),
                 name_to_assign_to_channel='chan_PD')
@@ -3430,9 +3437,10 @@ class ScanWidget(QtGui.QFrame):
 
     def focus_lock_focus(self):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
-        self.Npasos = int(self.numberofPixelsEdit.text())  # algun numero de pasos a definir (50 dice en algun lado)
+        self.Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
         z_start = float(self.zLabel.text()) - (self.scanRange/2)
         z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+        print("zstart=", z_start,"z end", z_end)
         self.z_vector = np.linspace(z_start, z_end, self.Npasos)
         self.z_profile = np.zeros((self.Npasos))
         self.focus_openshutter()
@@ -3443,38 +3451,42 @@ class ScanWidget(QtGui.QFrame):
         self.closeShutter(self.focus_shutterabierto)
         print("tengo el z_profile")
         self.locked_focus = True
-        self.move_z((self.zLabel.text()))
+        self.move_z(float(self.zLabel.text()))
         self.focus_lock_button.setStyleSheet(
                 "QPushButton { background-color: ; }"
                 "QPushButton:pressed { background-color: blue; }")
-
+#focus_lock_focus_rampas
     def focus_lock_focus_rampas(self):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
-        Npasos = int(self.numberofPixelsEdit.text())/10  # algun numero de pasos a definir (50 dice en algun lado)
+        Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
         z_antes = float(self.zLabel.text())
         z_start = float(self.zLabel.text()) - (self.scanRange/2)
         z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
         self.z_vector = np.linspace(z_start, z_end, Npasos)
         self.z_profile = np.zeros((Npasos))
 #        self.focus_openshutter()
+        self.move_z((z_start))
+#        self.focus_openshutter()
         self.channel_z(self.sampleRate, Npasos)
-        self.channel_PD(self.focus_shutterabierto, self.sampleRate, Npasos)
+        self.channel_PD((self.focus_laser.currentText()),
+                                                       self.sampleRate, Npasos)
         self.channel_triger(self.ztask, self.PDtask)
 
-        self.move_z((z_start))
-        self.ztask.write(np.array([self.z_vector / convFactors['z']]),
+        self.ztask.write((self.z_vector / convFactors['z']),
                                                       auto_start = False)
 
         self.start_move_and_read(self.ztask,
                                  self.PDtask,
-                                 self.focus_shutterabierto)
+                                 (self.focus_laser.currentText()))
 #        self.PDtimer_focus.start(10)  # no necesito usar un timer
         self.z_profile = self.PDtask.read(Npasos)
 
     # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
-        self.closeShutter(self.focus_shutterabierto)
-        print("tengo el z_profile")
+        self.closeShutter((self.focus_laser.currentText()))
+        self.channels_close()
+        print("Foco lockeado. Tengo el z_profile")
         self.locked_focus = True
+
         self.move_z((z_antes))
         self.focus_lock_button.setStyleSheet(
                 "QPushButton { background-color: ; }"
@@ -3506,7 +3518,7 @@ class ScanWidget(QtGui.QFrame):
 #                plt.plot(correlations)
 #                plt.plot(np.where(correlations==np.max(correlations)),
 #                          np.max(correlations), marker='o')
-            self.closeShutter(self.scan_shutterabierto)
+            self.closeShutter(self.focus_shutterabierto)
             j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
             z_max = np.max(self.new_profile[j_final, :])
             donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
@@ -3536,7 +3548,7 @@ class ScanWidget(QtGui.QFrame):
               float(self.yLabel.text()), float(self.zLabel.text()))
 
     def set_reference(self):
-        self.read_pos()
+#        self.read_pos()
         self.xrefLabel.setText(str(self.xLabel.text()))
         self.yrefLabel.setText(str(self.yLabel.text()))
         self.zrefLabel.setText(str(self.zLabel.text()))
@@ -3571,6 +3583,7 @@ class ScanWidget(QtGui.QFrame):
 # %% mejorando los channels
 
     def channel_xy(self, rate=0, samps_per_chan=0):
+        
         # Create the channels
             self.xytask = nidaqmx.Task('xytask')
             AOchans2 = AOchans[:2]
@@ -3663,6 +3676,24 @@ class ScanWidget(QtGui.QFrame):
         self.openShutter(color)  # abre el shutter elegido
 
         self.triggertask.write(self.trigger, auto_start=True)
+
+    def channels_close(self):
+        try:
+            self.xytask.stop()
+            self.xytask.close()
+        except: pass
+        try:
+            self.ztask.stop()
+            self.ztask.close()
+        except: pass
+        try:
+            self.PDtask.stop()
+            self.PDtask.close()
+        except: pass
+        try:
+            self.triggertask.stop()
+            self.triggertask.close()
+        except: pass
 
 # %% Point scan , que ahora es traza
 
@@ -3950,8 +3981,8 @@ class MyPopup_traza(QtGui.QWidget):
                           np.ones(len(self.timeaxis[:self.ptr1])) * mediototal,
                           pen=pg.mkPen('c', width=1))
         tec = ptime.time()
-        M = 40
-        M2 = 10
+        M = 30
+        M2 = 5
         if self.ptr1 < M:
             mediochico = np.mean(self.data1[:self.ptr1])
             self.timeaxis2 = self.timeaxis[:self.ptr1]
