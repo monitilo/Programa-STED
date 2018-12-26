@@ -2510,13 +2510,13 @@ class ScanWidget(QtGui.QFrame):
 
     def focus_lock_focus(self):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
-        self.Npasos = int(self.numberofPixelsEdit.text())  # algun numero de pasos a definir (50 dice en algun lado)
+        Npasos = int(self.numberofPixelsEdit.text())  # algun numero de pasos a definir (50 dice en algun lado)
         z_start = float(self.zLabel.text()) - (self.scanRange/2)
         z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
-        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
-        self.z_profile = np.zeros((self.Npasos))
+        self.z_vector = np.linspace(z_start, z_end, Npasos)
+        self.z_profile = np.zeros((Npasos))
         self.focus_openshutter()
-        for i in range(self.Npasos):
+        for i in range(Npasos):
             self.move_z(self.z_vector[i])
             self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
         # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
@@ -2528,20 +2528,53 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton { background-color: ; }"
                 "QPushButton:pressed { background-color: blue; }")
 
+#    def focus_lock_focus_rampas(self):
+#        """ guarda el patron de intensidades, barriendo z en el foco actual"""
+#        Npasos = int(self.numberofPixelsEdit.text())/10  # algun numero de pasos a definir (50 dice en algun lado)
+#        z_antes = float(self.zLabel.text())
+#        z_start = float(self.zLabel.text()) - (self.scanRange/2)
+#        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+#        self.z_vector = np.linspace(z_start, z_end, Npasos)
+#        self.z_profile = np.zeros((Npasos))
+##        self.focus_openshutter()
+#        self.channel_z(self.sampleRate, Npasos)
+#        self.channel_PD(self.focus_shutterabierto, self.sampleRate, Npasos)
+#        self.channel_triger(self.ztask, self.PDtask)
+#
+#        self.move_z((z_start))
+#        self.ztask.write(np.array([self.z_vector / convFactors['z']]),
+#                                                      auto_start = False)
+#
+#        self.start_move_and_read(self.ztask,
+#                                 self.PDtask,
+#                                 self.focus_shutterabierto)
+##        self.PDtimer_focus.start(10)  # no necesito usar un timer
+#        self.z_profile = self.PDtask.read(Npasos)
+#
+#    # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
+#        self.closeShutter(self.focus_shutterabierto)
+#        print("tengo el z_profile")
+#        self.locked_focus = True
+#        self.move_z((z_antes))
+#        self.focus_lock_button.setStyleSheet(
+#                "QPushButton { background-color: ; }"
+#                "QPushButton:pressed { background-color: blue; }")
+
     def focus_autocorr(self):
         """ correlaciona la medicion de intensidad moviendo z,
         respecto del que se lockeo con loc focus"""
         if self.locked_focus:
             Ncorrelations = 6  # tambien a definir.... ¿50?
-            self.new_profile = np.zeros((Ncorrelations, self.Npasos))
-            correlations = np.zeros((self.Npasos))
+            Npasos = len(self.z_profile)
+            self.new_profile = np.zeros((Ncorrelations, Npasos))
+            correlations = np.zeros((Npasos))
             maxcorr = np.zeros(Ncorrelations)
-            z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
+            z_vector_corr = np.zeros((Ncorrelations, Npasos))
 #        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
             self.focus_openshutter()
             for j in range(Ncorrelations):
                 z_vector_corr[j, :] = self.z_vector-4+j
-                for i in range(self.Npasos):
+                for i in range(Npasos):
                     self.move_z(z_vector_corr[j, i])
                     self.new_profile[j, i] = self.read_PD(
                                                     self.focus_shutterabierto)

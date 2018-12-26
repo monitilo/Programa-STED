@@ -44,13 +44,13 @@ detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 COchans = [0, 1]  # apd rojo y verde  # TODO: ya no uso contadores
 PMTchan = 1  # TODO: pero uso varios "pmt" (son fotodiodos(pd))
 scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
-
+PMTchans = [0,1,2]  # elegir aca las salidas del PD de cada color
 #shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']  # salida 1,2,3
 
 apdrate = 10**5
 
-
+PD_channels = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
 #    def closeEvent(self, event):
@@ -1529,7 +1529,7 @@ class ScanWidget(QtGui.QFrame):
 
 #    def startingSteps(self):
 
-# %%
+# %% Starting Ramps
     def startingRamps(self):
         """ Send the signals to the NiDaq,
         but only start when the trigger is on """
@@ -2135,6 +2135,7 @@ class ScanWidget(QtGui.QFrame):
             self.triggerPMT = True
 
     def TriggerOpenAPD(self):
+        """ el triger con contadores es distinto (asi son los APD)"""
         if self.triggerAPD:
             print("Ya esta el trigger APD")  # to dont open again
 
@@ -3415,13 +3416,13 @@ class ScanWidget(QtGui.QFrame):
 
     def read_PD(self, color):
         """ Read de photodiode of the selecter 'color' """
-        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
+#        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
 #        time.sleep(0.1)
         print("abre canal pmt")  # , channel)
         with nidaqmx.Task("PDtask") as PDtask:
             self.PDtask = nidaqmx.Task('PDtask')
             PDtask.ai_channels.add_ai_voltage_chan(
-                physical_channel='Dev1/ai{}'.format(channel[color]),
+                physical_channel='Dev1/ai{}'.format(PD_channels[color]),
                 name_to_assign_to_channel='chan_PD')
             z_profile = PDtask.read()
 #        read = np.random.rand(10)[0]*50
@@ -3443,6 +3444,38 @@ class ScanWidget(QtGui.QFrame):
         print("tengo el z_profile")
         self.locked_focus = True
         self.move_z((self.zLabel.text()))
+        self.focus_lock_button.setStyleSheet(
+                "QPushButton { background-color: ; }"
+                "QPushButton:pressed { background-color: blue; }")
+
+    def focus_lock_focus_rampas(self):
+        """ guarda el patron de intensidades, barriendo z en el foco actual"""
+        Npasos = int(self.numberofPixelsEdit.text())/10  # algun numero de pasos a definir (50 dice en algun lado)
+        z_antes = float(self.zLabel.text())
+        z_start = float(self.zLabel.text()) - (self.scanRange/2)
+        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+        self.z_vector = np.linspace(z_start, z_end, Npasos)
+        self.z_profile = np.zeros((Npasos))
+#        self.focus_openshutter()
+        self.channel_z(self.sampleRate, Npasos)
+        self.channel_PD(self.focus_shutterabierto, self.sampleRate, Npasos)
+        self.channel_triger(self.ztask, self.PDtask)
+
+        self.move_z((z_start))
+        self.ztask.write(np.array([self.z_vector / convFactors['z']]),
+                                                      auto_start = False)
+
+        self.start_move_and_read(self.ztask,
+                                 self.PDtask,
+                                 self.focus_shutterabierto)
+#        self.PDtimer_focus.start(10)  # no necesito usar un timer
+        self.z_profile = self.PDtask.read(Npasos)
+
+    # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
+        self.closeShutter(self.focus_shutterabierto)
+        print("tengo el z_profile")
+        self.locked_focus = True
+        self.move_z((z_antes))
         self.focus_lock_button.setStyleSheet(
                 "QPushButton { background-color: ; }"
                 "QPushButton:pressed { background-color: blue; }")
@@ -3534,6 +3567,102 @@ class ScanWidget(QtGui.QFrame):
             QComboBox.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
         elif QComboBox .currentText() == shutters[2]: # azul
             QComboBox.setStyleSheet("QComboBox{color: rgb(0,0,255);}\n")
+
+# %% mejorando los channels
+
+    def channel_xy(self, rate=0, samps_per_chan=0):
+        # Create the channels
+            self.xytask = nidaqmx.Task('xytask')
+            AOchans2 = AOchans[:2]
+        # Following loop creates the voltage channels
+            for n in range(len(AOchans2)):
+                self.xytask.ao_channels.add_ao_voltage_chan(
+                    physical_channel='Dev1/ao%s' % AOchans2[n],
+                    name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                    min_val=minVolt[activeChannels[n]],
+                    max_val=maxVolt[activeChannels[n]])
+            if rate !=0 and samps_per_chan != 0:
+#            self.piezoramp = True
+                self.xytask.timing.cfg_samp_clk_timing(
+                    rate=rate,  # self.sampleRate
+                    # source=r'100kHzTimeBase',
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=samps_per_chan)  # len(self.totalrampx)
+
+    def channel_z(self, rate=0, samps_per_chan=0):
+        # Create the channels
+            self.ztask = nidaqmx.Task('ztask')
+        # Following loop creates the voltage channels
+            n=2
+            self.ztask.ao_channels.add_ao_voltage_chan(
+                physical_channel='Dev1/ao%s' % AOchans[n],
+                name_to_assign_to_channel='chan_%s' % activeChannels[n],
+                min_val=minVolt[activeChannels[n]],
+                max_val=maxVolt[activeChannels[n]])
+            if rate !=0 and samps_per_chan != 0:
+#            self.piezoramp = True
+                self.ztask.timing.cfg_samp_clk_timing(
+                    rate=rate,  # self.sampleRate
+                    # source=r'100kHzTimeBase',
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=samps_per_chan)  # len(self.totalrampx)
+
+    def channel_PD(self, color=shutters[0], rate=0, samps_per_chan=0):
+        """ en color va alguna de los valores de shutters"""
+#            self.PMTon = True
+        self.PDtask = nidaqmx.Task('PMTtask')
+        self.PDtask.ai_channels.add_ai_voltage_chan(
+            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
+            name_to_assign_to_channel='chan_PMT')
+        if rate !=0 and samps_per_chan != 0:
+            self.PDtask.timing.cfg_samp_clk_timing(
+                    rate=rate,
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=samps_per_chan)
+
+    def channel_triger(self, task1, task2, rate=10**5, samples_long=1):
+        self.triggertask = nidaqmx.Task('TriggerPDtask')
+    # Create the signal trigger
+        num = samples_long  # int(self.triggerEdit.text())
+        trigger2 = [True, True, False]
+        # trigger2 = np.tile(trigger, self.numberofPixels)
+        self.trigger = np.concatenate((np.zeros(num, dtype="bool"),
+                                       trigger2))
+
+    # Configure the digital channels to trigger the synchronization signal
+        self.triggertask.do_channels.add_do_chan(
+            lines="Dev1/port0/line6", name_to_assign_to_lines='chan6',
+            line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+
+        self.triggertask.timing.cfg_samp_clk_timing(
+                     rate=rate,  # muestras por segundo
+                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                     # source='100kHzTimebase',
+                     active_edge=nidaqmx.constants.Edge.RISING,
+                     samps_per_chan=len(self.trigger))
+    # Configure a start trigger to synchronizate the measure and movement
+        triggerchannelname = "PFI4"
+        task1.triggers.start_trigger.cfg_dig_edge_start_trig(
+                                            trigger_source=triggerchannelname)
+        task2.triggers.start_trigger.cfg_dig_edge_start_trig(
+                                            trigger_source=triggerchannelname)
+#        self.triggerPMT = True
+
+    def vector_to_move(self):
+        self.xytask.write(np.array(
+            [self.totalrampx / convFactors['x'],
+             self.totalrampy / convFactors['y']]), auto_start=False)
+
+    def start_move_and_read(self, task1, task2, color=shutters[0]):
+        """ Send the signals to the NiDaq,
+        but only start when the trigger is on """
+
+        task1.start()
+        task2.start()
+        print("ya arranca...")
+        self.openShutter(color)  # abre el shutter elegido
+
+        self.triggertask.write(self.trigger, auto_start=True)
 
 # %% Point scan , que ahora es traza
 
@@ -3880,6 +4009,7 @@ class MyPopup_traza(QtGui.QWidget):
         print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
         print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
         print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
+
 
 
 # %% Otras Funciones

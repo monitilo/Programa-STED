@@ -8,6 +8,9 @@ Created on Wed Nov 28 11:00:54 2018
 #pyqtgraph.examples.run()
 # corriendolo por consola anda
 # %%
+def algo(cosas,otro=1,mas="batata"):
+    print(cosas,otro,mas)
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
 import tkinter as tk
