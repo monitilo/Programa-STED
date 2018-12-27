@@ -44,7 +44,7 @@ detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 COchans = [0, 1]  # apd rojo y verde  # TODO: ya no uso contadores
 PMTchan = 1  # TODO: pero uso varios "pmt" (son fotodiodos(pd))
 scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
-PMTchans = [0,1,2]  # elegir aca las salidas del PD de cada color
+PDchans = [0,1,2]  # elegir aca las salidas del PD de cada color
 #shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']  # salida 1,2,3
 
@@ -3468,8 +3468,7 @@ class ScanWidget(QtGui.QFrame):
         self.move_z((z_start))
 #        self.focus_openshutter()
         self.channel_z(self.sampleRate, Npasos)
-        self.channel_PD((self.focus_laser.currentText()),
-                                                       self.sampleRate, Npasos)
+        self.channel_PD_todos(self.sampleRate, Npasos)
         self.channel_triger(self.ztask, self.PDtask)
 
         self.ztask.write((self.z_vector / convFactors['z']),
@@ -3627,6 +3626,22 @@ class ScanWidget(QtGui.QFrame):
         self.PDtask.ai_channels.add_ai_voltage_chan(
             physical_channel='Dev1/ai{}'.format(PD_channels[color]),
             name_to_assign_to_channel='chan_PMT')
+        if rate !=0 and samps_per_chan != 0:
+            self.PDtask.timing.cfg_samp_clk_timing(
+                    rate=rate,
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=samps_per_chan)
+
+    def channel_PD_todos(self, rate=0, samps_per_chan=0):
+        """ en color va alguna de los valores de shutters"""
+#            self.PMTon = True
+
+        self.PDtask = nidaqmx.Task('PMTtask')
+        for n in range(len(PDchans)):
+            self.PDtask.ai_channels.add_ai_voltage_chan(
+                    physical_channel='Dev1/ai{}'.format(PDchans[n]),
+                    name_to_assign_to_channel='chan_PD{}'.format(PDchans[n]))
+
         if rate !=0 and samps_per_chan != 0:
             self.PDtask.timing.cfg_samp_clk_timing(
                     rate=rate,
