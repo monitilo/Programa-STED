@@ -39,6 +39,7 @@ resolucionDAQ = 0.0003 * 2 * convFactors['x']
 # V => µm; uso el doble para no errarle
 activeChannels = ["x", "y", "z"]
 AOchans = [0, 1, 2]  # , 2]  # x,y,z  # TODO: agregar z
+AIchans = [6, 7, 5]
 detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
 COchans = [0, 1]  # apd rojo y verde  # TODO: ya no uso contadores
@@ -1253,6 +1254,10 @@ class ScanWidget(QtGui.QFrame):
 #        self.setWindowTitle('Py Py Python scan')
 #        self.setFixedHeight(550)
 
+        # self.startRutine()
+        # TO: que lea de algun lado la posicion y la setee como start x,y,z
+        self.read_pos()  # lo hace
+
         self.paramChanged()
         self.PixelSizeChange()
 #        self.paramWidget.setFixedHeight(500)
@@ -1285,13 +1290,10 @@ class ScanWidget(QtGui.QFrame):
 #        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
 #        self.image = np.zeros((self.numberofPixels, self.numberofPixels))
 #        self.image2 = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.zeroImage()
+#        self.zeroImage()
         self.dy = 0
 
 #        self.imageWidget = imageWidget
-
-        # self.startRutine()
-        # TODO: que lea de algun lado la posicion y la setee como start x,y,z
 
     # Agrego un atajo para que empieze tocando Ctrl+a
         self.liveviewAction = QtGui.QAction(self)
@@ -1478,7 +1480,7 @@ class ScanWidget(QtGui.QFrame):
     def liveview(self):
         if self.liveviewButton.isChecked():
             """if dy != 0:  # aca prentendia poner la parte con lectura de ai
-#            """
+#            pero no vale la pena"""
             print("---------------------------------------------------------")
 #            self.openShutter("red")
             self.paramChangedInitialize()
@@ -1521,7 +1523,7 @@ class ScanWidget(QtGui.QFrame):
         print("-----------------------------------------------------------")
 
     def scan_openshutter(self):
-        """ abre el shutter que se va a utilizar para imprimir"""
+        """ abre el shutter que se va a utilizar para escanear"""
         for i in range(len(shutters)):
             if self.scan_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
@@ -3148,10 +3150,10 @@ class ScanWidget(QtGui.QFrame):
 #        aitask.stop()
 #        aitask.close()
 
-        with nidaqmx.Task("ai7") as task:
-            task.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
-            task.wait_until_done()
-            data = task.read(number_of_samples_per_channel=5)
+        with nidaqmx.Task("ai7") as aitask:
+            aitask.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
+            aitask.wait_until_done()
+            data = aitask.read(number_of_samples_per_channel=5)
 
         print("Lecturas de las ai 7y6", data[0][-1], data[1][-1])
         self.realposX = data[0][-1] * convFactors['x']
@@ -3455,7 +3457,7 @@ class ScanWidget(QtGui.QFrame):
 #        for i in range(self.Npasos):
 #            self.move_z(self.z_vector[i])
 #            self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
-#        # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
+#        # TO: hacerlo con una rampa; averiguar cuanto tarda labview
 #        self.closeShutter(self.focus_shutterabierto)
 #        print("tengo el z_profile")
 #        self.locked_focus = True
@@ -3623,23 +3625,40 @@ class ScanWidget(QtGui.QFrame):
 
     def read_pos(self):
         """lee las entradas analogicas que manda la platina y se donde estoy"""
-        self.getInitPos()
         print("read pos")
+        with nidaqmx.Task("analgo_in") as aitask:
+            for n in range(len(AIchans)):
+                aitask.ai_channels.add_ai_voltage_chan(
+                    physical_channel='Dev1/ai%s' % AIchans[n])  # ,  # ai6,7,5
+#                    name_to_assign_to_channel='chan_%s' % activeChannels[n])
+
+            data = aitask.read(number_of_samples_per_channel=5)
+            aitask.wait_until_done()
+
+            xlabel = np.mean(data[0])
+            ylabel = np.mean(data[1])
+#            zlabel = np.mean(data[2])
+            self.xLabel.setText(str(xlabel))
+            self.yLabel.setText(str(ylabel))
+#            self.zLabel.setText(str(zlabel))
+
+#        self.getInitPos()
         print("similar a getInitPos (mas arriba)^^")
 
     def go_reference(self):
-        print("arranco en", float(self.xLabel.text()),
+        print("arranco go ref en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
         self.moveto(float(self.xrefLabel.text()),
                     float(self.yrefLabel.text()),
                     float(self.zrefLabel.text()))
 
-        print("termino en", float(self.xLabel.text()),
+        print("termino go ref en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
     def set_reference(self):
 #        self.read_pos()
+        print("set ref")
         self.xrefLabel.setText(str(self.xLabel.text()))
         self.yrefLabel.setText(str(self.yLabel.text()))
         self.zrefLabel.setText(str(self.zLabel.text()))
