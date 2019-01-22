@@ -39,12 +39,13 @@ resolucionDAQ = 0.0003 * 2 * convFactors['x']
 # V => µm; uso el doble para no errarle
 activeChannels = ["x", "y", "z"]
 AOchans = [0, 1, 2]  # , 2]  # x,y,z  # TODO: agregar z
+AIchans = [6, 7, 5]
 detectModes = ['APD red', 'APD yellow', 'both APDs', 'PMT']
 # detectModes[1:n] son los apd's; detectMode[-1] es el PMT y [-2] otros.
 COchans = [0, 1]  # apd rojo y verde  # TODO: ya no uso contadores
 PMTchan = 1  # TODO: pero uso varios "pmt" (son fotodiodos(pd))
 scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
-PMTchans = [0,1,2]  # elegir aca las salidas del PD de cada color
+PDchans = [0,1,2]  # elegir aca las salidas del PD de cada color
 #shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
 shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']  # salida 1,2,3
 
@@ -276,11 +277,11 @@ class ScanWidget(QtGui.QFrame):
 
         self.grid_autocorr_action = QtGui.QAction(self)
         QtGui.QShortcut(
-            QtGui.QKeySequence('F9'), self, self.focus_autocorr)
+            QtGui.QKeySequence('F9'), self, self.focus_autocorr_rampas)
 
         self.lock_focus_action = QtGui.QAction(self)
         QtGui.QShortcut(
-            QtGui.QKeySequence('ctrl+f'), self, self.focus_lock_focus)
+            QtGui.QKeySequence('ctrl+f'), self, self.focus_lock_focus_rampas)
 
     # Cosas para la rutina de imprimir. Grid
 
@@ -412,7 +413,7 @@ class ScanWidget(QtGui.QFrame):
     # Boton para Lockear el foco
         self.focus_lock_button = QtGui.QPushButton('Lock Focus')
         self.focus_lock_button.setCheckable(False)
-        self.focus_lock_button.clicked.connect(self.focus_lock_focus)
+        self.focus_lock_button.clicked.connect(self.focus_lock_focus_rampas)
         self.focus_lock_button.setToolTip('guarda el patron en el z actual')
         self.focus_lock_button.setStyleSheet(
                 "QPushButton { background-color: rgb(254,100,100) ; }"
@@ -422,7 +423,7 @@ class ScanWidget(QtGui.QFrame):
     # Boton de Autocorrelacion, con el foco ya lockeado
         self.focus_autocorr_button = QtGui.QPushButton('Autocorrelacion')
         self.focus_autocorr_button.setCheckable(False)
-        self.focus_autocorr_button.clicked.connect(self.focus_autocorr)
+        self.focus_autocorr_button.clicked.connect(self.focus_autocorr_rampas)
         self.focus_autocorr_button.setToolTip('guarda el patron nel z actual')
 
     # Go to maximun
@@ -1253,6 +1254,10 @@ class ScanWidget(QtGui.QFrame):
 #        self.setWindowTitle('Py Py Python scan')
 #        self.setFixedHeight(550)
 
+        # self.startRutine()
+        # TO: que lea de algun lado la posicion y la setee como start x,y,z
+        self.read_pos()  # lo hace
+
         self.paramChanged()
         self.PixelSizeChange()
 #        self.paramWidget.setFixedHeight(500)
@@ -1285,13 +1290,10 @@ class ScanWidget(QtGui.QFrame):
 #        self.blankImage = np.zeros((self.numberofPixels, self.numberofPixels))
 #        self.image = np.zeros((self.numberofPixels, self.numberofPixels))
 #        self.image2 = np.zeros((self.numberofPixels, self.numberofPixels))
-        self.zeroImage()
+#        self.zeroImage()
         self.dy = 0
 
 #        self.imageWidget = imageWidget
-
-        # self.startRutine()
-        # TODO: que lea de algun lado la posicion y la setee como start x,y,z
 
     # Agrego un atajo para que empieze tocando Ctrl+a
         self.liveviewAction = QtGui.QAction(self)
@@ -1478,7 +1480,7 @@ class ScanWidget(QtGui.QFrame):
     def liveview(self):
         if self.liveviewButton.isChecked():
             """if dy != 0:  # aca prentendia poner la parte con lectura de ai
-#            """
+#            pero no vale la pena"""
             print("---------------------------------------------------------")
 #            self.openShutter("red")
             self.paramChangedInitialize()
@@ -1521,7 +1523,7 @@ class ScanWidget(QtGui.QFrame):
         print("-----------------------------------------------------------")
 
     def scan_openshutter(self):
-        """ abre el shutter que se va a utilizar para imprimir"""
+        """ abre el shutter que se va a utilizar para escanear"""
         for i in range(len(shutters)):
             if self.scan_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
@@ -3148,10 +3150,10 @@ class ScanWidget(QtGui.QFrame):
 #        aitask.stop()
 #        aitask.close()
 
-        with nidaqmx.Task("ai7") as task:
-            task.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
-            task.wait_until_done()
-            data = task.read(number_of_samples_per_channel=5)
+        with nidaqmx.Task("ai7") as aitask:
+            aitask.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
+            aitask.wait_until_done()
+            data = aitask.read(number_of_samples_per_channel=5)
 
         print("Lecturas de las ai 7y6", data[0][-1], data[1][-1])
         self.realposX = data[0][-1] * convFactors['x']
@@ -3301,7 +3303,7 @@ class ScanWidget(QtGui.QFrame):
         if self.i_global in multifoco:
             print("Estoy haciendo foco en el i=", self.i_global)
             time.sleep(2)
-            self.focus_autocorr()
+            self.focus_autocorr_rampas()
 
     def grid_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""
@@ -3407,12 +3409,20 @@ class ScanWidget(QtGui.QFrame):
 
     def focus_go_to_maximun(self):
         """ barre en z mientras mira el PD, y va al maximo de intensidad"""
-        self.focus_lock_focus()
-        z_max = (np.max(self.z_profile))
+        Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
+        z_start = float(self.zLabel.text()) - (self.scanRange/2)
+        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+        z_vector = np.linspace(z_start, z_end, Npasos)
+
+        z_profile = (self.focus__rampas(z_vector))
+        z_max = np.max(self.focus__rampas(z_vector))
+
+#        z_max = (np.max(self.z_profile))
+
 #        print(self.z_profile, np.where(self.z_profile == z_max)[0][0], z_max)
 #        print("\n z vector",self.z_vector)
         print("paso go to maximun")
-        self.move_z(self.z_vector[np.where(self.z_profile == z_max)[0][0]])
+        self.move_z(self.z_vector[np.where(z_profile == z_max)[0][0]])
 
     def focus_openshutter(self):
         """ abre el shutter con el que se hace foco"""
@@ -3435,120 +3445,220 @@ class ScanWidget(QtGui.QFrame):
 #        read = np.random.rand(10)[0]*50
         return z_profile
 
-    def focus_lock_focus(self):
-        """ guarda el patron de intensidades, barriendo z en el foco actual"""
-        self.Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
-        z_start = float(self.zLabel.text()) - (self.scanRange/2)
-        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
-        print("zstart=", z_start,"z end", z_end)
-        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
-        self.z_profile = np.zeros((self.Npasos))
-        self.focus_openshutter()
-        for i in range(self.Npasos):
-            self.move_z(self.z_vector[i])
-            self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
-        # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
-        self.closeShutter(self.focus_shutterabierto)
-        print("tengo el z_profile")
-        self.locked_focus = True
-        self.move_z(float(self.zLabel.text()))
-        self.focus_lock_button.setStyleSheet(
-                "QPushButton { background-color: ; }"
-                "QPushButton:pressed { background-color: blue; }")
+#    def focus_lock_focus(self):
+#        """ guarda el patron de intensidades, barriendo z en el foco actual"""
+#        self.Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
+#        z_start = float(self.zLabel.text()) - (self.scanRange/2)
+#        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+#        print("zstart=", z_start,"z end", z_end)
+#        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+#        self.z_profile = np.zeros((self.Npasos))
+#        self.focus_openshutter()
+#        for i in range(self.Npasos):
+#            self.move_z(self.z_vector[i])
+#            self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
+#        # TO: hacerlo con una rampa; averiguar cuanto tarda labview
+#        self.closeShutter(self.focus_shutterabierto)
+#        print("tengo el z_profile")
+#        self.locked_focus = True
+#        self.move_z(float(self.zLabel.text()))
+#        self.focus_lock_button.setStyleSheet(
+#                "QPushButton { background-color: ; }"
+#                "QPushButton:pressed { background-color: blue; }")
 #focus_lock_focus_rampas
     def focus_lock_focus_rampas(self):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
+        tiempo_lock_focus_tic = ptime.time()
         Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
         z_antes = float(self.zLabel.text())
         z_start = float(self.zLabel.text()) - (self.scanRange/2)
         z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
         self.z_vector = np.linspace(z_start, z_end, Npasos)
-        self.z_profile = np.zeros((Npasos))
-#        self.focus_openshutter()
-        self.move_z((z_start))
-#        self.focus_openshutter()
-        self.channel_z(self.sampleRate, Npasos)
-        self.channel_PD((self.focus_laser.currentText()),
-                                                       self.sampleRate, Npasos)
-        self.channel_triger(self.ztask, self.PDtask)
 
-        self.ztask.write((self.z_vector / convFactors['z']),
-                                                      auto_start = False)
+#        z_profiles = np.zeros((Npasos, len(PDchans)))  # ver si no es fila
+##        self.focus_openshutter()
+#        self.move_z((z_start))
+##        self.focus_openshutter()
+#        color = (self.focus_laser.currentText())
+#        self.channel_z(self.sampleRate, Npasos)
+#        self.channel_PD_todos(self.sampleRate, Npasos)
+#        self.channel_triger(self.ztask, self.PDtask)
+#
+#        self.ztask.write((self.z_vector / convFactors['z']),
+#                                                      auto_start = False)
+#
+#        self.start_move_and_read(self.ztask,
+#                                 self.PDtask,
+#                                 color)
+##        self.PDtimer_focus.start(10)  # no necesito usar un timer
+#        z_profiles = self.PDtask.read(Npasos)
 
-        self.start_move_and_read(self.ztask,
-                                 self.PDtask,
-                                 (self.focus_laser.currentText()))
-#        self.PDtimer_focus.start(10)  # no necesito usar un timer
-        self.z_profile = self.PDtask.read(Npasos)
+    # TODO: averiguar cuanto tarda labview
+#        self.closeShutter(color)
+#        self.channels_close()
 
-    # TODO: hacerlo con una rampa; averiguar cuanto tarda labview
-        self.closeShutter((self.focus_laser.currentText()))
-        self.channels_close()
-        print("Foco lockeado. Tengo el z_profile")
+        self.z_profile = self.focus__rampas(self.z_vector)
+#        self.z_profile = z_profiles[PD_channels[color]]
         self.locked_focus = True
 
         self.move_z((z_antes))
         self.focus_lock_button.setStyleSheet(
                 "QPushButton { background-color: ; }"
                 "QPushButton:pressed { background-color: blue; }")
+        tiempo_lock_focus_toc = ptime.time()
+        print("tiempo_lock_focus", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
+        print("Foco lockeado. Tengo el z_profile")
 
-    def focus_autocorr(self):
+
+    def focus__rampas(self, z_vector):
+        """ guarda el patron de intensidades, barriendo z en el foco actual"""
+        tiempo_lock_focus_tic = ptime.time()
+
+        Npasos = len(z_vector)
+        z_profiles = np.zeros((Npasos, len(PDchans)))  # ver si no es fila
+#        self.focus_openshutter()
+        self.move_z((z_vector[0]))
+#        self.focus_openshutter()
+        color = (self.focus_laser.currentText())
+        self.channel_z(self.sampleRate, Npasos)  # ztask
+        self.channel_PD_todos(self.sampleRate, Npasos)  # PDtask
+        self.channel_triger(self.ztask, self.PDtask)
+    # TODO: pasar los Task como return y ver si anda
+        self.ztask.write((z_vector / convFactors['z']),
+                                                      auto_start = False)
+
+        self.start_move_and_read(self.ztask,
+                                 self.PDtask,
+                                 color)
+#        self.PDtimer_focus.start(10)  # no necesito usar un timer
+        z_profiles = self.PDtask.read(Npasos)
+
+        self.closeShutter(color)
+        self.channels_close()
+
+        self.move_z((z_vector[0]))
+
+        tiempo_lock_focus_toc = ptime.time()
+        print("tiempo_rampas", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
+        print("rampas pasando")
+        return z_profiles[PD_channels[color]]
+
+
+    def focus_autocorr_rampas(self):
         """ correlaciona la medicion de intensidad moviendo z,
-        respecto del que se lockeo con loc focus"""
+        respecto del que se lockeo con loc focus RAMPAS"""
         if self.locked_focus:
-            Ncorrelations = 6  # tambien a definir....
-            self.new_profile = np.zeros((Ncorrelations, self.Npasos))
-            correlations = np.zeros((self.Npasos))
-            maxcorr = np.zeros(Ncorrelations)
-            z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
-#        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
-            self.focus_openshutter()
-            for j in range(Ncorrelations):
-                z_vector_corr[j, :] = self.z_vector-3+j
-                for i in range(self.Npasos):
-                    self.move_z(z_vector_corr[j, i])
-                    self.new_profile[j, i] = self.read_PD(
-                                                    self.focus_shutterabierto)
-                correlations[:] = np.correlate(self.new_profile[j, :],
-                                               self.z_profile, "same")
-                maxcorr[j] = np.max(correlations)
-#                plt.plot(z_vector_corr[j, :])
-#                plt.plot(self.new_profile)
-#                plt.plot(self.z_profile,'.-k')
-#                plt.plot(correlations)
-#                plt.plot(np.where(correlations==np.max(correlations)),
-#                          np.max(correlations), marker='o')
-            self.closeShutter(self.focus_shutterabierto)
-            j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
-            z_max = np.max(self.new_profile[j_final, :])
-            donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
+            tiempo_autocorr_tic = ptime.time()
 
-            plt.plot(self.new_profile[j_final, :], 'o-')
+            Npasos = len(self.z_vector)
+            Ncorrelations = 6  # tambien a definir.... 50?
+            new_profile = np.zeros((Ncorrelations, Npasos))
+            z_vector_corr = np.zeros((Ncorrelations, Npasos))
+            correlations = np.zeros((Npasos))
+            maxcorr = np.zeros(Ncorrelations)
+            meancorr = np.zeros(Ncorrelations)
+            z_profile_lock = self.z_profile
+
+            for j in range(Ncorrelations):
+                z_vector_corr[j, :] = self.z_vector - (Ncorrelations/2) + j
+                new_profile[j,:] = self.focus__rampas(z_vector_corr[j,:])
+                correlations[:] = np.correlate(new_profile[j,:],
+                                               z_profile_lock, "same")
+                maxcorr[j] = np.max(correlations)
+                meancorr[j] = np.mean(correlations)
+            print(maxcorr, meancorr, "maximo y medio Corr")
+            j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
+            z_max = np.max(new_profile[j_final, :])
+            donde_z_max = np.where(new_profile[j_final, :] == z_max)
+
+        # estos plots no van. Se supone que me muestran si anda bien ¿?
+            plt.plot(new_profile[j_final, :], 'o-')
             plt.show()
             print(j_final, z_vector_corr[j_final, donde_z_max])
+
+            self.move_z(z_vector_corr[j_final, donde_z_max])
+
+            tiempo_autocorr_toc = ptime.time()
+            print("tiempo_autocorr_toc", tiempo_autocorr_toc-tiempo_autocorr_tic)
 
         else:
             print("No esta Lockeado el foco")
 
+
+#    def focus_autocorr(self):
+#        """ correlaciona la medicion de intensidad moviendo z,
+#        respecto del que se lockeo con loc focus"""
+#        if self.locked_focus:
+#            Ncorrelations = 6  # tambien a definir....
+#            self.new_profile = np.zeros((Ncorrelations, self.Npasos))
+#            correlations = np.zeros((self.Npasos))
+#            maxcorr = np.zeros(Ncorrelations)
+#            z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
+##        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
+#            self.focus_openshutter()
+#            for j in range(Ncorrelations):
+#                z_vector_corr[j, :] = self.z_vector-3+j
+#                for i in range(self.Npasos):
+#                    self.move_z(z_vector_corr[j, i])
+#                    self.new_profile[j, i] = self.read_PD(
+#                                                    self.focus_shutterabierto)
+#                correlations[:] = np.correlate(self.new_profile[j, :],
+#                                               self.z_profile, "same")
+#                maxcorr[j] = np.max(correlations)
+##                plt.plot(z_vector_corr[j, :])
+##                plt.plot(self.new_profile)
+##                plt.plot(self.z_profile,'.-k')
+##                plt.plot(correlations)
+##                plt.plot(np.where(correlations==np.max(correlations)),
+##                          np.max(correlations), marker='o')
+#            self.closeShutter(self.focus_shutterabierto)
+#            j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
+#            z_max = np.max(self.new_profile[j_final, :])
+#            donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
+#
+#            plt.plot(self.new_profile[j_final, :], 'o-')
+#            plt.show()
+#            print(j_final, z_vector_corr[j_final, donde_z_max])
+#
+#        else:
+#            print("No esta Lockeado el foco")
+
     def read_pos(self):
         """lee las entradas analogicas que manda la platina y se donde estoy"""
-        self.getInitPos()
         print("read pos")
+        with nidaqmx.Task("analgo_in") as aitask:
+            for n in range(len(AIchans)):
+                aitask.ai_channels.add_ai_voltage_chan(
+                    physical_channel='Dev1/ai%s' % AIchans[n])  # ,  # ai6,7,5
+#                    name_to_assign_to_channel='chan_%s' % activeChannels[n])
+
+            data = aitask.read(number_of_samples_per_channel=5)
+            aitask.wait_until_done()
+
+            xlabel = np.mean(data[0])
+            ylabel = np.mean(data[1])
+#            zlabel = np.mean(data[2])
+            self.xLabel.setText(str(xlabel))
+            self.yLabel.setText(str(ylabel))
+#            self.zLabel.setText(str(zlabel))
+
+#        self.getInitPos()
         print("similar a getInitPos (mas arriba)^^")
 
     def go_reference(self):
-        print("arranco en", float(self.xLabel.text()),
+        print("arranco go ref en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
         self.moveto(float(self.xrefLabel.text()),
                     float(self.yrefLabel.text()),
                     float(self.zrefLabel.text()))
 
-        print("termino en", float(self.xLabel.text()),
+        print("termino go ref en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
 
     def set_reference(self):
 #        self.read_pos()
+        print("set ref")
         self.xrefLabel.setText(str(self.xLabel.text()))
         self.yrefLabel.setText(str(self.yLabel.text()))
         self.zrefLabel.setText(str(self.zLabel.text()))
@@ -3627,6 +3737,22 @@ class ScanWidget(QtGui.QFrame):
         self.PDtask.ai_channels.add_ai_voltage_chan(
             physical_channel='Dev1/ai{}'.format(PD_channels[color]),
             name_to_assign_to_channel='chan_PMT')
+        if rate !=0 and samps_per_chan != 0:
+            self.PDtask.timing.cfg_samp_clk_timing(
+                    rate=rate,
+                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                    samps_per_chan=samps_per_chan)
+
+    def channel_PD_todos(self, rate=0, samps_per_chan=0):
+        """ en color va alguna de los valores de shutters"""
+#            self.PMTon = True
+
+        self.PDtask = nidaqmx.Task('PMTtask')
+        for n in range(len(PDchans)):
+            self.PDtask.ai_channels.add_ai_voltage_chan(
+                    physical_channel='Dev1/ai{}'.format(PDchans[n]),
+                    name_to_assign_to_channel='chan_PD{}'.format(PDchans[n]))
+
         if rate !=0 and samps_per_chan != 0:
             self.PDtask.timing.cfg_samp_clk_timing(
                     rate=rate,
