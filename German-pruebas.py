@@ -18,7 +18,92 @@ pp = pprint.PrettyPrinter(indent=4)
 
 #https://nidaqmx-python.readthedocs.io/en/latest/stream_readers.html
 # %%
+import win32com.client
 
+wmi = win32com.client.GetObject ("winmgmts:")
+for usb in wmi.InstancesOf ("Win32_USBHub"):
+    print (usb.DeviceID)
+# %%
+# EL CONTROLADOR NUESTRO ES EL 545
+#import pipython.pitools as pi
+from pipython import GCSDevice
+#from pipython import gcscommands
+pi_device = GCSDevice ()	# Load PI Python Libraries
+pi_device.ConnectUSB ('0111176619')	# Connect to the controller via USB with serial number 0111176619
+# pi_device.qIDN()
+#Out[53]: 'Physik Instrumente, E-517, 0111176619, V01.243\n'
+#%%
+axes = ['A','B','C']
+pi_device.ONL([1,2,3],[1,1,1])
+pi_device.qONL()
+
+#%%
+pi_device.qPOS()
+#%%
+pi_device.SVO ('A', True)	# Turn on servo control of axis "A"
+pi_device.SVO ('B', 1)	# Turn on servo control of axis "A"
+pi_device.SVO ('C', 1)	# Turn on servo control of axis "A"
+
+pi_device.qPOS()
+# %%
+
+pi_device.MOV ('A', 1.5)	# Command axis "A" to position 3.142
+# %%
+pi_device.qPOS()
+
+#%%
+#import numpy as np
+#import time
+N = 100
+aPos = np.zeros(N)
+bPos = np.zeros(N)
+cPos = np.zeros(N)
+for i in range(N):
+    pos = pi_device.qPOS()
+    aPos[i] = pos['A']
+    bPos[i] = pos['B']
+    cPos[i] = pos['C']
+    time.sleep(0.1)
+#print(np.mean(aPos), np.mean(bPos), np.mean(cPos))
+print(np.max(aPos), np.mean(aPos), np.min(aPos))
+#%%
+from time import sleep, time
+axes='A'
+targets = 0
+pi_device.MOV(axes, targets)
+tic=time()
+while not all(pi_device.qONT(axes).values()):
+    sleep(0.1)
+print(pi_device.qPOS())
+print(time()-tic)
+
+#%%
+#a = pi_device.qPOS ('A')	# Query current position of axis "A"
+#b = pi_device.qPOS ('B')	# Query current position of axis "A"
+#c = pi_device.qPOS ('C')	# Query current position of axis "A"
+#print(a,b,c)
+pi_device.qPOS()
+
+# %%
+
+pi_device.CloseConnection()
+
+#%%
+#pi_device.StopAll()
+#pi_device.SystemAbort()
+
+
+#%%
+#from pipython import GCSDevice
+#gcs = GCSDevice('E-517')
+#gcs.InterfaceSetupDlg()
+#print (gcs.qIDN())
+##gcs.CloseConnection()
+#gcs.qPOS()
+#with GCSDevice('E-517') as gcs:
+#    gcs.InterfaceSetupDlg()
+#    print (gcs.qIDN())
+##gcs.CloseConnection()
 
 # %% progando con los dos contadores al mismo tiempo
 
@@ -175,7 +260,7 @@ for i in range(3):
             task.ao_channels.add_ao_voltage_chan(
                             physical_channel='Dev1/ao%s' % i,
                             min_val=-5, max_val=7)
-            task.write([0.1], auto_start=True)
+            task.write([1], auto_start=True)
     else:
         with nidaqmx.Task() as task:
             task.ao_channels.add_ao_voltage_chan(
@@ -184,18 +269,30 @@ for i in range(3):
             task.write([0.0], auto_start=True)
 # %% Leer Analog
 with nidaqmx.Task("ai7") as task:
-    task.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
+    task.ai_channels.add_ai_voltage_chan("Dev1/ai15:31")  #31
     task.wait_until_done()
 #    data6 = task.read(number_of_samples_per_channel=5)
 
 #    task.ai_channels.add_ai_voltage_chan("Dev1/ai7")
 #    task.wait_until_done()
 
-    data = task.read(number_of_samples_per_channel=5)
+    data = task.read(number_of_samples_per_channel=1)
 
     pp.pprint(data)
+    
 #    pp.pprint(data6)
+# %%
+with nidaqmx.Task("ai7") as aotask:
+    aotask.ao_channels.add_ao_voltage_chan("Dev1/ao0:1")
+#    aotask.wait_until_done()
+#    data6 = task.read(number_of_samples_per_channel=5)
 
+#    task.ai_channels.add_ai_voltage_chan("Dev1/ai7")
+#    task.wait_until_done()
+    aotask.write([0.10,0.321], auto_start=True)
+#    data = task.read(number_of_samples_per_channel=1)
+
+#    print(data)
 # %% Leer Digital
 #
 #tic = time.time()
@@ -209,7 +306,7 @@ with nidaqmx.Task("ai7") as task:
 #                rate=1, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
 #                samps_per_chan=5)
 #
-#    data = task.read(number_of_samples_per_channel=10)
+#    data = task.read(number_of_samples_per_channel=10) 
 #    task.wait_until_done()
 #    t = 0
 #    for i in range(len(data)):
@@ -536,7 +633,7 @@ dotask.timing.cfg_samp_clk_timing(
 
 
 ditask.di_channels.add_di_chan(
-            lines='Dev1/port0/line4',
+            lines='Dev1/port0/line6',
             line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
 #ditask.in_stream.input_buf_size = 0
 
@@ -785,7 +882,7 @@ fin = N
 signal = [False,False,True,True,False,False,True,True,False,False,True,True,False,False,True,True]
 #signal = np.zeros(N, dtype="bool")
 #signal[range(ini, fin)] = True
-data=np.zeros((len(signal)))
+data=np.zeros((len(signal),1))
 
 #dotask = nidaqmx.Task('write')    
 #ditask = nidaqmx.Task('read')    
@@ -797,14 +894,14 @@ with nidaqmx.Task() as dotask:
     
     with nidaqmx.Task() as ditask:
         ditask.di_channels.add_di_chan(
-                 "Dev1/port1/line3",
+                 "Dev1/port0/line6",
                  line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         
         for i in range(len(signal)):
             tic = time.time()
             dotask.write(signal[i], auto_start=True,timeout=10.0)
 
-            data[i]=ditask.read()
+            data[i,:]=ditask.read()
     #        pp.pprint(data)
 #            time.sleep(0.01) 
 
@@ -812,7 +909,7 @@ with nidaqmx.Task() as dotask:
             print(toc-tic, "segundos")
 
 plt.plot(signal)
-plt.plot(data, '*r')
+plt.plot(data, '*')
 plt.axis([0, len(signal)+1, -0.1, 1.1])
 plt.show()
 

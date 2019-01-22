@@ -3890,13 +3890,19 @@ class MyPopup_traza(QtGui.QWidget):
         self.points = np.zeros(self.Napd)
 #        int(np.round((apdrate * (self.tiempo/10**3)))))
         self.points2 = np.copy(self.points)
+        try:
+            self.pointtask.stop()
+            self.pointtask.close()
+#            self.pointtask2.stop()
+#            self.pointtask2.close()
+        except: pass
 
-        self.pointtask = nidaqmx.Task('pointtask')
-        # Configure the counter channel to read the APD
-        self.pointtask.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[0]),
-                            name_to_assign_to_channel=u'Line_counter',
-                            initial_count=0)
+        color = shutters[0]
+        self.pointtask = nidaqmx.Task('pointtaskPD')
+        # Configure the analog in channel to read the PD
+        self.pointtask.ai_channels.add_ai_voltage_chan(
+            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
+            name_to_assign_to_channel='chan_PD')
 
         self.pointtask.timing.cfg_samp_clk_timing(
           rate=apdrate,
@@ -3904,17 +3910,17 @@ class MyPopup_traza(QtGui.QWidget):
           source=r'100kHzTimebase',  # 1000k
           samps_per_chan=len(self.points))
 
-        self.pointtask2 = nidaqmx.Task('pointtask2')
-        # Configure the counter channel to read the APD
-        self.pointtask2.ci_channels.add_ci_count_edges_chan(
-                            counter='Dev1/ctr{}'.format(COchans[1]),
-                            name_to_assign_to_channel=u'Line_counter',
-                            initial_count=0)
-        self.pointtask2.timing.cfg_samp_clk_timing(
-          rate=apdrate,
-          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-          source=r'100kHzTimebase',  # 1000k
-          samps_per_chan=len(self.points))
+#        self.pointtask2 = nidaqmx.Task('pointtask2')
+#        color = shutters[1]
+#        self.pointtask2.ai_channels.add_ai_voltage_chan(
+#            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
+#            name_to_assign_to_channel='chan_PD')
+#    
+#        self.pointtask2.timing.cfg_samp_clk_timing(
+#          rate=apdrate,
+#          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#          source=r'100kHzTimebase',  # 1000k
+#          samps_per_chan=len(self.points))
 
         self.ptr1 = 0
         self.timeaxis = np.empty(100)
@@ -3944,15 +3950,15 @@ class MyPopup_traza(QtGui.QWidget):
         tic = ptime.time()
         N = len(self.points)
         self.points[:] = self.pointtask.read(N)
-        self.points2[:] = self.pointtask2.read(N)
+#        self.points2[:] = self.pointtask2.read(N)
         tiic = ptime.time()
 #        if self.ptr1 ==0:
 #            self.tiemporeal = tiic-tic
         m = np.max(self.points)  # mean
-        m2 = np.mean(self.points2)
+#        m2 = np.mean(self.points2)
 #        #print("valor traza", m)
-        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
-                                           float(m), float(m2)))
+#        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
+#                                           float(m), float(m2)))
 #        sig2 = np.mean(self.points2)
         self.timeaxis[self.ptr1] = self.tiemporeal * self.ptr1  # *self.tiempo
         self.data1[self.ptr1] = m
@@ -3982,7 +3988,7 @@ class MyPopup_traza(QtGui.QWidget):
                           pen=pg.mkPen('c', width=1))
         tec = ptime.time()
         M = 30
-        M2 = 5
+        M2 = 10
         if self.ptr1 < M:
             mediochico = np.mean(self.data1[:self.ptr1])
             self.timeaxis2 = self.timeaxis[:self.ptr1]
