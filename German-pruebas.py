@@ -18,11 +18,12 @@ pp = pprint.PrettyPrinter(indent=4)
 
 #https://nidaqmx-python.readthedocs.io/en/latest/stream_readers.html
 # %%
-import win32com.client
-
-wmi = win32com.client.GetObject ("winmgmts:")
-for usb in wmi.InstancesOf ("Win32_USBHub"):
-    print (usb.DeviceID)
+#import win32com.client
+#
+#wmi = win32com.client.GetObject ("winmgmts:")
+#for usb in wmi.InstancesOf ("Win32_USBHub"):
+#    print (usb.DeviceID)
+#------------------------------------------------------------------------
 # %%
 # EL CONTROLADOR NUESTRO ES EL 545
 #import pipython.pitools as pi
@@ -105,6 +106,7 @@ pi_device.CloseConnection()
 #    print (gcs.qIDN())
 ##gcs.CloseConnection()
 
+#-------------------------------------------------------------------------
 # %% progando con los dos contadores al mismo tiempo
 
 from nidaqmx.types import CtrTime
