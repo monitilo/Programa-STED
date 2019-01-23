@@ -47,11 +47,22 @@ PMTchan = 1  # TODO: pero uso varios "pmt" (son fotodiodos(pd))
 scanModes = ['ramp scan', 'step scan', 'full frec ramp', "slalom"]
 PDchans = [0,1,2]  # elegir aca las salidas del PD de cada color
 #shutters = ["red", "STED", "yellow"]  # digitals out channesl [0, 1, 2]
-shutters = ['532 (verde)', '640 (rojo)', '405 (azul)']  # salida 1,2,3
-
+shutters = ['532 (verde)', '640 (rojo)', '405 (azul)', '808(IR)']  # salida 1,2,3
+shutterschan = [0, 1, 2, 3]  # las salidas digitales de cada shutter
 apdrate = 10**5
 
-PD_channels = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
+PD_channels = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2, shutters[3]: 1}
+#TODO: ver cual era el PD que se comprarte y ponerlo bien
+
+
+from pipython import GCSDevice
+#from pipython import gcscommands
+pi_device = GCSDevice ()	# Load PI Python Libraries
+pi_device.ConnectUSB ('0111176619')	# Connect to the controller via USB with serial number 0111176619
+#pi_device.qIDN()
+#pi_device.EnumerateUSB()
+#Out[53]: 'Physik Instrumente, E-517, 0111176619, V01.243\n'
+
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
 #    def closeEvent(self, event):
@@ -282,6 +293,7 @@ class ScanWidget(QtGui.QFrame):
         self.lock_focus_action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+f'), self, self.focus_lock_focus_rampas)
+#TODO: Shorcuts copados
 
     # Cosas para la rutina de imprimir. Grid
 
@@ -486,9 +498,14 @@ class ScanWidget(QtGui.QFrame):
         self.shutter2button.clicked.connect(self.shutter2)
         self.shutter2button.setStyleSheet("color: blue; ")
 
+        self.shutter3button = QtGui.QCheckBox('shutter IR (808)')
+        self.shutter3button.clicked.connect(self.shutter3)
+        self.shutter3button.setStyleSheet("color: dark red; ")
+
         self.shutter0button.setToolTip('Open/close Green 532 Shutter')
         self.shutter1button.setToolTip('Open/close red 640 Shutter')
         self.shutter2button.setToolTip('Open/close blue 405 Shutter')
+        self.shutter3button.setToolTip('Open/close IR 808 Shutter')
 
         self.power_check = QtGui.QCheckBox('Potencia')
 #        self.power_check.setChecked(False)
@@ -502,7 +519,9 @@ class ScanWidget(QtGui.QFrame):
         grid_shutters_layout.addWidget(self.shutter0button,        0, 1)
         grid_shutters_layout.addWidget(self.shutter1button,        1, 1)
         grid_shutters_layout.addWidget(self.shutter2button,        2, 1)
-        grid_shutters_layout.addWidget(self.power_check,           1, 2, 2, 2)
+        grid_shutters_layout.addWidget(self.shutter3button,        3, 1)
+
+        grid_shutters_layout.addWidget(self.power_check,           1, 2, 1, 2)
 
     # boton de dimeros
         self.dimeros_button = QtGui.QPushButton("DIMEROS")
@@ -2357,60 +2376,77 @@ class ScanWidget(QtGui.QFrame):
 # %% ---Move----------------------------------------
     def move(self, axis, dist):
         """moves the position along the axis specified a distance dist."""
+        if axis == 'x':
+            axes = 'A'
+        elif axis == 'y':
+            axes = 'B'
+        elif axis == 'z':
+            axes = 'C'
+        else:
+            print("Pone un eje conocido!")
+
+        target = dist
+        pi_device.MRT(axes, target)
+        pos = pi_device.qPOS()
+        self.xLabel.setText(str(pos['A']))
+        self.yLabel.setText(str(pos['B']))
+        self.zLabel.setText(str(pos['C']))
+    # TODO: quizas promediar
+
 #        try
 #            self.viewtimer.stop()
 
-        self.PiezoOpenStep()  # cambiar a movimiento por puntos
-#        t = self.moveTime
-        N = int(abs(dist*200))  # self.moveSamples
-        # read initial position for all channels
-        texts = [getattr(self, ax + "Label").text()
-                 for ax in activeChannels]
-        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-
-    # Habia una version con rampas, y la borre.
-    # buscar en archivos viejos si se quiere
-        toc = ptime.time()
-        rampx = np.linspace(float(initPos[0]), float(initPos[0]), N)
-        rampy = np.linspace(float(initPos[1]), float(initPos[1]), N)
-        rampz = np.linspace(float(initPos[2]), float(initPos[2]), N)
-
-        if axis == "x":
-            rampx = np.linspace(0, dist, N) + float(initPos[0])
-        if axis == "y":
-            rampy = np.linspace(0, dist, N) + float(initPos[1])
-        if axis == "z":
-            rampz = np.linspace(0, dist, N) + float(initPos[2])
-
-        for i in range(N):
-            self.aotask.write([rampx[i] / convFactors['x'],
-                               rampy[i] / convFactors['y']], auto_start=True)
-#                               rampz[i] / convFactors['z']], auto_start=True)
-
-        print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
-
-    # update position text
-        self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
-        self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
-        self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-        self.paramChanged()
-
-        self.done()
-
-#    def xMoveUp(self):
-#        self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
+#        self.PiezoOpenStep()  # cambiar a movimiento por puntos
+##        t = self.moveTime
+#        N = int(abs(dist*200))  # self.moveSamples
+#        # read initial position for all channels
+#        texts = [getattr(self, ax + "Label").text()
+#                 for ax in activeChannels]
+#        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
 #
-#    def xMoveDown(self):
-#        self.move('x', -float(getattr(self, 'y' + "StepEdit").text()))
+#    # Habia una version con rampas, y la borre.
+#    # buscar en archivos viejos si se quiere
+#        toc = ptime.time()
+#        rampx = np.linspace(float(initPos[0]), float(initPos[0]), N)
+#        rampy = np.linspace(float(initPos[1]), float(initPos[1]), N)
+#        rampz = np.linspace(float(initPos[2]), float(initPos[2]), N)
 #
-#    def yMoveUp(self):
-#        self.move('y', float(getattr(self, 'y' + "StepEdit").text()))
+#        if axis == "x":
+#            rampx = np.linspace(0, dist, N) + float(initPos[0])
+#        if axis == "y":
+#            rampy = np.linspace(0, dist, N) + float(initPos[1])
+#        if axis == "z":
+#            rampz = np.linspace(0, dist, N) + float(initPos[2])
 #
-#    def yMoveDown(self):
-#        self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
+#        for i in range(N):
+#            self.aotask.write([rampx[i] / convFactors['x'],
+#                               rampy[i] / convFactors['y']], auto_start=True)
+##                               rampz[i] / convFactors['z']], auto_start=True)
+#
+#        print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+#
+#    # update position text
+#        self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
+#        self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
+#        self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+#        self.paramChanged()
+#
+#        self.done()
+#
+##    def xMoveUp(self):
+##        self.move('x', float(getattr(self, 'y' + "StepEdit").text()))
+##
+##    def xMoveDown(self):
+##        self.move('x', -float(getattr(self, 'y' + "StepEdit").text()))
+##
+##    def yMoveUp(self):
+##        self.move('y', float(getattr(self, 'y' + "StepEdit").text()))
+##
+##    def yMoveDown(self):
+##        self.move('y', -float(getattr(self, 'y' + "StepEdit").text()))
 
     def zMoveUp(self, algo=1):
-        self.moveZ(algo*float(getattr(self, 'z' + "StepEdit").text()))
+        self.move('z', algo*float(getattr(self, 'z' + "StepEdit").text()))
         self.zDownButton.setEnabled(True)
         self.zDownButton.setStyleSheet(
             "QPushButton { background-color: }")
@@ -2423,7 +2459,7 @@ class ScanWidget(QtGui.QFrame):
             self.zStepEdit.setStyleSheet(" background-color: red; ")
 #            setStyleSheet("color: rgb(255, 0, 255);")
         else:
-            self.moveZ(-algo*float(getattr(self, 'z' + "StepEdit").text()))
+            self.move('z', -algo*float(getattr(self, 'z' + "StepEdit").text()))
             self.zStepEdit.setStyleSheet(" background-color: ")
             if self.initialPosition[2] == 0:  # para no ir a z negativo
                 self.zDownButton.setStyleSheet(
@@ -2435,34 +2471,36 @@ class ScanWidget(QtGui.QFrame):
             self.zDownButton.setEnabled(False)
 
 # TODO incluir el eje z a todo
-    def moveZ(self, dist):
-        """moves the position along the Z axis a distance dist."""
-
-        with nidaqmx.Task("Ztask") as Ztask:
-            # self.Ztask = nidaqmx.Task('Ztask')
-            # Following loop creates the voltage channels
-            n = 2
-            Ztask.ao_channels.add_ao_voltage_chan(
-                physical_channel='Dev1/ao{}'.format(n),
-                name_to_assign_to_channel='chan_%s' % activeChannels[n],
-                min_val=minVolt[activeChannels[n]],
-                max_val=maxVolt[activeChannels[n]])
-
-            N = abs(int(dist*200))
-        # read initial position for all channels
-            toc = ptime.time()
-            rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
-            for i in range(N):
-                Ztask.write([rampz[i] / convFactors['z']], auto_start=True)
-
-            print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
-        # update position text
-            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-
-#        self.Ztask.stop()
-#        self.Ztask.close()
-
-        self.paramChanged()
+#==============================================================================
+#     def moveZ(self, dist):
+#         """moves the position along the Z axis a distance dist."""
+# 
+#         with nidaqmx.Task("Ztask") as Ztask:
+#             # self.Ztask = nidaqmx.Task('Ztask')
+#             # Following loop creates the voltage channels
+#             n = 2
+#             Ztask.ao_channels.add_ao_voltage_chan(
+#                 physical_channel='Dev1/ao{}'.format(n),
+#                 name_to_assign_to_channel='chan_%s' % activeChannels[n],
+#                 min_val=minVolt[activeChannels[n]],
+#                 max_val=maxVolt[activeChannels[n]])
+# 
+#             N = abs(int(dist*200))
+#         # read initial position for all channels
+#             toc = ptime.time()
+#             rampz = np.linspace(0, dist, N) + float(self.zLabel.text())
+#             for i in range(N):
+#                 Ztask.write([rampz[i] / convFactors['z']], auto_start=True)
+# 
+#             print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+#         # update position text
+#             self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+# 
+# #        self.Ztask.stop()
+# #        self.Ztask.close()
+# 
+#         self.paramChanged()
+#==============================================================================
 
 # %% Go Cm, go Gauss y go to
     def goCM(self):
@@ -2501,7 +2539,7 @@ class ScanWidget(QtGui.QFrame):
 
         if float(self.zgotoLabel.text()) < 0:
             QtGui.QMessageBox.question(self, '¿¡ Como pusiste z negativo !?',
-                                       'Algo salio mal. :(  Avisar')
+                                       'Algo salio mal. :(  Avisar!!)')
             print("Z no puede ser negativo!!!")
             self.zgotoLabel.setStyleSheet(" background-color: red")
             time.sleep(1)
@@ -2532,42 +2570,50 @@ class ScanWidget(QtGui.QFrame):
 
 # # ---moveto ---
     def moveto(self, x, y, z):
-        """moves the position along the axis to a specified point."""
-        self.PiezoOpenStep()  # se mueve de a puntos, no rampas.
-#        t = self.moveTime
-        N = self.moveSamples
-
-    # read initial position for all channels
-        texts = [getattr(self, ax + "Label").text()
-                 for ax in activeChannels]
-        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
-
-        if float(initPos[0]) != x or float(initPos[1]) != y\
-           or float(initPos[2]) != z:
-            rampx = np.linspace(float(initPos[0]), x, N)
-            rampy = np.linspace(float(initPos[1]), y, N)
-            rampz = np.linspace(float(initPos[2]), z, N)
-
-            tuc = ptime.time()
-            for i in range(N):
-                self.aotask.write([
-                               rampx[i] / convFactors['x'],
-                               rampy[i] / convFactors['y']], auto_start=True)
-#                              rampz[i] / convFactors['z']], auto_start=True)
-#                time.sleep(t / N)
-
-            print("se mueve todo en", np.round(ptime.time()-tuc, 4), "segs\n")
-
-            self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
-            self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
-            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-
-            self.paramChanged()
-            self.done()
-#            self.channelsOpen()
-        else:
-            print("¡YA ESTOY EN ESAS COORDENADAS!")
-
+        """moves the position along the axis to a specified point.
+        Cambie todo paraque ande con la PI"""
+#        self.PiezoOpenStep()  # se mueve de a puntos, no rampas.
+##        t = self.moveTime
+#        N = self.moveSamples
+#
+#    # read initial position for all channels
+#        texts = [getattr(self, ax + "Label").text()
+#                 for ax in activeChannels]
+#        initPos = [re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", t)[0] for t in texts]
+#
+#        if float(initPos[0]) != x or float(initPos[1]) != y\
+#           or float(initPos[2]) != z:
+#            rampx = np.linspace(float(initPos[0]), x, N)
+#            rampy = np.linspace(float(initPos[1]), y, N)
+#            rampz = np.linspace(float(initPos[2]), z, N)
+#
+#            tuc = ptime.time()
+#            for i in range(N):
+#                self.aotask.write([
+#                               rampx[i] / convFactors['x'],
+#                               rampy[i] / convFactors['y']], auto_start=True)
+##                              rampz[i] / convFactors['z']], auto_start=True)
+##                time.sleep(t / N)
+#
+#            print("se mueve todo en", np.round(ptime.time()-tuc, 4), "segs\n")
+#
+#            self.xLabel.setText("{}".format(np.around(float(rampx[-1]), 2)))
+#            self.yLabel.setText("{}".format(np.around(float(rampy[-1]), 2)))
+#            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
+#
+#            self.paramChanged()
+#            self.done()
+##            self.channelsOpen()
+#        else:
+#            print("¡YA ESTOY EN ESAS COORDENADAS!")
+        axis = ['A', 'B', 'C']
+        targets = [x, y, z]
+        pi_device.MOV(axis, targets)
+        pos = pi_device.qPOS()
+        self.xLabel.setText(str(pos['A']))
+        self.yLabel.setText(str(pos['B']))
+        self.zLabel.setText(str(pos['C']))
+    # TODO: quizas promediar
 
 # %% ---  Shutters zone ---------------------------------
     def shutter0(self):
@@ -2587,6 +2633,12 @@ class ScanWidget(QtGui.QFrame):
             self.openShutter(shutters[2])
         else:
             self.closeShutter(shutters[2])
+
+    def shutter3(self):
+        if self.shutter3button.isChecked():
+            self.openShutter(shutters[3])
+        else:
+            self.closeShutter(shutters[3])
 
     def openShutter(self, p):
         for i in range(len(shutters)):
@@ -2619,13 +2671,20 @@ class ScanWidget(QtGui.QFrame):
             self.shutter2button.setChecked(True)
         else:
             self.shutter2button.setChecked(False)
+        if self.shuttersignal[3]:
+            self.shutter3button.setChecked(True)
+        else:
+            self.shutter3button.setChecked(False)
 
     def shuttersChannelsNidaq(self):
         try:
             self.shuttertask = nidaqmx.Task("shutter")
-            self.shuttertask.do_channels.add_do_chan(
-                lines="Dev1/port0/line0:2", name_to_assign_to_lines='shutters',
-                line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        #TODO: ver si anda este cambio.
+            for n in range(len(shutters)):
+                self.shuttertask.do_channels.add_do_chan(
+                    lines="Dev1/port0/line{}".format(shutterschan[n]),
+                    name_to_assign_to_lines='shutter{}'.format(shutters[n]),
+                    line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
             self.shuttering = True
         except:
             pass
@@ -2643,64 +2702,68 @@ class ScanWidget(QtGui.QFrame):
     def MovetoStart(self):
         """ When called, it gets to the start point"""
         tic = ptime.time()
-        if self.dy == 0:
-            print("is already in start")
-
-        else:
-            self.inStart = True
-            # print("moving to start")
-            self.done()
-
-    #         Creates the voltage channels to move "slowly"
-            AOchans2 = AOchans[:2]
-            with nidaqmx.Task("aotask") as aotask:
-                # self.aotask = nidaqmx.Task('aotask')
-                for n in range(len(AOchans2)):
-                    aotask.ao_channels.add_ao_voltage_chan(
-                        physical_channel='Dev1/ao%s' % AOchans2[n],
-                        name_to_assign_to_channel='cha_%s' % activeChannels[n],
-                        min_val=minVolt[activeChannels[n]],
-                        max_val=maxVolt[activeChannels[n]])
-
-                aotask.timing.cfg_samp_clk_timing(
-                    rate=(self.moveRate),
-                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                    samps_per_chan=self.moveSamples)
-
-        #        tic = ptime.time()
-                startX = float(self.initialPosition[0])
-                startY = float(self.initialPosition[1])
-#                startZ = float(self.initialPosition[2])
-                if self.scanMode.currentText() == scanModes[1]:  # "step scan":
-                    maximox = self.allstepsx[-1, self.dy]
-                    maximoy = self.allstepsy[-1, self.dy]
-#                    maximoz = self.allstepsz[-1,self.dy]
-                else:
-                    stops = ((len(self.onerampx))-1) * self.dy
-                    maximox = self.totalrampx[stops]
-                    maximoy = self.totalrampy[stops]
-#                    maximoz = self.totalrampz[stops]
-                    """
-                    maximox = self.realposX
-                    maximoy = self.realposY
-#                    maximoz = self.realposZ
+        startX = float(self.initialPosition[0])
+        startY = float(self.initialPosition[1])
+        startZ = float(self.initialPosition[2])
+        self.moveto(startX, startY, startZ)
+#        if self.dy == 0:
+#            print("is already in start")
+#
+#        else:
+#            self.inStart = True
+#            # print("moving to start")
+#            self.done()
+#
+#    #         Creates the voltage channels to move "slowly"
+#            AOchans2 = AOchans[:2]
+#            with nidaqmx.Task("aotask") as aotask:
+#                # self.aotask = nidaqmx.Task('aotask')
+#                for n in range(len(AOchans2)):
+#                    aotask.ao_channels.add_ao_voltage_chan(
+#                        physical_channel='Dev1/ao%s' % AOchans2[n],
+#                        name_to_assign_to_channel='cha_%s' % activeChannels[n],
+#                        min_val=minVolt[activeChannels[n]],
+#                        max_val=maxVolt[activeChannels[n]])
+#
+#                aotask.timing.cfg_samp_clk_timing(
+#                    rate=(self.moveRate),
+#                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#                    samps_per_chan=self.moveSamples)
+#
+#        #        tic = ptime.time()
+#                startX = float(self.initialPosition[0])
+#                startY = float(self.initialPosition[1])
+##                startZ = float(self.initialPosition[2])
+#                if self.scanMode.currentText() == scanModes[1]:  # "step scan":
+#                    maximox = self.allstepsx[-1, self.dy]
+#                    maximoy = self.allstepsy[-1, self.dy]
+##                    maximoz = self.allstepsz[-1,self.dy]
+#                else:
+#                    stops = ((len(self.onerampx))-1) * self.dy
+#                    maximox = self.totalrampx[stops]
+#                    maximoy = self.totalrampy[stops]
+##                    maximoz = self.totalrampz[stops]
 #                    """
-
-                volviendox = np.linspace(maximox, startX, self.moveSamples)
-                volviendoy = np.linspace(maximoy, startY, self.moveSamples)
-#                volviendoz = np.linspace(maximoz, startZ, self.moveSamples)
-
-                aotask.write(np.array(
-                    [volviendox / convFactors['x'],
-                     volviendoy / convFactors['y']]), auto_start=True)
-    #                 volviendoz / convFactors['z']]), auto_start=True)
-#                aotask.wait_until_done()
-#                print(np.round(ptime.time() - tic, 5)*10**3,
-#                      "MovetoStart (ms)")
-
-#            self.aotask.stop()
-#            self.aotask.close()
-
+#                    maximox = self.realposX
+#                    maximoy = self.realposY
+##                    maximoz = self.realposZ
+##                    """
+#
+#                volviendox = np.linspace(maximox, startX, self.moveSamples)
+#                volviendoy = np.linspace(maximoy, startY, self.moveSamples)
+##                volviendoz = np.linspace(maximoz, startZ, self.moveSamples)
+#
+#                aotask.write(np.array(
+#                    [volviendox / convFactors['x'],
+#                     volviendoy / convFactors['y']]), auto_start=True)
+#    #                 volviendoz / convFactors['z']]), auto_start=True)
+##                aotask.wait_until_done()
+##                print(np.round(ptime.time() - tic, 5)*10**3,
+##                      "MovetoStart (ms)")
+#
+##            self.aotask.stop()
+##            self.aotask.close()
+#
         self.dy = 0
         toc = ptime.time()
         print("\n tiempo movetoStart (ms)", (toc-tic)*10**3, "\n")
@@ -2903,6 +2966,7 @@ class ScanWidget(QtGui.QFrame):
 # %% arma los datos para modular.(mapa)
 
     def mapa(self):
+        """ nada nunca llama a esta funcion, era para el modulador"""
         Z = self.image
         N = len(Z)
         lomas = np.max(Z)
@@ -3104,6 +3168,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %% Presets, shutters
         # otra idea de presets. abrir los shutters que se quieran
+    # que no se usa mas, porque ya cambie la manera de hacerlo.
     def PreparePresets(self):
         # presetsModes = ['Red','Yellow','STED','Yell+STED','Red+STED','nada']
         if self.presetsMode .currentText() == self.presetsModes[0]:  # rojo
@@ -3118,7 +3183,7 @@ class ScanWidget(QtGui.QFrame):
             self.presetsMode.setStyleSheet("QComboBox{color:rgb(255,90,0);}\n")
         elif self.presetsMode .currentText() == self.presetsModes[5]:  # nada
             self.presetsMode.setStyleSheet("QComboBox{color: rgb(0,0,0);}\n")
-# https://www.rapidtables.com/web/color/RGB_Color.html  COLORES en rgb
+# https://www.rapidtables.com/web/color/RGB_Color.html #  COLORES en rgb
 
     def Presets(self):
         # shutters = ["red", "STED", "yellow"]  # digitals out channs [0, 1, 2]
@@ -3139,7 +3204,13 @@ class ScanWidget(QtGui.QFrame):
 
 # %% getInitPos  Posiciones reales, si agrego los cables que faltan
     def getInitPos(self):
-        tic = ptime.time()
+        """ al final no la uso"""
+        pos = pi_device.qPOS()
+        x= pos['A']
+        y= pos['B']
+        z= pos['C']
+        return x,y,z
+#        tic = ptime.time()
 #        aitask = nidaqmx.Task("aitask")
 #        aitask.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
         # por comodidad de cables esta decreciente 7 6
@@ -3150,36 +3221,34 @@ class ScanWidget(QtGui.QFrame):
 #        aitask.stop()
 #        aitask.close()
 
-        with nidaqmx.Task("ai7") as aitask:
-            aitask.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
-            aitask.wait_until_done()
-            data = aitask.read(number_of_samples_per_channel=5)
-
-        print("Lecturas de las ai 7y6", data[0][-1], data[1][-1])
-        self.realposX = data[0][-1] * convFactors['x']
-        self.realposY = data[1][-1] * convFactors['y']
-        print("Posiciones Actuales", self.realposX, self.realposY)
-        valorX = find_nearest(self.totalrampx, self.realposX)
-        valorY = find_nearest(self.totalrampy, self.realposY)
-        print("valorx,y", valorX, valorY)
-        self.indiceX = np.where(self.totalrampx == valorX)[0][0]
-        self.indiceY = np.where(self.totalrampy == valorY)[0][0]  # [-self.p]
-        print(self.indiceX, self.indiceX)
-        print("En la rampa X:", self.totalrampx[self.indiceX])
-        print("En la rampa Y:", self.totalrampy[self.indiceY])
-        # ojo, el indice en x se repite Npix veces
-        #  y el indice en y es el mismo para len(onerampx) valores
-        nrampa = np.round(self.indiceY / len(self.onerampx))*len(self.onerampx)
-        # tengo que hacer esto porque y cambia antes (recordar el p que puse)
-        print("índice posta", int(nrampa+self.indiceX))
-        print("valor en totalrampx", self.totalrampx[int(nrampa+self.indiceX)])
-    # definir dy para que empieze a dibujar por donde corresponda
-#        self.dy=
-
-        toc = ptime.time()
-        print("\n tiempo getInitPos", toc-tic, "\n")
-
-
+#        with nidaqmx.Task("ai7") as aitask:
+#            aitask.ai_channels.add_ai_voltage_chan("Dev1/ai7:6")
+#            aitask.wait_until_done()
+#            data = aitask.read(number_of_samples_per_channel=5)
+#
+#        print("Lecturas de las ai 7y6", data[0][-1], data[1][-1])
+#        self.realposX = data[0][-1] * convFactors['x']
+#        self.realposY = data[1][-1] * convFactors['y']
+#        print("Posiciones Actuales", self.realposX, self.realposY)
+#        valorX = find_nearest(self.totalrampx, self.realposX)
+#        valorY = find_nearest(self.totalrampy, self.realposY)
+#        print("valorx,y", valorX, valorY)
+#        self.indiceX = np.where(self.totalrampx == valorX)[0][0]
+#        self.indiceY = np.where(self.totalrampy == valorY)[0][0]  # [-self.p]
+#        print(self.indiceX, self.indiceX)
+#        print("En la rampa X:", self.totalrampx[self.indiceX])
+#        print("En la rampa Y:", self.totalrampy[self.indiceY])
+#        # ojo, el indice en x se repite Npix veces
+#        #  y el indice en y es el mismo para len(onerampx) valores
+#        nrampa = np.round(self.indiceY / len(self.onerampx))*len(self.onerampx)
+#        # tengo que hacer esto porque y cambia antes (recordar el p que puse)
+#        print("índice posta", int(nrampa+self.indiceX))
+#        print("valor en totalrampx", self.totalrampx[int(nrampa+self.indiceX)])
+#    # definir dy para que empieze a dibujar por donde corresponda
+##        self.dy=
+#
+#        toc = ptime.time()
+#        print("\n tiempo getInitPos", toc-tic, "\n")
 
 # %% FUNCIONES PRINTING
 
@@ -3204,6 +3273,7 @@ class ScanWidget(QtGui.QFrame):
     def grid_plot(self):
         """hace un plot de la grilla cargada para estar seguro que es lo que
         se quiere imprimir (nunca esta de mas)"""
+        #TODO: poner un boton para hacer esto, el cartel molesta.
         try:
             fig, ax = plt.subplots()
             plt.plot(self.grid_x, self.grid_y, 'o')
@@ -3281,18 +3351,30 @@ class ScanWidget(QtGui.QFrame):
 
     def grid_move(self):
         """ se mueve siguiendo las coordenadas que lee del archivo"""
-        self.PiezoOpenStep()
+#        self.PiezoOpenStep()
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
-        self.grid_openshutter()
-        self.aotask.write(np.array(
-                [self.grid_x[self.i_global] + startX / convFactors['x'],
-                 self.grid_y[self.i_global] + startY / convFactors['y']]),
-                auto_start=True)
-        print("me muevo",
-              self.grid_x[self.i_global] + startX,
-              self.grid_y[self.i_global] + startY)
+#        self.grid_openshutter()
+#        self.aotask.write(np.array(
+#                [self.grid_x[self.i_global] + startX / convFactors['x'],
+#                 self.grid_y[self.i_global] + startY / convFactors['y']]),
+#                auto_start=True)
+#        print("me muevo",
+#              self.grid_x[self.i_global] + startX,
+#              self.grid_y[self.i_global] + startY)
+        axes=['A', 'B']
+        targets = [self.grid_x[self.i_global] + startX,
+                   self.grid_y[self.i_global] + startY]
+        pi_device.MOV(axes, targets)
+        tic=ptime.time()
+        while not all(pi_device.qONT(axes).values()):
+            time.sleep(0.01)
+        print(pi_device.qPOS())
+        print(ptime.time()-tic)
 
+#        pos = pi_device.qPOS()
+#        aPos = pos['A']
+#        bPos = pos['B']
 
     def grid_autofoco(self):
         print("aa")
@@ -3626,24 +3708,29 @@ class ScanWidget(QtGui.QFrame):
     def read_pos(self):
         """lee las entradas analogicas que manda la platina y se donde estoy"""
         print("read pos")
-        with nidaqmx.Task("analgo_in") as aitask:
-            for n in range(len(AIchans)):
-                aitask.ai_channels.add_ai_voltage_chan(
-                    physical_channel='Dev1/ai%s' % AIchans[n])  # ,  # ai6,7,5
-#                    name_to_assign_to_channel='chan_%s' % activeChannels[n])
-
-            data = aitask.read(number_of_samples_per_channel=5)
-            aitask.wait_until_done()
-
-            xlabel = np.mean(data[0])
-            ylabel = np.mean(data[1])
-#            zlabel = np.mean(data[2])
-            self.xLabel.setText(str(xlabel))
-            self.yLabel.setText(str(ylabel))
-#            self.zLabel.setText(str(zlabel))
-
-#        self.getInitPos()
-        print("similar a getInitPos (mas arriba)^^")
+#        with nidaqmx.Task("analgo_in") as aitask:
+#            for n in range(len(AIchans)):
+#                aitask.ai_channels.add_ai_voltage_chan(
+#                    physical_channel='Dev1/ai%s' % AIchans[n])  # ,  # ai6,7,5
+##                    name_to_assign_to_channel='chan_%s' % activeChannels[n])
+#
+#            data = aitask.read(number_of_samples_per_channel=5)
+#            aitask.wait_until_done()
+#
+#            xlabel = np.mean(data[0])
+#            ylabel = np.mean(data[1])
+##            zlabel = np.mean(data[2])
+#            self.xLabel.setText(str(xlabel))
+#            self.yLabel.setText(str(ylabel))
+##            self.zLabel.setText(str(zlabel))
+#
+##        self.getInitPos()
+#        print("similar a getInitPos (mas arriba)^^")
+        pos = pi_device.qPOS()
+        self.xLabel.setText(str(pos['A']))
+        self.yLabel.setText(str(pos['B']))
+        self.zLabel.setText(str(pos['C']))
+    # TODO: quizas sea util promediar en muchas medidas
 
     def go_reference(self):
         print("arranco go ref en", float(self.xLabel.text()),
@@ -3651,7 +3738,7 @@ class ScanWidget(QtGui.QFrame):
 
         self.moveto(float(self.xrefLabel.text()),
                     float(self.yrefLabel.text()),
-                    float(self.zrefLabel.text()))
+                    float(self.zrefLabel.text()))  # cambie moveto para PI
 
         print("termino go ref en", float(self.xLabel.text()),
               float(self.yLabel.text()), float(self.zLabel.text()))
@@ -3689,7 +3776,8 @@ class ScanWidget(QtGui.QFrame):
             QComboBox.setStyleSheet("QComboBox{color: rgb(255,0,0);}\n")
         elif QComboBox .currentText() == shutters[2]: # azul
             QComboBox.setStyleSheet("QComboBox{color: rgb(0,0,255);}\n")
-
+        elif QComboBox .currentText() == shutters[2]: # azul
+            QComboBox.setStyleSheet("QComboBox{color: rgb(100,0,0);}\n")
 # %% mejorando los channels
 
     def channel_xy(self, rate=0, samps_per_chan=0):

@@ -31,8 +31,10 @@ from pipython import GCSDevice
 #from pipython import gcscommands
 pi_device = GCSDevice ()	# Load PI Python Libraries
 pi_device.ConnectUSB ('0111176619')	# Connect to the controller via USB with serial number 0111176619
-# pi_device.qIDN()
+#pi_device.qIDN()
+#pi_device.EnumerateUSB()
 #Out[53]: 'Physik Instrumente, E-517, 0111176619, V01.243\n'
+
 #%%
 axes = ['A','B','C']
 pi_device.ONL([1,2,3],[1,1,1])
@@ -92,6 +94,23 @@ pi_device.CloseConnection()
 #%%
 #pi_device.StopAll()
 #pi_device.SystemAbort()
+
+# %%
+N = 100
+aPos = np.zeros(N)
+bPos = np.zeros(N)
+cPos = np.zeros(N)
+pi_device.MOV('A', 0.0)
+pos = pi_device.qPOS()
+aPos[0] = pos['A']
+bPos[0] = pos['B']
+cPos[0] = pos['C']
+pi_device.WAV_RAMP(1, 0, 10, "X", 5)
+for i in range(1,N):
+    pos = pi_device.qPOS()
+    aPos[i] = pos['A']
+    bPos[i] = pos['B']
+    cPos[i] = pos['C']
 
 
 #%%
