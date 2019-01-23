@@ -29,10 +29,11 @@ pp = pprint.PrettyPrinter(indent=4)
 #import pipython.pitools as pi
 from pipython import GCSDevice
 #from pipython import gcscommands
+
 pi_device = GCSDevice ()	# Load PI Python Libraries
 pi_device.ConnectUSB ('0111176619')	# Connect to the controller via USB with serial number 0111176619
-#pi_device.qIDN()
 #pi_device.EnumerateUSB()
+#pi_device.qIDN()
 #Out[53]: 'Physik Instrumente, E-517, 0111176619, V01.243\n'
 
 #%%
@@ -57,6 +58,7 @@ pi_device.qPOS()
 #%%
 #import numpy as np
 #import time
+tic=time.time()
 N = 100
 aPos = np.zeros(N)
 bPos = np.zeros(N)
@@ -66,24 +68,25 @@ for i in range(N):
     aPos[i] = pos['A']
     bPos[i] = pos['B']
     cPos[i] = pos['C']
-    time.sleep(0.1)
+
 #print(np.mean(aPos), np.mean(bPos), np.mean(cPos))
 print(np.max(aPos), np.mean(aPos), np.min(aPos))
+print(time.time()-tic)
 #%%
-from time import sleep, time
+#from time import sleep, time
 axes='A'
 targets = 0
 pi_device.MOV(axes, targets)
-tic=time()
+tic=time.time()
 while not all(pi_device.qONT(axes).values()):
-    sleep(0.1)
+    time.sleep(0.01)
 print(pi_device.qPOS())
-print(time()-tic)
+print(time.time()-tic)
 
 #%%
 #a = pi_device.qPOS ('A')	# Query current position of axis "A"
-#b = pi_device.qPOS ('B')	# Query current position of axis "A"
-#c = pi_device.qPOS ('C')	# Query current position of axis "A"
+#b = pi_device.qPOS ('B')	# Query current position of axis "B"
+#c = pi_device.qPOS ('C')	# Query current position of axis "C"
 #print(a,b,c)
 pi_device.qPOS()
 
@@ -95,24 +98,42 @@ pi_device.CloseConnection()
 #pi_device.StopAll()
 #pi_device.SystemAbort()
 
+pi_device.WAV_LIN(1, 5, 10, "X", 6, 1, 0, 2)
+
+print(pi_device.qPOS('A'))
+pi_device.WGO(1,1)
+pi_device.qPOS('A')
 # %%
-N = 100
+N = 500
+axis = 'B'
+number = 2
+tic = time.time()
 aPos = np.zeros(N)
 bPos = np.zeros(N)
 cPos = np.zeros(N)
-pi_device.MOV('A', 0.0)
+pi_device.MOV(axis, 1.1)
+print(pi_device.qONT(axis))
 pos = pi_device.qPOS()
 aPos[0] = pos['A']
 bPos[0] = pos['B']
 cPos[0] = pos['C']
-pi_device.WAV_RAMP(1, 0, 10, "X", 5)
+print(pi_device.qPOS()[axis])
+pi_device.WAV_LIN(number, 0, 500, "X", 180, 40, 0, 500)
+
+pi_device.WGO(number, True)
 for i in range(1,N):
+#    if i == 5:
+#        pi_device.WGO(1, True)
     pos = pi_device.qPOS()
     aPos[i] = pos['A']
     bPos[i] = pos['B']
     cPos[i] = pos['C']
-
-
+#    if i == N-1:
+#        pi_device.WGO(1,False)
+pi_device.WGO(number,False)
+print(time.time()-tic)
+#print(aPos)
+plt.plot(bPos,'.-')
 #%%
 #from pipython import GCSDevice
 #gcs = GCSDevice('E-517')
