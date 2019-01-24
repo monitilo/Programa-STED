@@ -62,7 +62,9 @@ pi_device.ConnectUSB ('0111176619')	# Connect to the controller via USB with ser
 #pi_device.qIDN()
 #pi_device.EnumerateUSB()
 #Out[53]: 'Physik Instrumente, E-517, 0111176619, V01.243\n'
-
+axes = ['A','B','C']
+pi_device.ONL([1,2,3],[1,1,1])
+pi_device.DCO(axes, [True, True, True])
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
 #    def closeEvent(self, event):

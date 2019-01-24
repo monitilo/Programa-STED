@@ -44,13 +44,19 @@ pi_device.qONL()
 #%%
 pi_device.qPOS()
 #%%
+pi_device.DCO(axes, [True, True, True])
+pi_device.qDCO()
+#%%
 pi_device.SVO ('A', True)	# Turn on servo control of axis "A"
 pi_device.SVO ('B', 1)	# Turn on servo control of axis "A"
 pi_device.SVO ('C', 1)	# Turn on servo control of axis "A"
 
-pi_device.qPOS()
+pi_device.qSVO()
 # %%
+pi_device.VCO(axes, [False, False, False])
+pi_device.qVCO()
 
+#%%
 pi_device.MOV ('A', 1.5)	# Command axis "A" to position 3.142
 # %%
 pi_device.qPOS()
@@ -104,36 +110,60 @@ print(pi_device.qPOS('A'))
 pi_device.WGO(1,1)
 pi_device.qPOS('A')
 # %%
+
+servo_time = 0.000040  # seconds
+pi_device.WTR(2, 10, 0)
 N = 500
 axis = 'B'
-number = 2
-tic = time.time()
-aPos = np.zeros(N)
-bPos = np.zeros(N)
-cPos = np.zeros(N)
-pi_device.MOV(axis, 1.1)
-print(pi_device.qONT(axis))
-pos = pi_device.qPOS()
-aPos[0] = pos['A']
-bPos[0] = pos['B']
-cPos[0] = pos['C']
-print(pi_device.qPOS()[axis])
-pi_device.WAV_LIN(number, 0, 500, "X", 180, 40, 0, 500)
+if axis == 'A':
+    number = 1
+elif axis == 'B':
+    number = 2
+elif axis == 'C':
+    axis = 3
 
+tic = time.time()
+
+
+nciclos=10
+pi_device.WGC(number, nciclos)
+
+
+print(pi_device.qONT(axis))
+
+print(pi_device.qPOS()[axis])
+pi_device.WAV_LIN(number, 1, 1000, "X", 100, 20, 0, 1000)
+
+tic = time.time()
 pi_device.WGO(number, True)
-for i in range(1,N):
-#    if i == 5:
-#        pi_device.WGO(1, True)
-    pos = pi_device.qPOS()
-    aPos[i] = pos['A']
-    bPos[i] = pos['B']
-    cPos[i] = pos['C']
-#    if i == N-1:
-#        pi_device.WGO(1,False)
-pi_device.WGO(number,False)
-print(time.time()-tic)
+print(pi_device.qPOS()[axis])
+while not all(pi_device.qONT(axis).values()):
+    time.sleep(0.01)
+print( "tiempo", time.time()-tic)
+#print(pi_device.qONT(axis))
+#pi_device.WGO(number, 0)
+
+print(pi_device.qPOS()[axis])
+#%%
+while not all(pi_device.qONT(axis).values()):
+    time.sleep(0.1)
+print(pi_device.qONT(axis))
+#for i in range(1,N):
+##    if i == 5:
+##        pi_device.WGO(1, True)
+#    pos = pi_device.qPOS()
+#    aPos[i] = pos['A']
+#    bPos[i] = pos['B']
+#    cPos[i] = pos['C']
+##    if i == N-1:
+##        pi_device.WGO(1,False)
+pi_device.WGO(number, 0)
+print(pi_device.qONT(axis))
+print(pi_device.qPOS()[axis])
+
+print( "tiempo", time.time()-tic)
 #print(aPos)
-plt.plot(bPos,'.-')
+#plt.plot(bPos,'.-')
 #%%
 #from pipython import GCSDevice
 #gcs = GCSDevice('E-517')
