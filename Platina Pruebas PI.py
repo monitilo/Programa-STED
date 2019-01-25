@@ -87,7 +87,7 @@ pi_device.CloseConnection()
 
 servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
 
-N = 500
+
 axis = 'A'
 if axis == 'A':
     number = 1
@@ -96,13 +96,18 @@ elif axis == 'B':
 elif axis == 'C':
     number = 3
 
-pi_device.WTR(number, 100, 0)
+pi_device.WTR(number, 100, 0)  # Wave Generator Table Rate. 
+#Duration of a wave table point in multiples of servo cycles.
+# a mas numero, mas lento. (mas cyclos tarda)
+
+# el tiempo total de uso es (servo_time*WTRtime*Npoints) = 0.00004 s * 100 * 1000 = 4 s
+
 
 tic = time.time()
 
 
 nciclos=1
-pi_device.WGC(number, nciclos)
+pi_device.WGC(number, nciclos)  # cantidad de repeticiones de la tabla
 
 
 print(pi_device.qONT(axis))
@@ -112,22 +117,23 @@ print(pi_device.qPOS()[axis])
 pi_device.WAV_LIN(number, 1, 1000, "X", 100, 20, 0, 1000)
 
 tic = time.time()
-pi_device.WGR()
+pi_device.WGR()  # con este comando guarda la data que manda(o algo asi). Pero no logro leerla
 
-pi_device.WGO(number, True)
+pi_device.WGO(number, True)  # Start the wave generator
 print(pi_device.qPOS()[axis])
-while any(pi_device.IsGeneratorRunning().values()):
+
+while any(pi_device.IsGeneratorRunning().values()):  # responde True si esta andando.
     time.sleep(0.01)
 print( "tiempo", time.time()-tic)
 #print(pi_device.qONT(axis))
-pi_device.WGO(number, 0)
+pi_device.WGO(number, 0)  # stop the wave generator
 
 print(pi_device.qPOS()[axis])
 
 #%%
 servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
 
-N = 500
+
 axis = 'A'
 if axis == 'A':
     number = 1
@@ -177,6 +183,7 @@ print(pi_device.qPOS()[axis])
 #servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
 
 pi_device.MOV(['A','B'], [10,10])
+pi_device.MOV('C', 10)
 #%%Armo el scaneo completo
 x_init_pos = pi_device.qPOS()['A']
 wtrtime =1
@@ -189,19 +196,25 @@ pi_device.WGC(2, nciclos)
 
 tic = time.time()
 
+# TODO: PROBAR CUANTO TARDA en funcion de Npoints y Nrampa
 Npoints=1100
 Nrampa = 1000
 #       tabla, init, Nrampa, appen, center, speed,amplit, offset, lenght
 pi_device.WAV_RAMP(1, 1, Nrampa, "X", 500, 50, 10, 0, Npoints)
 
 #       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
-#pi_device.WAV_LIN(2, 1, Nrampa, "X", 100, 1, 0, Npoints)
+pi_device.WAV_LIN(2, 1, Nrampa, "X", 100, 1, 0, Npoints)
 
-pi_device.TWC()
+pi_device.TWC()  # Clear all triggers options
 
-pi_device.TWS([1,1,1],[1,3,5],[1,1,1])
-pi_device.CTO(1,1,0.005)
-pi_device.CTO(1,3,4)
+pi_device.TWS([1,2,3],[1100,1,5],[1,1,10])  # config a "High" signal (1) in /
+#                         point 1 from out 1, point 3 from out2 y point 5 out 3
+pi_device.CTO(1,1,0.005)  # config param 1 (dist from trigger) un 0.005 µm from out 1
+pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
+
+# Descubrimos que la out 1 de aca es la que esta etiquetada como out 3
+
+
 tiic = time.time()
 
 for i in range(32):
@@ -228,14 +241,10 @@ for i in range(32):
 #
 #print( "tiempo total", time.time()-tiic)
 
-#pi_device.TWS(1,1,1)
-#pi_device.TWS([1,1,1],[1,2,3],[1,0,0])
-
 #%%
 pi_device.qPOS()
 # %%
-pi_device.GOH('C')
-pi_device.MOV('C', 1)
+
 
 
 
