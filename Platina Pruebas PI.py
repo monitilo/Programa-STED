@@ -186,6 +186,7 @@ pi_device.MOV(['A','B'], [10,10])
 pi_device.MOV('C', 10)
 #%%Armo el scaneo completo
 x_init_pos = pi_device.qPOS()['A']
+y_init_pos = pi_device.qPOS()['B']
 wtrtime =1
 pi_device.WTR(1, wtrtime, 0)
 pi_device.WTR(2, wtrtime, 0)
@@ -196,14 +197,13 @@ pi_device.WGC(2, nciclos)
 
 tic = time.time()
 
-# TODO: PROBAR CUANTO TARDA en funcion de Npoints y Nrampa
-Npoints=1100
-Nrampa = 1000
-#       tabla, init, Nrampa, appen, center, speed,amplit, offset, lenght
-pi_device.WAV_RAMP(1, 1, Nrampa, "X", 500, 50, 10, 0, Npoints)
+Npoints= 36
+Nrampa = 32
+#       tabla, init, Nrampa, appen, center, speed, amplit, offset, lenght
+pi_device.WAV_RAMP(1, 1, Nrampa, "X", 500, 2, 10, 0, Npoints)
 
 #       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
-pi_device.WAV_LIN(2, 1, Nrampa, "X", 100, 1, 0, Npoints)
+pi_device.WAV_LIN(2, 1, Nrampa, "X", 2, 10/32, y_init_pos, Npoints)
 
 pi_device.TWC()  # Clear all triggers options
 
@@ -226,7 +226,7 @@ for i in range(32):
     pi_device.MOV('A', x_init_pos)
 
     #time.sleep(servo_time*Npoints*wtrtime)
-    pi_device.WOS(2, i)
+    pi_device.WOS(2, i*(10/32))
     pi_device.WGO(2, True)
     while any(pi_device.IsGeneratorRunning().values()):
         time.sleep(0.01)
@@ -238,8 +238,8 @@ for i in range(32):
 
 #    print(i, "tiempo paso i", time.time()-tic)
 #    print("tendria que tardar", 2*servo_time*Npoints*wtrtime)
-#
-#print( "tiempo total", time.time()-tiic)
+pi_device.MOV('B', y_init_pos)
+print( "tiempo total", time.time()-tiic)
 
 #%%
 pi_device.qPOS()

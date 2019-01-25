@@ -348,7 +348,7 @@ with nidaqmx.Task("ai7") as task:
 #    task.ai_channels.add_ai_voltage_chan("Dev1/ai7")
 #    task.wait_until_done()
 
-    data = task.read(number_of_samples_per_channel=1)
+    data = task.read(number_of_samples_per_channel=3)
 
     pp.pprint(data)
     
