@@ -367,29 +367,63 @@ with nidaqmx.Task("ai7") as aotask:
 #    print(data)
 # %% Leer Digital
 #
-#tic = time.time()
-#
-#with nidaqmx.Task("digital") as task:
-#    task.di_channels.add_di_chan(
-#                lines='Dev1/port0/line0:31',
-#                line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
-#
-#    task.timing.cfg_samp_clk_timing(
-#                rate=1, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-#                samps_per_chan=5)
-#
-#    data = task.read(number_of_samples_per_channel=10) 
-#    task.wait_until_done()
-#    t = 0
-#    for i in range(len(data)):
-#        if data[i]:
-#            t = t+1
+tic = time.time()
+PDchans =[0,1,2]
+with nidaqmx.Task("digital") as task:
+    with nidaqmx.Task("analog") as aitask:
+            
+        task.di_channels.add_di_chan(
+                    lines='Dev1/port2/line1',
+                    line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+
+        aitask.ai_channels.add_ai_voltage_chan("Dev1/ai{}".format(PDchans[0]))        
+        aitask.timing.cfg_samp_clk_timing(
+                     rate=500,  # muestras por segundo
+                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                     samps_per_chan=500)
+        
+        triggerchannelname = "PFI9"
+        aitask.triggers.start_trigger.cfg_dig_edge_start_trig(
+                            trigger_source = triggerchannelname)#,
+#        aotask.write([0.10,0.321, 0.5,1,1.5,0], auto_start=True)
+        anda = aitask.read(500)
+        aitask.wait_until_done()
+    #    task.timing.cfg_samp_clk_timing(
+    #                rate=100*10**3, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+    #                samps_per_chan=100*10**3)
+    
+        dataP = task.read(number_of_samples_per_channel=300000) 
+        task.wait_until_done()
+#        plt.plot(dataP)
+        plt.plot(anda,'r')
+    #%%
+with nidaqmx.Task("digital") as task:
+    task.di_channels.add_di_chan(
+                lines='Dev1/port0/line0:31',
+                line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+
+    task.timing.cfg_samp_clk_timing(
+                rate=100*10**3, sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+                samps_per_chan=100*10**3)
+
+    data = task.read(number_of_samples_per_channel=100*10**3) 
+    task.wait_until_done()
+    t = 0
+    for i in range(len(data)):
+        if not i == 10:  # por alguna razon la salida 10 esta siempre en 1
+            for j in range(len(data[0])):
+                if data[i][j]:
+                    t = t+1
+                    a = i
+                    b = j
 #    pp.pprint(data)
-#    print(t)
-#
-#toc = time.time()
-#print(toc-tic, "segundos")
-##    pp.pprint(data6)
+    print(t,a,b)
+
+toc = time.time()
+print(toc-tic, "segundos")
+#    pp.pprint(data6)
+for i in range(len(data)):
+    plt.plot(data[i])
 
 # %% Leer Cont
 """ Leo las entradas CONTADORES

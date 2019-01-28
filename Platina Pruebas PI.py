@@ -185,6 +185,7 @@ print(pi_device.qPOS()[axis])
 pi_device.MOV(['A','B'], [10,10])
 pi_device.MOV('C', 10)
 #%%Armo el scaneo completo
+servo_time = 0.000040
 x_init_pos = pi_device.qPOS()['A']
 y_init_pos = pi_device.qPOS()['B']
 wtrtime =1
@@ -207,14 +208,15 @@ pi_device.WAV_LIN(2, 1, Nrampa, "X", 2, 10/32, y_init_pos, Npoints)
 
 pi_device.TWC()  # Clear all triggers options
 
-pi_device.TWS([1,2,3],[1100,1,5],[1,1,10])  # config a "High" signal (1) in /
+pi_device.TWS([1,1,1],[1,3,5],[1,1,1])  # config a "High" signal (1) in /
 #                         point 1 from out 1, point 3 from out2 y point 5 out 3
 pi_device.CTO(1,1,0.005)  # config param 1 (dist from trigger) un 0.005 µm from out 1
 pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
-
+#pi_device.CTO(1,4,50)  # Trigger delay (siempre es cero. no importa que pongo)
 # Descubrimos que la out 1 de aca es la que esta etiquetada como out 3
-
-
+pi_device.CTO(1,5,0) 
+pi_device.CTO(1,6,1) 
+pi_device.qCTO()
 tiic = time.time()
 
 for i in range(32):
@@ -236,8 +238,8 @@ for i in range(32):
         print("no creo que entre a este while")
         time.sleep(0.01)
 
-#    print(i, "tiempo paso i", time.time()-tic)
-#    print("tendria que tardar", 2*servo_time*Npoints*wtrtime)
+    print(i, "tiempo paso i", time.time()-tic)
+    print("tendria que tardar", 2*servo_time*Npoints*wtrtime)
 pi_device.MOV('B', y_init_pos)
 print( "tiempo total", time.time()-tiic)
 
