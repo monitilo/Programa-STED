@@ -2993,8 +2993,8 @@ class MyPopup_traza(QtGui.QWidget):
             self.timeaxis[:tmptime.shape[0]] = tmptime
 
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
-                           pen=pg.mkPen('r', width=1),
-                           shadowPen=pg.mkPen('b', width=3))
+                           pen=pg.mkPen('y', width=1),
+                           shadowPen=pg.mkPen('w', width=3))
 #        self.curve.setPos(-self.ptr1, 0)
 
         m = np.mean(self.data1[:self.ptr1])

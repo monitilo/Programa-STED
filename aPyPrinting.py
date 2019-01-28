@@ -29,7 +29,7 @@ import nidaqmx
 
 device = nidaqmx.system.System.local().devices['Dev1']
 # z =  1.683
-convFactors = {'x': 25, 'y': 25, 'z': 25}  # TODO: CAMBIAR!!!!!
+#convFactors = {'x': 25, 'y': 25, 'z': 25}  # TODO: CAMBIAR!!!!! YA NO SE USA!
 # la calibracion es 1 µm = 40 mV en x,y (galvos);
 # en z, 0.17 µm = 0.1 V  ==> 1 µm = 0.58 V
 # 1.68 um = 1 V ==> 1 um = 0.59V  # asi que promedie, y lo puse a ojo.
@@ -71,6 +71,7 @@ pi_device.VCO(axes, [False, False, False])  # Turn off Velocity contro. Can't mo
 pi_device.MOV(['A', 'B', 'C'], [40, 40, 40])  # move away from origin (0,0,0)
 #TODO: no necesita estar esto aca. Puedo sacarlo
 
+servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
@@ -341,18 +342,21 @@ class ScanWidget(QtGui.QFrame):
         self.cargar_archivo_button.setStyleSheet(
                 "QPushButton { background-color: orange; }"
                 "QPushButton:pressed { background-color: blue; }")
-        self.cargar_archivo_button.setToolTip('Carga el archivo con la grilla,\
-                                              y plotea para ver si esta bien')
+        self.cargar_archivo_button.setToolTip('Carga el archivo con la grilla, y lo puede plotear para ver si esta bien')
 
     # Print button. Que en realidad solo crea la carpeta
-        self.imprimir_button = QtGui.QPushButton('IMPRIMIR (no)')
+        self.imprimir_button = QtGui.QPushButton('IMPRIMIR (crea carpeta)')
         self.imprimir_button.setCheckable(True)
         self.imprimir_button.clicked.connect(self.grid_create_folder)
         self.imprimir_button.setStyleSheet(
                 "QPushButton:pressed { background-color: blue; }")
-        self.imprimir_button.setToolTip('En realidad solo crea la carpeta\
-                                        El mundo es una gran mentira.')
+        self.imprimir_button.setToolTip('En realidad solo crea la carpeta. El mundo es una gran mentira.')
 #                "QPushButton:checked {color: white; background-color: blue;}")
+
+        self.grid_plot_check = QtGui.QCheckBox('plot_test?')
+        self.grid_plot_check.clicked.connect(self.grid_plot)
+#        self.scan_check.setStyleSheet("color: green; ")
+
 
     # Print button. Que en realidad solo crea la carpeta
         self.next_button = QtGui.QPushButton('Next ►')
@@ -514,6 +518,9 @@ class ScanWidget(QtGui.QFrame):
         self.shutter3button = QtGui.QCheckBox('shutter IR (808)')
         self.shutter3button.clicked.connect(self.shutter3)
         self.shutter3button.setStyleSheet("color: dark red; ")
+
+#        self.shutter3button.clicked.connect(lambda: self.openShutter(shutter[3]))
+
 
         self.shutter0button.setToolTip('Open/close Green 532 Shutter')
         self.shutter1button.setToolTip('Open/close red 640 Shutter')
@@ -1515,8 +1522,9 @@ class ScanWidget(QtGui.QFrame):
 #            pero no vale la pena"""
             print("---------------------------------------------------------")
 #            self.openShutter("red")
+            self.read_pos()
             self.paramChangedInitialize()
-            self.MovetoStart()  # ya cambió
+#            self.MovetoStart()  # ya cambió
             self.liveviewStart()
         else:
             self.liveviewStop()
@@ -1532,7 +1540,6 @@ class ScanWidget(QtGui.QFrame):
         else:  # "ramp scan" or "otra frec ramp" or slalom
             self.channelsOpenRamp()
             self.tic = ptime.time()
-            self.startingRamps()
             self.maxcountsEdit.setStyleSheet(" background-color: ")
             if self.detectMode.currentText() == "PMT":
                 self.maxcountsLabel.setText('Max Counts (V)')
@@ -1540,6 +1547,8 @@ class ScanWidget(QtGui.QFrame):
             else:
                 self.maxcountsLabel .setText('Max Counts (red|green)')
 #                self.viewtimer.start(self.reallinetime*10**3)  # imput in ms
+
+            self.startingRamps()
 
     def liveviewStop(self):
         self.MovetoStart()
@@ -1570,45 +1579,50 @@ class ScanWidget(QtGui.QFrame):
 
         pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
         #                         points 1 from out 1,2 & 3 
-        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
+#        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
         pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
-#TODO: poner bien las cosas del trigger
+        pi_device.CTO(2,3,4)  # The digital output line 2 is set to "Generator Trigger" mode.
+        pi_device.CTO(3,3,4)  # The digital output line 3 is set to "Generator Trigger" mode.
 
-        self.PDtask.start()  # empieza con el trigger en realidad
+#TODO: poner bien las cosas del trigger necesarias
+
+        self.PDtask.start()  # empieza despues, con el trigger.
 
         print("ya arranca...")
+
+
+
         self.PDupdate()  # Creo que no necesito mas el timer
 #TODO : sacar el timer, y quizas tambien triggerear el shutter
 
-        self.scan_openshutter()  # abre el shutter elegido
-#        self.Presets()  # abre los shutters que sean (STED)
-
-    # Starting the trigger. It have a controllable 'delay'
-#        self.triggertask.write(self.trigger, auto_start=True)
 
 # AHORA PONGO EL pi_device.WGO() DENTRO DEL LOOP 
 
-# %% runing Ramp loop (PMT)
+# %% runing Ramp loop (PD update)
     def PDupdate(self):
 
     # The counter will reads this numbers of points when the trigger starts
 #        self.PMT[:] = self.PMTtask.read(len(self.onerampx))
         x_init_pos = pi_device.qPOS()['A']
+        y_init_pos = pi_device.qPOS()['B']
 
 #        tiic = time.time()
+        self.scan_openshutter()  # abre el shutter elegido
 
         for i in range(self.numberofPixels):
 #            tic = time.time()
             pi_device.WGO(1, True)
+            self.PD = self.PDtask.read(self.Npoints)  # get all points. Need to erase the acelerated zones
             while any(pi_device.IsGeneratorRunning().values()):
                 time.sleep(0.01)  # espera a que termine
             pi_device.WGO(1, False)
             pi_device.MOV('A', x_init_pos)
 
-            self.PD = self.PDtask.read(self.Npoints)
-            self.image[:, -1-i] = self.PD[self.pd_for_scan][:]
+            self.PD = self.PDtask.read(self.Npoints)  # get all points. Need to erase the acelerated zones
+            self.image[:, -1-i] = self.PD[self.pd_for_scan][self.Nspeed:-self.Nspeed]
             self.img.setImage(self.image, autoLevels=self.autoLevels)
 
+            self.MaxPMT()
             #time.sleep(servo_time*Npoints*wtrtime)
 
             pi_device.WOS(2, self.amplitudy)
@@ -1622,15 +1636,13 @@ class ScanWidget(QtGui.QFrame):
                 # es solo por si el MOV tarda mucho
                 time.sleep(0.01)
 
-#    print(i, "tiempo paso i", time.time()-tic)
-#    print("tendria que tardar", 2*servo_time*Npoints*wtrtime)
-#
-#print( "tiempo total", time.time()-tiic)
+            print(i, "tiempo paso i", time.time()-tic)
+            print("tendria que tardar", 2*servo_time*Npoints*wtrtime)
 
+        print( "tiempo total", time.time()-tiic)
+#        self.closeAllShutters()
+        self.closeShutter(self.scan_shutterabierto)
 
-        self.MaxPMT()
-
-        self.closeAllShutters()
         if self.VideoCheck.isChecked():
             self.saveFrame()  # para guardar siempre
         print(ptime.time()-self.tic, "Tiempo imagen completa.")
@@ -1644,19 +1656,8 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.liveviewStop()
 
-#    # limpio la parte acelerada.
-#        pixelsEnd = len(self.xini[:-1]) + self.numberofPixels
-#        self.image[:, -1-self.dy] = self.PMT[len(self.xini[:-1]):pixelsEnd]
+    #Quizas necesite esto. no se que tan rapido es.
 
-#        pixelsIniB = pixelsEnd+len(self.xchange[1:-1])
-#        if self.scanMode.currentText() == scanModes[-1]:  # "slalom":
-#            self.image[:, -2-self.dy] = (self.PMT[pixelsIniB:-
-#                                                  len(self.xstops[1:])])
-#            paso = 2
-#        else:
-#            self.backimagePMT[:, -1-self.dy] = self.PMT[pixelsIniB:-
-#                                                        len(self.xstops[1:])]
-#        self.MaxPMT()
 #    # The plotting method is slow (2-3 ms each, for 500x500 pix)
 #    # , don't know how to do it fast
 #    # , so I´m plotting in packages. It's looks like realtime
@@ -1677,23 +1678,6 @@ class ScanWidget(QtGui.QFrame):
 
 #        self.img.setImage(self.image, autoLevels=self.autoLevels)
 
-#        if self.dy < self.numberofPixels-paso:
-#            self.dy = self.dy + paso
-#        else:
-#            self.closeAllShutters()
-#            if self.VideoCheck.isChecked():
-#                self.saveFrame()  # para guardar siempre (Alan idea)
-#            print(ptime.time()-self.tic, "Tiempo imagen completa.")
-##            self.PMTtimer.stop()
-#            self.triggertask.stop()
-#            self.aotask.stop()
-#            self.PMTtask.stop()
-#            self.MovetoStart()
-#            if self.Continouscheck.isChecked():
-#                self.liveviewStart()
-#            else:
-#                self.liveviewStop()
-
 # %% MAX PMT
     def MaxPMT(self):
         m = np.max(self.image)
@@ -1705,8 +1689,7 @@ class ScanWidget(QtGui.QFrame):
 
 # %% --- Creating Ramps  ----
     def Ramps(self):
-        servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
-#TODO: mardarlo mas arriva al servo_time
+
   # con esto tengo que definir la velocidad en multiplos de 40µs
         if ((self.pixelTime)) / (servo_time) < 1:
             print( "no puede ir tan rapido, se redondeo al mayor posible \
@@ -1714,16 +1697,16 @@ class ScanWidget(QtGui.QFrame):
 
         WTRtime = np.ceil(((self.pixelTime)) / (servo_time))
     # 0.00040(s)*WTRtime*Npoints = (self.pixelTime(s))*Npoints (tiempo rampa)
-
+        self.sampleRate_posta = WTRtime*servo_time
         pi_device.WTR(1, WTRtime, 0)
         pi_device.WTR(2, 1, 0)
         nciclos=1
         pi_device.WGC(1, nciclos)
         pi_device.WGC(2, nciclos)
 
-        Nspeed = int(self.numberofPixels / 20)
+        Nspeed = np.ceil(int(self.numberofPixels / 20))
         Npoints = int(self.numberofPixels + (Nspeed*2))
-        center = int(self.numberofPixels /2)
+        center = int(Npoints /2)
         amplitudx = self.scanRange
 #       tabla, init, Nrampa, appen, center, speed,amplit, offset, lenght
         pi_device.WAV_RAMP(1, 1, self.numberofPixels, "X", center,
@@ -1731,12 +1714,12 @@ class ScanWidget(QtGui.QFrame):
 
         amplitudy = self.scanRange/self.numberofPixels
 #       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
-        pi_device.WAV_LIN(2, 1, self.numberofPixels, "X", center,
+        pi_device.WAV_LIN(2, 1, self.numberofPixels, "X",
                            Nspeed, amplitudy, 0, Npoints)
 
         self.Npoints = Npoints  # I need these later
         self.amplitudy= amplitudy
-
+        self.Nspeed = Nspeed
 
 # %% --- ChannelsOpen (todos)
 # No va mas abrir canales analogicos out para la platina!!!
@@ -1755,7 +1738,7 @@ class ScanWidget(QtGui.QFrame):
                 self.done()
             if self.detectMode.currentText() == 'PMT':
                 triggername = "PFI9"
-                self.channel_PD_todos(self.sampleRate,
+                self.channel_PD_todos(self.sampleRate_posta,
                                       int(self.Npoints*self.numberofPixels),
                                       triggername)
             else:
@@ -1795,7 +1778,7 @@ class ScanWidget(QtGui.QFrame):
         self.channelramp = False
         self.channelsteps = False
 
-#        self.PMTon = False
+        self.PMTon = False
         self.APDson = False
 
 
@@ -2020,6 +2003,8 @@ class ScanWidget(QtGui.QFrame):
     # TODO: quizas promediar
 
 # %% ---  Shutters zone ---------------------------------
+"""esto seguro se puede hacer mejor. No tiene sentido tener 4 cosas copiadas
+Con algo tipo self.shutter3button.clicked.connect(lambda: self.openShutter(shutter[3]))"""
     def shutter0(self):  # 532
         if self.shutter0button.isChecked():
             self.openShutter(shutters[0])
@@ -2308,30 +2293,6 @@ class ScanWidget(QtGui.QFrame):
         self.CMplot = True
         print(np.round((tac-tic)*10**3, 3), "(ms) CM\n")
 
-# %% arma los datos para modular.(mapa)
-
-    def mapa(self):
-        """ nada nunca llama a esta funcion, era para el modulador"""
-        Z = self.image
-        N = len(Z)
-        lomas = np.max(Z)
-        Npasos = 4
-        paso = lomas/Npasos
-        tec = ptime.time()
-        SZ = Z.ravel()
-        mapa = np.zeros((N, N))
-        Smapa = mapa.ravel()
-        for i in range(len(SZ)):
-            if SZ[i] > paso:
-                Smapa[i] = 10
-            if SZ[i] > paso*2:
-                Smapa[i] = 20
-            if SZ[i] > paso*3:
-                Smapa[i] = 30
-        mapa = np.split(Smapa, N)
-        print(np.round((ptime.time()-tec)*10**3, 4), "ms tarda mapa\n")
-        self.img.setImage((np.array(mapa)), autoLevels=True)
-#        self.img.setImage((np.flip(mapa,0)), autoLevels=False)
 
 # %%  ROI cosas
     def ROImethod(self):
@@ -2547,7 +2508,7 @@ class ScanWidget(QtGui.QFrame):
             self.openShutter(shutters[0])
             self.openShutter(shutters[1])
 
-# %% getInitPos  Posiciones reales, si agrego los cables que faltan
+# %% getInitPos  Posiciones reales
     def getInitPos(self):
         """ al final no la uso"""
         pos = pi_device.qPOS()
@@ -2574,7 +2535,8 @@ class ScanWidget(QtGui.QFrame):
         print(len(self.grid_x), len(self.grid_y))
         self.particulasEdit.setText(str(len(self.grid_x)))
 #        z = datos[2, :]  # siempre cero en general.
-        self.grid_plot()
+        if grid_plot_check.isChecked:
+            self.grid_plot()
 
     def grid_plot(self):
         """hace un plot de la grilla cargada para estar seguro que es lo que
@@ -2657,17 +2619,10 @@ class ScanWidget(QtGui.QFrame):
 
     def grid_move(self):
         """ se mueve siguiendo las coordenadas que lee del archivo"""
-#        self.PiezoOpenStep()
+
         startX = float(self.xLabel.text())
         startY = float(self.yLabel.text())
-#        self.grid_openshutter()
-#        self.aotask.write(np.array(
-#                [self.grid_x[self.i_global] + startX / convFactors['x'],
-#                 self.grid_y[self.i_global] + startY / convFactors['y']]),
-#                auto_start=True)
-#        print("me muevo",
-#              self.grid_x[self.i_global] + startX,
-#              self.grid_y[self.i_global] + startY)
+
         axes=['A', 'B']
         targets = [self.grid_x[self.i_global] + startX,
                    self.grid_y[self.i_global] + startY]
@@ -2675,22 +2630,17 @@ class ScanWidget(QtGui.QFrame):
         tic=ptime.time()
         while not all(pi_device.qONT(axes).values()):
             time.sleep(0.01)
-        print(pi_device.qPOS())
-        print(ptime.time()-tic)
-
-#        pos = pi_device.qPOS()
-#        aPos = pos['A']
-#        bPos = pos['B']
+        print("se movio a", pi_device.qPOS())
+        print("en un tiempo",ptime.time()-tic)
 
     def grid_autofoco(self):
-        print("aa")
+        print("autofoco")
         multifoco = np.arange(0,
                               int(self.particulasEdit.text())-1,
                               int(self.autofocEdit.text()))
 
         if self.i_global in multifoco:
             print("Estoy haciendo foco en el i=", self.i_global)
-            time.sleep(2)
             self.focus_autocorr_rampas()
 
     def grid_openshutter(self):
@@ -2767,33 +2717,15 @@ class ScanWidget(QtGui.QFrame):
 
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
-#        time.sleep(0.1)
-        dist = dist
+
         print("me muevo a z", dist)
-        with nidaqmx.Task("Ztask") as Ztask:
-#            self.Ztask = nidaqmx.Task('Ztask')
-            # Following loop creates the voltage channels
-            n = 2
-            Ztask.ao_channels.add_ao_voltage_chan(
-                physical_channel='Dev1/ao{}'.format(n),
-                name_to_assign_to_channel='chan_%s' % activeChannels[n],
-                min_val=minVolt[activeChannels[n]],
-                max_val=maxVolt[activeChannels[n]])
 
-            N = abs(int(dist*100))
-        # read initial position for all channels
-            toc = ptime.time()
-            rampz = np.linspace(float(self.zLabel.text()), dist, N)
-            for i in range(N):
-                Ztask.write([rampz[i] / (convFactors['z'])], auto_start=True)
-#            Ztask.wait_until_done()
-            print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+        pi_device.MOV('C', dist)
+        while not all(pi_device.qONT('C').values()):
+            time.sleep(0.01)
+        print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
         # update position text
-            self.zLabel.setText("{}".format(np.around(float(rampz[-1]), 2)))
-
-#        self.Ztask.stop()
-#        self.Ztask.close()
-#        self.paramChanged()
+        self.zLabel.setText("{}".format(np.around(float(dist), 2)))
 
     def focus_go_to_maximun(self):
         """ barre en z mientras mira el PD, y va al maximo de intensidad"""
@@ -2818,20 +2750,22 @@ class ScanWidget(QtGui.QFrame):
             if self.focus_laser.currentText() == shutters[i]:
                 self.openShutter(shutters[i])
                 self.focus_shutterabierto = shutters[i]
+                self.pd_for_focus = i
 
-    def read_PD(self, color):
-        """ Read de photodiode of the selecter 'color' """
-#        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
-#        time.sleep(0.1)
-        print("abre canal pmt")  # , channel)
-        with nidaqmx.Task("PDtask") as PDtask:
-#            self.PDtask = nidaqmx.Task('PDtask')
-            PDtask.ai_channels.add_ai_voltage_chan(
-                physical_channel='Dev1/ai{}'.format(PD_channels[color]),
-                name_to_assign_to_channel='chan_PD')
-            z_profile = PDtask.read()
-#        read = np.random.rand(10)[0]*50
-        return z_profile
+# no va mas!
+#    def read_PD(self, color):
+#        """ Read de photodiode of the selecter 'color' """
+##        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
+##        time.sleep(0.1)
+#        print("abre canal pmt")  # , channel)
+#        with nidaqmx.Task("PDtask") as PDtask:
+##            self.PDtask = nidaqmx.Task('PDtask')
+#            PDtask.ai_channels.add_ai_voltage_chan(
+#                physical_channel='Dev1/ai{}'.format(PD_channels[color]),
+#                name_to_assign_to_channel='chan_PD')
+#            z_profile = PDtask.read()
+##        read = np.random.rand(10)[0]*50
+#        return z_profile
 
 #    def focus_lock_focus(self):
 #        """ guarda el patron de intensidades, barriendo z en el foco actual"""
@@ -2857,7 +2791,7 @@ class ScanWidget(QtGui.QFrame):
     def focus_lock_focus_rampas(self):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
         tiempo_lock_focus_tic = ptime.time()
-        Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
+        Npasos = int(int(self.numberofPixelsEdit.text())/10)  # TODO: algun numero de pasos a definir (50 dice en algun lado)
         z_antes = float(self.zLabel.text())
         z_start = float(self.zLabel.text()) - (self.scanRange/2)
         z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
@@ -2895,7 +2829,7 @@ class ScanWidget(QtGui.QFrame):
                 "QPushButton:pressed { background-color: blue; }")
         tiempo_lock_focus_toc = ptime.time()
         print("tiempo_lock_focus", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
-        print("Foco lockeado. Tengo el z_profile")
+        print("¡Foco lockeado!. (Tengo el z_profile)")
 
 
     def focus__rampas(self, z_vector):
@@ -2904,32 +2838,79 @@ class ScanWidget(QtGui.QFrame):
 
         Npasos = len(z_vector)
         z_profiles = np.zeros((Npasos, len(PDchans)))  # ver si no es fila
+
+        WTRtime = np.ceil(((self.pixelTime)) / (servo_time))
+    # 0.00040(s)*WTRtime*Npoints = (self.pixelTime(s))*Npoints (tiempo rampa)
+        sampleRate_posta = WTRtime*servo_time
+
+        pi_device.WTR(1, WTRtime, 0)
+        pi_device.WTR(2, 1, 0)
+        nciclos=1
+        pi_device.WGC(1, nciclos)
+        pi_device.WGC(2, nciclos)
+
+        Nspeed = np.ceil(int(Npasos / 20))
+        Npoints = int(Npasos + (Nspeed*2))
+        amplitudz = self.scanRange/self.numberofPixels
+#       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
+        pi_device.WAV_LIN(3, 1, Npasos, "X",
+                           Nspeed, amplitudz, 0, Npoints)
+
+        pi_device.TWC()  # Clear all triggers options
+
+        pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
+        #                         points 1 from out 1,2 & 3 
+#        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
+        pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
+        pi_device.CTO(2,3,4)  # The digital output line 2 is set to "Generator Trigger" mode.
+        pi_device.CTO(3,3,4)  # The digital output line 3 is set to "Generator Trigger" mode.
+        triggername = "PFI9"
+
 #        self.focus_openshutter()
         self.move_z((z_vector[0]))
+        while not all(pi_device.qONT().values()):
+            print("no creo que entre a este while")
+            # es solo por si el MOV tarda mucho
+            time.sleep(0.01)
 #        self.focus_openshutter()
         color = (self.focus_laser.currentText())
-        self.channel_z(self.sampleRate, Npasos)  # ztask
-        self.channel_PD_todos(self.sampleRate, Npasos)  # PDtask
-        self.channel_triger(self.ztask, self.PDtask)
-    # TODO: pasar los Task como return y ver si anda
-        self.ztask.write((z_vector / convFactors['z']),
-                                                      auto_start = False)
+#        self.channel_z(self.sampleRate, Npasos)  # ztask
+        self.channel_PD_todos(sampleRate_posta, Npasos, triggername)  # PDtask
+#        self.channel_triger(self.ztask, self.PDtask)
 
-        self.start_move_and_read(self.ztask,
-                                 self.PDtask,
-                                 color)
+#        self.ztask.write((z_vector / convFactors['z']),
+#                                                      auto_start = False)
+
+# TODO: no soy consistente con las maneras de elegir el shutter correcto
+# O meto el indice en focus_openshutter como hice con el scan.
+# o defino "color" y puedo usar las funciones open/close Shutter base.
+# PD[self.pd_for_focus] en vez de PD[color]
+
+        self.focus_openshutter()  
+        pi_device.WGO(3, True)
+        z_profiles = self.PDtask.read(Npasos)  # get all points. Need to erase the acelerated zones
+        while any(pi_device.IsGeneratorRunning().values()):
+            time.sleep(0.01)  # espera a que termine
+        pi_device.WGO(3, False)
+        self.closeShutter(self.focus_shutterabierto)
+
+
+#        self.start_move_and_read(self.ztask,
+#                                 self.PDtask,
+#                                 color)
 #        self.PDtimer_focus.start(10)  # no necesito usar un timer
-        z_profiles = self.PDtask.read(Npasos)
+#        z_profiles = self.PDtask.read(Npasos)
 
         self.closeShutter(color)
-        self.channels_close()
-
+#        self.channels_close()
+        self.PDtask.stop()
+        self.PDtask.close()
         self.move_z((z_vector[0]))
 
         tiempo_lock_focus_toc = ptime.time()
         print("tiempo_rampas", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
         print("rampas pasando")
-        return z_profiles[PD_channels[color]]
+        return z_profiles[PD_channels[color]][Nspeed:-Nspeed]
 
 
     def focus_autocorr_rampas(self):
@@ -2939,7 +2920,7 @@ class ScanWidget(QtGui.QFrame):
             tiempo_autocorr_tic = ptime.time()
 
             Npasos = len(self.z_vector)
-            Ncorrelations = 6  # tambien a definir.... 50?
+            Ncorrelations = 6  # TODO: a definir.... 50?  # quizas no
             new_profile = np.zeros((Ncorrelations, Npasos))
             z_vector_corr = np.zeros((Ncorrelations, Npasos))
             correlations = np.zeros((Npasos))
@@ -2959,9 +2940,9 @@ class ScanWidget(QtGui.QFrame):
             z_max = np.max(new_profile[j_final, :])
             donde_z_max = np.where(new_profile[j_final, :] == z_max)
 
-        # estos plots no van. Se supone que me muestran si anda bien ¿?
-            plt.plot(new_profile[j_final, :], 'o-')
-            plt.show()
+#        # estos plots no van. Se supone que me muestran si anda bien ¿?
+#            plt.plot(new_profile[j_final, :], 'o-')
+#            plt.show()
             print(j_final, z_vector_corr[j_final, donde_z_max])
 
             self.move_z(z_vector_corr[j_final, donde_z_max])
@@ -2970,46 +2951,10 @@ class ScanWidget(QtGui.QFrame):
             print("tiempo_autocorr_toc", tiempo_autocorr_toc-tiempo_autocorr_tic)
 
         else:
-            print("No esta Lockeado el foco")
-
-
-#    def focus_autocorr(self):
-#        """ correlaciona la medicion de intensidad moviendo z,
-#        respecto del que se lockeo con loc focus"""
-#        if self.locked_focus:
-#            Ncorrelations = 6  # tambien a definir....
-#            self.new_profile = np.zeros((Ncorrelations, self.Npasos))
-#            correlations = np.zeros((self.Npasos))
-#            maxcorr = np.zeros(Ncorrelations)
-#            z_vector_corr = np.zeros((Ncorrelations, self.Npasos))
-##        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
-#            self.focus_openshutter()
-#            for j in range(Ncorrelations):
-#                z_vector_corr[j, :] = self.z_vector-3+j
-#                for i in range(self.Npasos):
-#                    self.move_z(z_vector_corr[j, i])
-#                    self.new_profile[j, i] = self.read_PD(
-#                                                    self.focus_shutterabierto)
-#                correlations[:] = np.correlate(self.new_profile[j, :],
-#                                               self.z_profile, "same")
-#                maxcorr[j] = np.max(correlations)
-##                plt.plot(z_vector_corr[j, :])
-##                plt.plot(self.new_profile)
-##                plt.plot(self.z_profile,'.-k')
-##                plt.plot(correlations)
-##                plt.plot(np.where(correlations==np.max(correlations)),
-##                          np.max(correlations), marker='o')
-#            self.closeShutter(self.focus_shutterabierto)
-#            j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
-#            z_max = np.max(self.new_profile[j_final, :])
-#            donde_z_max = np.where(self.new_profile[j_final, :] == z_max)
-#
-#            plt.plot(self.new_profile[j_final, :], 'o-')
-#            plt.show()
-#            print(j_final, z_vector_corr[j_final, donde_z_max])
-#
-#        else:
-#            print("No esta Lockeado el foco")
+            print("¡¡No esta Lockeado el foco!!")
+            self.focus_lock_button.setStyleSheet(
+                    "QPushButton { background-color: red; }"
+                    "QPushButton:pressed { background-color: blue; }")
 
     def read_pos(self):
         """lee las entradas analogicas que manda la platina y se donde estoy"""
@@ -3069,60 +3014,61 @@ class ScanWidget(QtGui.QFrame):
             QComboBox.setStyleSheet("QComboBox{color: rgb(100,0,0);}\n")
 # %% mejorando los channels
 
-    def channel_xy(self, rate=0, samps_per_chan=0):
-        
-        # Create the channels
-            self.xytask = nidaqmx.Task('xytask')
-            AOchans2 = AOchans[:2]
-        # Following loop creates the voltage channels
-            for n in range(len(AOchans2)):
-                self.xytask.ao_channels.add_ao_voltage_chan(
-                    physical_channel='Dev1/ao%s' % AOchans2[n],
-                    name_to_assign_to_channel='chan_%s' % activeChannels[n],
-                    min_val=minVolt[activeChannels[n]],
-                    max_val=maxVolt[activeChannels[n]])
-            if rate !=0 and samps_per_chan != 0:
-#            self.piezoramp = True
-                self.xytask.timing.cfg_samp_clk_timing(
-                    rate=rate,  # self.sampleRate
-                    # source=r'100kHzTimeBase',
-                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                    samps_per_chan=samps_per_chan)  # len(self.totalrampx)
+# YA NO SE USAN!
+#    def channel_xy(self, rate=0, samps_per_chan=0):
+#        
+#        # Create the channels
+#            self.xytask = nidaqmx.Task('xytask')
+#            AOchans2 = AOchans[:2]
+#        # Following loop creates the voltage channels
+#            for n in range(len(AOchans2)):
+#                self.xytask.ao_channels.add_ao_voltage_chan(
+#                    physical_channel='Dev1/ao%s' % AOchans2[n],
+#                    name_to_assign_to_channel='chan_%s' % activeChannels[n],
+#                    min_val=minVolt[activeChannels[n]],
+#                    max_val=maxVolt[activeChannels[n]])
+#            if rate !=0 and samps_per_chan != 0:
+##            self.piezoramp = True
+#                self.xytask.timing.cfg_samp_clk_timing(
+#                    rate=rate,  # self.sampleRate
+#                    # source=r'100kHzTimeBase',
+#                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#                    samps_per_chan=samps_per_chan)  # len(self.totalrampx)
 
-    def channel_z(self, rate=0, samps_per_chan=0):
-        # Create the channels
-            self.ztask = nidaqmx.Task('ztask')
-        # Following loop creates the voltage channels
-            n=2
-            self.ztask.ao_channels.add_ao_voltage_chan(
-                physical_channel='Dev1/ao%s' % AOchans[n],
-                name_to_assign_to_channel='chan_%s' % activeChannels[n],
-                min_val=minVolt[activeChannels[n]],
-                max_val=maxVolt[activeChannels[n]])
-            if rate !=0 and samps_per_chan != 0:
-#            self.piezoramp = True
-                self.ztask.timing.cfg_samp_clk_timing(
-                    rate=rate,  # self.sampleRate
-                    # source=r'100kHzTimeBase',
-                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                    samps_per_chan=samps_per_chan)  # len(self.totalrampx)
-
-    def channel_PD(self, color=shutters[0], rate=0, samps_per_chan=0):
-        """ en color va alguna de los valores de shutters"""
-#            self.PMTon = True
-        self.PDtask = nidaqmx.Task('PMTtask')
-        self.PDtask.ai_channels.add_ai_voltage_chan(
-            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
-            name_to_assign_to_channel='chan_PMT')
-        if rate !=0 and samps_per_chan != 0:
-            self.PDtask.timing.cfg_samp_clk_timing(
-                    rate=rate,
-                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                    samps_per_chan=samps_per_chan)
-            triggerchannelname = "PFI4"
-        # TODO: elegir el chanel name correcto
-            self.PMTtask.triggers.start_trigger.cfg_dig_edge_start_trig(
-                            trigger_source=triggerchannelname)  # ,
+#    def channel_z(self, rate=0, samps_per_chan=0):
+#        # Create the channels
+#            self.ztask = nidaqmx.Task('ztask')
+#        # Following loop creates the voltage channels
+#            n=2
+#            self.ztask.ao_channels.add_ao_voltage_chan(
+#                physical_channel='Dev1/ao%s' % AOchans[n],
+#                name_to_assign_to_channel='chan_%s' % activeChannels[n],
+#                min_val=minVolt[activeChannels[n]],
+#                max_val=maxVolt[activeChannels[n]])
+#            if rate !=0 and samps_per_chan != 0:
+##            self.piezoramp = True
+#                self.ztask.timing.cfg_samp_clk_timing(
+#                    rate=rate,  # self.sampleRate
+#                    # source=r'100kHzTimeBase',
+#                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#                    samps_per_chan=samps_per_chan)  # len(self.totalrampx)
+    # para un solo PD. Pero prefiero usar los 3 y solo leer 1.
+#    def channel_PD(self, color=shutters[0], rate=0, samps_per_chan=0):
+#        """ en color va alguna de los valores de shutters"""
+##            self.PMTon = True
+#        self.PDtask = nidaqmx.Task('PMTtask')
+#        self.PDtask.ai_channels.add_ai_voltage_chan(
+#            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
+#            name_to_assign_to_channel='chan_PMT')
+#        if rate !=0 and samps_per_chan != 0:
+#            self.PDtask.timing.cfg_samp_clk_timing(
+#                    rate=rate,
+#                    sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#                    samps_per_chan=samps_per_chan)
+#            triggerchannelname = "PFI4"
+#        # TODO: elegir el chanel name correcto
+#            self.PMTtask.triggers.start_trigger.cfg_dig_edge_start_trig(
+#                            trigger_source=triggerchannelname)  # ,
 #
     def channel_PD_todos(self, rate=0, samps_per_chan=0, triggerchannelname=0):
         """ asi tengo todos los PD
@@ -3149,67 +3095,68 @@ class ScanWidget(QtGui.QFrame):
                 self.PMTtask.triggers.start_trigger.cfg_dig_edge_start_trig(
                                 trigger_source=triggerchannelname)  # ,
 
-    def channel_triger(self, task1, task2, rate=10**5, samples_long=1):
-        self.triggertask = nidaqmx.Task('TriggerPDtask')
-    # Create the signal trigger
-        num = samples_long  # int(self.triggerEdit.text())
-        trigger2 = [True, True, False]
-        # trigger2 = np.tile(trigger, self.numberofPixels)
-        self.trigger = np.concatenate((np.zeros(num, dtype="bool"),
-                                       trigger2))
+#No va mas
+#    def channel_triger(self, task1, task2, rate=10**5, samples_long=1):
+#        self.triggertask = nidaqmx.Task('TriggerPDtask')
+#    # Create the signal trigger
+#        num = samples_long  # int(self.triggerEdit.text())
+#        trigger2 = [True, True, False]
+#        # trigger2 = np.tile(trigger, self.numberofPixels)
+#        self.trigger = np.concatenate((np.zeros(num, dtype="bool"),
+#                                       trigger2))
+#
+#    # Configure the digital channels to trigger the synchronization signal
+#        self.triggertask.do_channels.add_do_chan(
+#            lines="Dev1/port0/line6", name_to_assign_to_lines='chan6',
+#            line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+#
+#        self.triggertask.timing.cfg_samp_clk_timing(
+#                     rate=rate,  # muestras por segundo
+#                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+#                     # source='100kHzTimebase',
+#                     active_edge=nidaqmx.constants.Edge.RISING,
+#                     samps_per_chan=len(self.trigger))
+#    # Configure a start trigger to synchronizate the measure and movement
+#        triggerchannelname = "PFI4"
+#        task1.triggers.start_trigger.cfg_dig_edge_start_trig(
+#                                            trigger_source=triggerchannelname)
+#        task2.triggers.start_trigger.cfg_dig_edge_start_trig(
+#                                            trigger_source=triggerchannelname)
+##        self.triggerPMT = True
 
-    # Configure the digital channels to trigger the synchronization signal
-        self.triggertask.do_channels.add_do_chan(
-            lines="Dev1/port0/line6", name_to_assign_to_lines='chan6',
-            line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+#    def vector_to_move(self):
+#        self.xytask.write(np.array(
+#            [self.totalrampx / convFactors['x'],
+#             self.totalrampy / convFactors['y']]), auto_start=False)
 
-        self.triggertask.timing.cfg_samp_clk_timing(
-                     rate=rate,  # muestras por segundo
-                     sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-                     # source='100kHzTimebase',
-                     active_edge=nidaqmx.constants.Edge.RISING,
-                     samps_per_chan=len(self.trigger))
-    # Configure a start trigger to synchronizate the measure and movement
-        triggerchannelname = "PFI4"
-        task1.triggers.start_trigger.cfg_dig_edge_start_trig(
-                                            trigger_source=triggerchannelname)
-        task2.triggers.start_trigger.cfg_dig_edge_start_trig(
-                                            trigger_source=triggerchannelname)
-#        self.triggerPMT = True
+#    def start_move_and_read(self, task1, task2, color=shutters[0]):
+#        """ Send the signals to the NiDaq,
+#        but only start when the trigger is on """
+#
+#        task1.start()
+#        task2.start()
+#        print("ya arranca...")
+#        self.openShutter(color)  # abre el shutter elegido
 
-    def vector_to_move(self):
-        self.xytask.write(np.array(
-            [self.totalrampx / convFactors['x'],
-             self.totalrampy / convFactors['y']]), auto_start=False)
+#        self.triggertask.write(self.trigger, auto_start=True)
 
-    def start_move_and_read(self, task1, task2, color=shutters[0]):
-        """ Send the signals to the NiDaq,
-        but only start when the trigger is on """
-
-        task1.start()
-        task2.start()
-        print("ya arranca...")
-        self.openShutter(color)  # abre el shutter elegido
-
-        self.triggertask.write(self.trigger, auto_start=True)
-
-    def channels_close(self):
-        try:
-            self.xytask.stop()
-            self.xytask.close()
-        except: pass
-        try:
-            self.ztask.stop()
-            self.ztask.close()
-        except: pass
+    def channels_close(self):  # igual tampoco lo uso
+#        try:
+#            self.xytask.stop()
+#            self.xytask.close()
+#        except: pass
+#        try:
+#            self.ztask.stop()
+#            self.ztask.close()
+#        except: pass
         try:
             self.PDtask.stop()
             self.PDtask.close()
         except: pass
-        try:
-            self.triggertask.stop()
-            self.triggertask.close()
-        except: pass
+#        try:
+#            self.triggertask.stop()
+#            self.triggertask.close()
+#        except: pass
 
 # %% Point scan , que ahora es traza
 
@@ -3368,6 +3315,7 @@ class MyPopup_traza(QtGui.QWidget):
             if self.ScanWidget.traza_laser.currentText() == shutters[i]:
                 self.ScanWidget.openShutter(shutters[i])
                 self.traza_shutterabierto = shutters[i]
+                self.pd_for_traza = i
 
     def save_traza(self, imprimiendo=False):
         try:
@@ -3416,22 +3364,23 @@ class MyPopup_traza(QtGui.QWidget):
         color = shutters[0]
         self.pointtask = nidaqmx.Task('pointtaskPD')
         # Configure the analog in channel to read the PD
-        self.pointtask.ai_channels.add_ai_voltage_chan(
-            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
-            name_to_assign_to_channel='chan_PD')
+        for n in range(len(PDchans)):
+            self.pointtask.ai_channels.add_ai_voltage_chan(
+                physical_channel='Dev1/ai{}'.format(PDchans[color]),  # igual son [0,1,2]
+                name_to_assign_to_channel='chan_PD{}'.format(PDchans[n]))
 
-        self.pointtask.timing.cfg_samp_clk_timing(
-          rate=apdrate,
-          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-          source=r'100kHzTimebase',  # 1000k
-          samps_per_chan=len(self.points))
+            self.pointtask.timing.cfg_samp_clk_timing(
+              rate=apdrate,  # TODO: ver velocidad PD...
+              sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
+              source=r'100kHzTimebase',  # 1000k
+              samps_per_chan=len(self.points))
 
 #        self.pointtask2 = nidaqmx.Task('pointtask2')
 #        color = shutters[1]
 #        self.pointtask2.ai_channels.add_ai_voltage_chan(
 #            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
 #            name_to_assign_to_channel='chan_PD')
-#    
+
 #        self.pointtask2.timing.cfg_samp_clk_timing(
 #          rate=apdrate,
 #          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
@@ -3464,8 +3413,8 @@ class MyPopup_traza(QtGui.QWidget):
 
     def updatePoint(self):
         tic = ptime.time()
-        N = len(self.points)
-        self.points[:] = self.pointtask.read(N)
+        lectura_total = self.pointtask.read(N)
+        self.points[:] = lectura_total[self.pd_for_traza][:]
 #        self.points2[:] = self.pointtask2.read(N)
         tiic = ptime.time()
 #        if self.ptr1 ==0:
@@ -3495,8 +3444,8 @@ class MyPopup_traza(QtGui.QWidget):
 #        self.ptr1 += 1
 #        self.curve.setData(self.timeaxis, self.data1)
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
-                           pen=pg.mkPen('r', width=1),
-                           shadowPen=pg.mkPen('b', width=3))
+                           pen=pg.mkPen('y', width=1),
+                           shadowPen=pg.mkPen('w', width=3))
 
         mediototal = np.mean(self.data1[:self.ptr1])
         self.line.setData(self.timeaxis[:self.ptr1],
@@ -3522,12 +3471,13 @@ class MyPopup_traza(QtGui.QWidget):
             mediochico2 = np.mean(self.data1[self.ptr1-M-M2:self.ptr1-M2])
 
         tuc = ptime.time()
-        self.line1.setData(self.timeaxis2,
-                           np.ones(MMM) * mediochico,
-                           pen=pg.mkPen('g', width=2))
-        self.line2.setData(self.timeaxis2[:],
-                           np.ones(MMM) * mediochico2,
-                           pen=pg.mkPen('y', width=2))
+#        self.line1.setData(self.timeaxis2,
+#                           np.ones(MMM) * mediochico,
+#                           pen=pg.mkPen('g', width=2))
+#        self.line2.setData(self.timeaxis2[:],
+#                           np.ones(MMM) * mediochico2,
+#                           pen=pg.mkPen('y', width=2))
+#TODO: estas lineas no tiene sentido dibujarlas
 
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(mediochico), float(mediochico2)))
@@ -3561,7 +3511,7 @@ class MyPopup_traza(QtGui.QWidget):
         print("tiempo armar promedios varios", np.round((tuc-tec)*10**3,3), "(ms)")
         print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
         print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
-        print("tiempo leyendo apd", np.round((tiic-tic)*10**3,3), "\n")
+        print("tiempo leyendo PD", np.round((tiic-tic)*10**3,3), "\n")
 
 
 
