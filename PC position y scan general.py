@@ -137,7 +137,7 @@ class MainWindow(QtGui.QMainWindow):
         self.a = 0
         self.file_path = os.path.abspath("")
 #        self.setMinimumSize(QtCore.QSize(500, 500))
-        self.setWindowTitle("PC PyPrintingPy PC")
+        self.setWindowTitle("PC PIPrintingPy PC")
 
     # Create new action
         openAction = QtGui.QAction(QtGui.QIcon('open.png'), '&Open Dir', self)

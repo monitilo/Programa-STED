@@ -21,25 +21,27 @@ from scipy import ndimage
 from scipy import optimize
 
 import re
-import tools
+import tools  # ROI
 
-import viewbox_tools
+import viewbox_tools  #  ROI
 
 import nidaqmx
+
+# %%
 
 device = nidaqmx.system.System.local().devices['Dev1']
 
 activeChannels = ["x", "y", "z"]
 AOchans = [0, 1, 2]
-AIchans = [6, 7, 5]
+
 detectModes = ['PD']
 scanModes = ['ramp scan', 'step scan']
-PDchans = [0,1,2]  # elegir aca las salidas del PD de cada color
-shutters = ['532 (verde)', '640 (rojo)', '405 (azul)', '808(IR)']  # salidas 9,10,11,??
+PDchans = [0, 1, 2]  # elegir aca las salidas del PD de cada color
+shutters = ['532 (verde)', '640 (rojo)', '405 (azul)', '808(NIR)']  # salidas 9,10,11,??
 shutterschan = [9, 10, 11, 12]  # las salidas digitales de cada shutter
-# TODO: puse la salida 13 es la del nuevo shutter del 808. puede ser otra.
+# TODO: puse la salida 12 es la del nuevo shutter del 808. puede ser otra.
 
-apdrate = 10**5  # TODO: ver velocidad del PD 
+apdrate = 10**5  # TODO: ver velocidad del PD... 5kH
 
 PD_channels = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2, shutters[3]: 1}
 
@@ -56,13 +58,14 @@ try:
     pi_device.ONL([1,2,3],[1,1,1])  # Turn on the Online config (PC master)
     pi_device.DCO(axes, allTrue)  # Turn on the drift compensation mode
     pi_device.SVO (axes, allTrue)  # Turn on servo control
-    pi_device.VCO(axes, [False, False, False])  # Turn off Velocity contro. Can't move if ON
+    pi_device.VCO(axes, [False, False, False])  # Turn off Velocity control. Can't move if ON
     
-    pi_device.MOV(['A', 'B', 'C'], [40, 40, 40])  # move away from origin (0,0,0)
+    pi_device.MOV(['A', 'B', 'C'], [80, 80, 80])  # move away from origin (0,0,0)
     #TOsDO: no necesita estar esto aca. Puedo sacarlo o no
 except IOError as e:
     print("I/O error({0}): {1}".format(e.errno, e.strerror))
     print("No conecta con la platina!!!")
+
 servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
 
 # %% Main Window
@@ -141,6 +144,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
+
         self.a = 0
         self.file_path = os.path.abspath("")
 #        self.setMinimumSize(QtCore.QSize(500, 500))
@@ -225,53 +229,6 @@ class ScanWidget(QtGui.QFrame):
             self.imagecheck.setStyleSheet(" color: red; ")
 #            self.hist.gradient.loadPreset('thermal')
 
-    def graphplot(self):
-        # if self.dy==0:
-            # self.paramChanged()
-        print(self.getInitPos())
-        self.paramChangedInitialize()
-
-#        if self.graphcheck.isChecked():
-#            if self.imagecheck.isChecked():
-#                self.img.setImage(self.backimage2, autoLevels=self.autoLevels)
-#            else:
-#                self.img.setImage(self.backimage, autoLevels=self.autoLevels)
-#        else:
-#            self.img.setImage(self.image, autoLevels=self.autoLevels)
-
-        verxi = np.concatenate((self.xini[:-1],
-                               np.zeros(len(self.wantedrampx)),
-                               np.zeros(len(self.xchange[1:-1])),
-                               np.zeros(len(self.xback[:])),
-                               np.zeros(len(self.xstops[1:]))))
-
-        verxchange = np.concatenate((np.zeros(len(self.xini[:-1])),
-                                     np.zeros(len(self.wantedrampx)),
-                                    ((self.xchange[1:-1])),
-                                    np.zeros(len(self.xback[:])),
-                                    np.zeros(len(self.xstops[1:]))))
-
-        verxback = np.concatenate((np.zeros(len(self.xini[:-1])),
-                                   np.zeros(len(self.wantedrampx)),
-                                   np.zeros(len(self.xchange[1:-1])),
-                                   ((self.xback[:])),
-                                   np.zeros(len(self.xstops[1:]))))
-
-        verxstops = np.concatenate((np.zeros(len(self.xini[:-1])),
-                                    np.zeros(len(self.wantedrampx)),
-                                    np.zeros(len(self.xchange[1:-1])),
-                                    np.zeros(len(self.xback[:])),
-                                   self.xstops[1:]))
-
-        plt.plot(verxi, '*-m')
-        plt.plot(self.onerampx, 'b.-')
-        plt.plot(verxchange, '.-g')
-        plt.plot(verxback, '.-c')
-        plt.plot(verxstops, '*-y')
-        plt.plot(self.onerampy[0, :], 'k')
-#        plt.plot(self.onerampy[1,:],'k')
-        plt.show()
-
     def __init__(self, main, device, *args, **kwargs):  # agregue device
 
         super().__init__(*args, **kwargs)
@@ -306,7 +263,7 @@ class ScanWidget(QtGui.QFrame):
         self.lock_focus_action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+t'), self, self.PointStart)
-#TODO: preguntar por Shorcuts copados
+#TODO: preguntar por Shortcuts copados
 
     # Cosas para la rutina de imprimir. Grid
 
@@ -690,15 +647,15 @@ class ScanWidget(QtGui.QFrame):
         self.PSFMode.activated.connect(self.PSFYZ)
         self.PSFMode.setToolTip('Change the scan axes')
 
-    # Presets for shutters
-        self.presetsMode = QtGui.QComboBox()
-        self.presetsModes = ['Red', 'Yellow', 'STED', 'STED + Yell',
-                             'STED + Red', 'nada']
-        self.presetsMode.addItems(self.presetsModes)
-        self.presetsMode.setToolTip('Select the shutters to\
-                                    open during the scan')
+#    # Presets for shutters
+#        self.presetsMode = QtGui.QComboBox()
+#        self.presetsModes = ['Red', 'Yellow', 'STED', 'STED + Yell',
+#                             'STED + Red', 'nada']
+#        self.presetsMode.addItems(self.presetsModes)
+#        self.presetsMode.setToolTip('Select the shutters to\
+#                                    open during the scan')
 
-    # To save all images until stops
+    # To save all images
         self.VideoCheck = QtGui.QCheckBox('"video" save')
         self.VideoCheck.setChecked(False)
         self.VideoCheck.setToolTip('Save every finished image')
@@ -758,13 +715,13 @@ class ScanWidget(QtGui.QFrame):
         self.scanMode.setToolTip('Selec the scan type.\
         With a voltage ramps or step by step')
 
-    # Plot ramps scan button
-        self.graphcheck = QtGui.QCheckBox('Scan Plot')
-        self.graphcheck.clicked.connect(self.graphplot)
-        self.step = False
-        self.graphcheck.setToolTip('plot the voltage ramps (developer only)')
+#    # Plot ramps scan button
+#        self.graphcheck = QtGui.QCheckBox('Scan Plot')
+##        self.graphcheck.clicked.connect(self.graphplot)
+#        self.step = False
+#        self.graphcheck.setToolTip('plot the voltage ramps (developer only)')
 
-    # Plot ramps scan button
+    # Change between Fwd & Bwd
         self.imagecheck = QtGui.QCheckBox('Image change')
         self.imagecheck.clicked.connect(self.imageplot)
         self.imagecheck.setStyleSheet(" color: red; ")
@@ -772,16 +729,16 @@ class ScanWidget(QtGui.QFrame):
 
     # useful Booleans
         self.channelramp = False  # canales
-        self.APDson = False
-        self.triggerAPD = False  # separo los canales en partes
-        self.triggerPMT = False
+#        self.APDson = False
+#        self.triggerAPD = False  # separo los canales en partes
+#        self.triggerPMT = False
         self.channelsteps = False
-        self.piezoramp = False
-        self.piezosteps = False
+#        self.piezoramp = False
+#        self.piezosteps = False
 #        self.inStart = False
 #        self.working = False
         self.shuttering = False
-        self.shuttersignal = np.zeros(len(shutters), dtype='bool')
+#        self.shuttersignal = np.zeros(len(shutters), dtype='bool')  Está mas arriba
 #        self.shuttersignal = [False, False, False]
 #        self.preseteado = False  # Era por si fijaba los valores, pero no
         self.autoLevels = True
@@ -798,18 +755,6 @@ class ScanWidget(QtGui.QFrame):
         self.autoLevelscheck.clicked.connect(self.autoLevelset)
         self.autoLevelscheck.setToolTip('Switch between automatic \
                                         colorbar normalization, or manually')
-
-    # Shutters buttons
-#        self.shutter0button = QtGui.QCheckBox('shutter Red')
-#        self.shutter0button.clicked.connect(self.shutter0)
-#        self.shutter1button = QtGui.QCheckBox('shutter STED')
-#        self.shutter1button.clicked.connect(self.shutter1)
-#        self.shutter2button = QtGui.QCheckBox('shutter Yellow')
-#        self.shutter2button.clicked.connect(self.shutter2)
-#
-#        self.shutter0button.setToolTip('Open/close Red Shutter')
-#        self.shutter1button.setToolTip('Open/close STED Shutter')
-#        self.shutter2button.setToolTip('Open/close Yellow Shutter')
 
     # ploting image with matplotlib (slow). if Npix>500 is very slow
         self.plotLivebutton = QtGui.QPushButton('Plot this frame')
@@ -855,7 +800,7 @@ class ScanWidget(QtGui.QFrame):
         self.selectlineROIButton.setToolTip('Make a plot with the linear\
                                             ROI intensities, for save')
 
-    # Point scan
+    # Point scan (TRAZA)
         self.PointButton = QtGui.QPushButton('TRAZA')
         self.PointButton.setCheckable(False)
         self.PointButton.clicked.connect(self.PointStart)
@@ -866,7 +811,7 @@ class ScanWidget(QtGui.QFrame):
         QtGui.QShortcut(
             QtGui.QKeySequence('Ctrl+T'), self, self.PointStart)
 
-    # Max counts
+    # Max counts TODO: (no va mas)
         self.maxcountsLabel = QtGui.QLabel('Max Counts (red|green)')
         self.maxcountsEdit = QtGui.QLabel('<strong> 0|0')
         newfont = QtGui.QFont("Times", 14, QtGui.QFont.Bold)
@@ -923,7 +868,7 @@ class ScanWidget(QtGui.QFrame):
         self.actualizar = QtGui.QLineEdit('0.5')
 
 #        self.scanMode.activated.connect(self.SlalomMode)
-
+# TODO: Borrar ROI y presets
         self.presetsMode.activated.connect(self.PreparePresets)
 
     # Defino el tipo de laser que quiero para imprimir
@@ -1106,7 +1051,7 @@ class ScanWidget(QtGui.QFrame):
         self.zDown2Button.pressed.connect(
                        lambda: self.zMoveDown(10))
 
-        tamaño = 30
+        tamaño = 40
         self.xLabel.setFixedWidth(tamaño)
         self.yLabel.setFixedWidth(tamaño)
         self.zLabel.setFixedWidth(tamaño)
@@ -1321,11 +1266,11 @@ class ScanWidget(QtGui.QFrame):
             tick.hide()
         imageWidget.addItem(self.hist, row=1, col=2)
 
-#        self.viewtimer = QtCore.QTimer()
-#        self.viewtimer.timeout.connect(self.APDupdateView)
-
         self.PDtimer = QtCore.QTimer()
         self.PDtimer.timeout.connect(self.PDupdate)
+
+#        self.viewtimer = QtCore.QTimer()
+#        self.viewtimer.timeout.connect(self.APDupdateView)
     # NO USO MAS ESTOS TIMERS
 #        self.steptimer = QtCore.QTimer()
 #        self.steptimer.timeout.connect(self.stepScan)
@@ -1557,21 +1502,22 @@ class ScanWidget(QtGui.QFrame):
         but only start when the trigger is on """
 #        self.x_init_pos = pi_device.qPOS()['A']
 #        self.y_init_pos = pi_device.qPOS()['B']
-        
+
         pi_device.TWC()  # Clear all triggers options
 
 #        pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
         #                         points 1 from out 1,2 & 3 
-        pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
+        pi_device.TWS([1,2,3],[1,1,1],[True,True,True])  # config a "High" signal (1) in /
         print("Npoints", self.Npoints)
 #        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
         pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
         pi_device.CTO(2,3,4)  # The digital output line 2 is set to "Generator Trigger" mode.
         pi_device.CTO(3,3,4)  # The digital output line 3 is set to "Generator Trigger" mode.
-#        pi_device.CTO(1,4,5000)  # Trigger delay
+#        pi_device.CTO(1,4,5000)  # Trigger delay no anda
         pi_device.CTO(1,2,1)
         pi_device.CTO(2,2,1)  # connect the output 2 to the axix 1
         pi_device.CTO(3,2,1)  # out 3, param 2, valor 1
+        #PERO NO ANDA!!!! en el modelo nuestro (507)
 #TODO: poner bien las cosas del trigger necesarias si las hay
 
         self.PDtask.start()  # empieza despues, con el trigger.
@@ -1592,17 +1538,17 @@ class ScanWidget(QtGui.QFrame):
     def PDupdate(self):
 
         color = self.scan_laser.currentText()  # aca usa el PD del color correcto
-        tiic = time.time()
+        tiic = ptime.time()
         Npoints = self.Npoints  # int((self.numberofPixels + (self.Nspeed*2))*2)
         Nmedio = int(Npoints/2)
 
-        tic = time.time()
+        tic = ptime.time()
         pi_device.WGO(1, True)
         l=0
         self.PD = self.PDtask.read(self.Npoints)  # get all points.fw and bw. Need to erase the acelerated zones
         print("estoy entrando al whiuke",l)
         print (pi_device.IsGeneratorRunning())
-        while any(pi_device.IsGeneratorRunning().values()):    
+        while any(pi_device.IsGeneratorRunning().values()):
             print (pi_device.IsGeneratorRunning())
             print ('=========')
             if not self.liveviewButton.isChecked():
@@ -1701,11 +1647,11 @@ class ScanWidget(QtGui.QFrame):
 
         WTRtime = np.ceil(((self.pixelTime)) / (servo_time))
     # 0.00040(s)*WTRtime*Npoints = (self.pixelTime(s))*Npoints (tiempo rampa)
-        self.sampleRate_posta = WTRtime*servo_time
+        self.sampleRate_posta = 1/(WTRtime*servo_time)
         print(WTRtime, "samplerate", self.sampleRate, self.sampleRate_posta)
         pi_device.WTR(1, WTRtime, 0)
         pi_device.WTR(2, 1, 0)
-        nciclos=1
+        nciclos = 1
         pi_device.WGC(1, nciclos)
         pi_device.WGC(2, nciclos)
         pi_device.WOS(1,0)  # aditional offset 0
@@ -1722,11 +1668,11 @@ class ScanWidget(QtGui.QFrame):
 
         self.amplitudy = self.scanRange/self.numberofPixels
 
-#     Recien caigo que no necesito una rampa en y
-        amplitudy = self.scanRange/self.numberofPixels
-#       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
-        pi_device.WAV_LIN(2, 1, self.numberofPixels, "X",
-                           Nspeed, amplitudy, 0, Npoints)
+##     Recien caigo que no necesito una rampa en y
+#        amplitudy = self.scanRange/self.numberofPixels
+##       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
+#        pi_device.WAV_LIN(2, 1, self.numberofPixels, "X",
+#                           Nspeed, amplitudy, 0, Npoints)
 
         self.Npoints = Npoints  # I need these later
 #        self.amplitudy= amplitudy
@@ -1772,7 +1718,7 @@ class ScanWidget(QtGui.QFrame):
         @triggerchannelname : es el nombre del canal por el cual espera el trigger\
         siempre tendria que ser PFI9 o 0 si no quiero trigger."""
 #            self.PMTon = True
-        self.PDtask = nidaqmx.Task('PDtask')
+        self.PDtask = nidaqmx.Task('PDtask nombre')
         for n in range(len(PDchans)):
             self.PDtask.ai_channels.add_ai_voltage_chan(
                     physical_channel='Dev1/ai{}'.format(PDchans[n]),
@@ -1792,7 +1738,6 @@ class ScanWidget(QtGui.QFrame):
 # %%---- done
     def done(self):
         """ stop and close all the channels"""
-
         try:
             self.PDtask.stop()  # PDs
             self.PDtask.close()
@@ -1800,8 +1745,6 @@ class ScanWidget(QtGui.QFrame):
 
         self.channelramp = False
         self.channelsteps = False
-
-        self.APDson = False
 
 
 # %%--- Step Cosas --------------
