@@ -36,7 +36,7 @@ detectModes = ['PD']
 scanModes = ['ramp scan', 'step scan']
 PDchans = [0,1,2]  # elegir aca las salidas del PD de cada color
 shutters = ['532 (verde)', '640 (rojo)', '405 (azul)', '808(IR)']  # salidas 9,10,11,??
-shutterschan = [9, 10, 11, 13]  # las salidas digitales de cada shutter
+shutterschan = [9, 10, 11, 12]  # las salidas digitales de cada shutter
 # TODO: puse la salida 13 es la del nuevo shutter del 808. puede ser otra.
 
 apdrate = 10**5  # TODO: ver velocidad del PD 
@@ -67,20 +67,21 @@ servo_time = 0.000040  # seconds  # tiempo del servo: 40­µs. lo dice qGWD()
 
 # %% Main Window
 class MainWindow(QtGui.QMainWindow):
-#TODO: Cartel para preguntar si estas seguro que queres salir
-#    def closeEvent(self, event):
-#        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
-#                                           QtGui.QMessageBox.No |
-#                                           QtGui.QMessageBox.Yes)
-#        if reply == QtGui.QMessageBox.Yes:
-#            print("YES")
-#            event.accept()
-#            pi_device.CloseConnection()
-#            self.close()
-#            self.form_widget.liveviewStop()
-#        else:
-#            event.ignore()
-#            print("NOOOO")
+#TOsDO: Cartel para preguntar si estas seguro que queres salir
+    def closeEvent(self, event):
+        reply = QtGui.QMessageBox.question(self, 'Quit', 'Are u Sure to Quit?',
+                                           QtGui.QMessageBox.No |
+                                           QtGui.QMessageBox.Yes)
+        if reply == QtGui.QMessageBox.Yes:
+            print("YES")
+            event.accept()
+            self.close()
+            self.form_widget.liveviewStop()
+            pi_device.CloseConnection()
+
+        else:
+            event.ignore()
+            print("NOOOO")
 
     def newCall(self):
         print('New')
@@ -301,6 +302,10 @@ class ScanWidget(QtGui.QFrame):
         self.lock_focus_action = QtGui.QAction(self)
         QtGui.QShortcut(
             QtGui.QKeySequence('ctrl+f'), self, self.focus_lock_focus_rampas)
+
+        self.lock_focus_action = QtGui.QAction(self)
+        QtGui.QShortcut(
+            QtGui.QKeySequence('ctrl+t'), self, self.PointStart)
 #TODO: preguntar por Shorcuts copados
 
     # Cosas para la rutina de imprimir. Grid
@@ -453,8 +458,11 @@ class ScanWidget(QtGui.QFrame):
     # Go to maximun
         self.focus_gotomax_button = QtGui.QPushButton('go to maximun')
         self.focus_gotomax_button.setCheckable(False)
+        self.focus_gotomax_button.clicked.connect(self.paramChangedInitialize)
+
         self.focus_gotomax_button.clicked.connect(self.focus_go_to_maximun)
         self.focus_gotomax_button.setToolTip('guarda el patron en el z actual')
+
 
     # En otra grid poner las cosas del foco
         self.grid_focus = QtGui.QWidget()
@@ -496,7 +504,9 @@ class ScanWidget(QtGui.QFrame):
         grid_shift_layout.addWidget(self.shiftyEdit,   6, 0)
 
     # separo tambien los shutters y flipper
-        self.shuttersignal = [False, False, False]
+#        self.shuttersignal = [False]*len(shutters)
+        self.shuttersignal = [True]*len(shutters)
+
     # Shutters buttons
         self.shutter0button = QtGui.QCheckBox('shutter Green')
         self.shutter0button.clicked.connect(self.shutter0)
@@ -523,7 +533,7 @@ class ScanWidget(QtGui.QFrame):
         self.shutter3button.setToolTip('Open/close IR 808 Shutter')
 
         self.power_check = QtGui.QCheckBox('Potencia')
-#        self.power_check.setChecked(False)
+#        self.power_check.setChecked(False)  # TODO: NO esta conectado a nada!
         self.power_check.clicked.connect(self.power_change)
         self.power_check.setToolTip('Picado es baja, no picado es alta')
         self.power_change()
@@ -811,7 +821,7 @@ class ScanWidget(QtGui.QFrame):
         self.detectMode = QtGui.QComboBox()
 #        self.detectModes = ['APD red', ...] ahora esta al principio
         self.detectMode.addItems(detectModes)
-        self.detectMode.setCurrentIndex(3)
+#        self.detectMode.setCurrentIndex(3)
         self.detectMode.setToolTip('Select the detect instrument (APD or PMT)')
 
     # ROI buttons
@@ -930,7 +940,7 @@ class ScanWidget(QtGui.QFrame):
     # Defino el tipo de laser que quiero para imprimir
         self.traza_laser = QtGui.QComboBox()
         self.traza_laser.addItems(shutters)
-        self.traza_laser.setCurrentIndex(0)
+        self.traza_laser.setCurrentIndex(2)
         self.traza_laser.setToolTip('Elijo el shuter para las trazas')
         self.traza_laser.setFixedWidth(80)
         self.traza_laser.activated.connect(
@@ -1471,8 +1481,6 @@ class ScanWidget(QtGui.QFrame):
             # en el caso step no hay frecuencias
             # print("Step time, very slow")
             self.Steps()
-
-
         else:# ramp y slalom
             self.sampleRate = np.round(1 / self.pixelTime, 9)
             self.Ramps()
@@ -1520,12 +1528,17 @@ class ScanWidget(QtGui.QFrame):
             self.startingRamps()
 
     def liveviewStop(self):
+        print("stopstopstopstopstopstop---------------------")
         self.closeAllShutters()
+        self.PDtimer.stop()
+        pi_device.WGO([1,2,3], [False,False,False])
+#        pi_device.StopAll()
         self.MovetoStart()
+        self.dy = 0
         self.liveviewButton.setChecked(False)
 #        self.viewtimer.stop()
 #        self.steptimer.stop()
-        self.PDtimer.stop()
+
         self.done()
         self.grid_scan_control = True  # es parte del flujo de grid_start
         print("-----------------------------------------------------------")
@@ -1542,15 +1555,15 @@ class ScanWidget(QtGui.QFrame):
     def startingRamps(self):
         """ Send the signals to the NiDaq,
         but only start when the trigger is on """
-        self.x_init_pos = pi_device.qPOS()['A']
-        self.y_init_pos = pi_device.qPOS()['B']
+#        self.x_init_pos = pi_device.qPOS()['A']
+#        self.y_init_pos = pi_device.qPOS()['B']
         
         pi_device.TWC()  # Clear all triggers options
 
 #        pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
         #                         points 1 from out 1,2 & 3 
-        pi_device.TWS([1,1,1],[10,30,50],[1,1,1])  # config a "High" signal (1) in /
-        print(self.Npoints)
+        pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
+        print("Npoints", self.Npoints)
 #        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
         pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
         pi_device.CTO(2,3,4)  # The digital output line 2 is set to "Generator Trigger" mode.
@@ -1566,8 +1579,8 @@ class ScanWidget(QtGui.QFrame):
 #        print("ya arranca...")
 
         self.scan_openshutter()  # abre el shutter elegido
-
-        self.PDtimer.start(160)  # imput in ms
+#        print(self.linetime)
+        self.PDtimer.start(200)  # imput in ms
 
 #        self.PDupdate()  # necesito timer
 #TODO : quizas tambien triggerear el shutter
@@ -1580,22 +1593,31 @@ class ScanWidget(QtGui.QFrame):
 
         color = self.scan_laser.currentText()  # aca usa el PD del color correcto
         tiic = time.time()
-        Npoints = int((self.numberofPixels + (self.Nspeed*2))*2)
+        Npoints = self.Npoints  # int((self.numberofPixels + (self.Nspeed*2))*2)
         Nmedio = int(Npoints/2)
 
         tic = time.time()
         pi_device.WGO(1, True)
+        l=0
         self.PD = self.PDtask.read(self.Npoints)  # get all points.fw and bw. Need to erase the acelerated zones
-        while any(pi_device.IsGeneratorRunning().values()):
-            time.sleep(0.01)  # espera a que termine
+        print("estoy entrando al whiuke",l)
+        print (pi_device.IsGeneratorRunning())
+        while any(pi_device.IsGeneratorRunning().values()):    
+            print (pi_device.IsGeneratorRunning())
+            print ('=========')
+            if not self.liveviewButton.isChecked():
+                break
+#            time.sleep(0.1)  # espera a que termine
+            l=1 
+        print("estoy saliendo al while",l)
         pi_device.WGO(1, False)
-        pi_device.MOV('A', self.x_init_pos)
+#        pi_device.MOV('A', self.initialPosition[0])
 
-        imgida = self.PD[color][int(self.Nspeed):int(Nmedio-self.Nspeed)]
+        imgida = self.PD[PD_channels[color]][int(self.Nspeed):int(Nmedio-self.Nspeed)]
         self.image[:, -1-self.dy] = imgida
 #        self.img.setImage(self.image, autoLevels=self.autoLevels)
 
-        imgvuelta = self.PD[color][int(Nmedio+self.Nspeed):-int(self.Nspeed)]
+        imgvuelta = self.PD[PD_channels[color]][int(Nmedio+self.Nspeed):-int(self.Nspeed)]
         self.image2[:, -1-self.dy] = imgvuelta
 
         if self.graphcheck.isChecked():
@@ -1603,7 +1625,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.img.setImage(self.image, autoLevels=self.autoLevels)
 
-        self.MaxPMT()
+#        self.MaxPMT()
     # No necesito mandar una rampa en y
 #            pi_device.WOS(2, self.amplitudy)
 #            pi_device.WGO(2, True)
@@ -1611,8 +1633,7 @@ class ScanWidget(QtGui.QFrame):
 #                time.sleep(0.01)
 #            pi_device.WGO(2, False)
 
-        amplitudy = self.scanRange/self.numberofPixels
-        pi_device.MOV('B', self.y_init_pos+(amplitudy*self.dy))
+        pi_device.MOV('B', self.initialPosition[1]+(self.amplitudy*self.dy))
         while not all(pi_device.qONT().values()):
             # es por si el MOV tarda mucho
             time.sleep(0.01)
@@ -1625,7 +1646,7 @@ class ScanWidget(QtGui.QFrame):
         else:
             self.closeShutter(self.scan_shutterabierto)
             self.PDtimer.stop()
-            pi_device.MOV('B', self.y_init_pos)
+            pi_device.MOV('B', self.initialPosition[1])
             print( "tiempo total", time.time()-tiic)
     #        self.closeAllShutters()
             if self.VideoCheck.isChecked():
@@ -1633,6 +1654,7 @@ class ScanWidget(QtGui.QFrame):
             print(ptime.time()-self.tic, "Tiempo imagen completa.")
             self.PDtask.stop()
             self.MovetoStart()
+            self.dy = 0
             if self.Continouscheck.isChecked():
                 self.liveviewStart()
             else:
@@ -1679,27 +1701,32 @@ class ScanWidget(QtGui.QFrame):
 
         WTRtime = np.ceil(((self.pixelTime)) / (servo_time))
     # 0.00040(s)*WTRtime*Npoints = (self.pixelTime(s))*Npoints (tiempo rampa)
-        print(WTRtime, self.sampleRate)
         self.sampleRate_posta = WTRtime*servo_time
+        print(WTRtime, "samplerate", self.sampleRate, self.sampleRate_posta)
         pi_device.WTR(1, WTRtime, 0)
         pi_device.WTR(2, 1, 0)
         nciclos=1
         pi_device.WGC(1, nciclos)
         pi_device.WGC(2, nciclos)
+        pi_device.WOS(1,0)  # aditional offset 0
+        pi_device.WOS(2,0)  # aditional offset 0
+        pi_device.WOS(3,0)  # aditional offset 0
 
-        Nspeed = np.ceil(int(self.numberofPixels / 20))
+        Nspeed = np.ceil(int(self.numberofPixels / 10))
         Npoints = int((self.numberofPixels + (Nspeed*2))*2)
         center = int(Npoints /2)
         amplitudx = self.scanRange
 #       tabla, init, Nrampa, appen, center, speed,amplit, offset, lenght
-        pi_device.WAV_RAMP(1, 1, 2*self.numberofPixels, "X", center,
+        pi_device.WAV_RAMP(1, 1, Npoints, "X", center,
                            Nspeed, amplitudx, 0, Npoints)
 
-    # Recien caigo que no necesito una rampa en y
-#        amplitudy = self.scanRange/self.numberofPixels
-##       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
-#        pi_device.WAV_LIN(2, 1, self.numberofPixels, "X",
-#                           Nspeed, amplitudy, 0, Npoints)
+        self.amplitudy = self.scanRange/self.numberofPixels
+
+#     Recien caigo que no necesito una rampa en y
+        amplitudy = self.scanRange/self.numberofPixels
+#       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
+        pi_device.WAV_LIN(2, 1, self.numberofPixels, "X",
+                           Nspeed, amplitudy, 0, Npoints)
 
         self.Npoints = Npoints  # I need these later
 #        self.amplitudy= amplitudy
@@ -2039,35 +2066,35 @@ class ScanWidget(QtGui.QFrame):
     def openShutter(self, p):
         for i in range(len(shutters)):
             if p == shutters[i]:
-                self.shuttersignal[i] = True
+                self.shuttersignal[i] = False
         self.shuttertask.write(self.shuttersignal, auto_start=True)
-        # print(self.shuttersignal)
+#        print(self.shuttersignal)
         self.checkShutters()
         print("open", p)
 
     def closeShutter(self, p):
         for i in range(len(shutters)):
             if p == shutters[i]:
-                self.shuttersignal[i] = False
+                self.shuttersignal[i] = True
         self.shuttertask.write(self.shuttersignal, auto_start=True)
-        # print(self.shuttersignal)
+#        print(self.shuttersignal)
         self.checkShutters()
         print("close", p)
 
     def checkShutters(self):
-        if self.shuttersignal[0]:
+        if not self.shuttersignal[0]:
             self.shutter0button.setChecked(True)
         else:
             self.shutter0button.setChecked(False)
-        if self.shuttersignal[1]:
+        if not self.shuttersignal[1]:
             self.shutter1button.setChecked(True)
         else:
             self.shutter1button.setChecked(False)
-        if self.shuttersignal[2]:
+        if not  self.shuttersignal[2]:
             self.shutter2button.setChecked(True)
         else:
             self.shutter2button.setChecked(False)
-        if self.shuttersignal[3]:
+        if not  self.shuttersignal[3]:
             self.shutter3button.setChecked(True)
         else:
             self.shutter3button.setChecked(False)
@@ -2086,7 +2113,7 @@ class ScanWidget(QtGui.QFrame):
 
     def closeAllShutters(self):
         for i in range(len(shutters)):
-            self.shuttersignal[i] = False
+            self.shuttersignal[i] = True
         self.shuttertask.write(self.shuttersignal, auto_start=True)
         self.checkShutters()
         print("cierra shutters", self.shuttersignal)
@@ -2555,7 +2582,7 @@ class ScanWidget(QtGui.QFrame):
             ax.grid(True)
             plt.show()
         except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#            print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
             print("^ No hay nada cargado ^")
 
@@ -2733,22 +2760,31 @@ class ScanWidget(QtGui.QFrame):
         self.zLabel.setText("{}".format(np.around(float(dist), 2)))
 
     def focus_go_to_maximun(self):
+        
         """ barre en z mientras mira el PD, y va al maximo de intensidad"""
-        Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
-        z_start = float(self.zLabel.text()) - (self.scanRange/2)
-        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
+        Npasos = self.numberofPixels  # int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
+        z_start = float(self.zLabel.text()) - 30  # (self.scanRange/2)
+        z_end = float(self.zLabel.text()) + 30  # (self.scanRange/2)  # initialPosition[2]
+        if z_start < 0:
+            z_start = 0
+        if z_end > 200:
+            z_end= 200
         z_vector = np.linspace(z_start, z_end, Npasos)
 
-        z_profile = (self.focus__rampas(z_vector))
-        z_max = np.max(self.focus__rampas(z_vector))
+        z_profile_ida, z_profile_vuelta = (self.focus__rampas(z_vector))
+        z_max = np.max(z_profile_vuelta)
 
 #        z_max = (np.max(self.z_profile))
-
+        algomax = np.zeros(len(z_profile_vuelta))
+        algomax[np.where(z_profile_vuelta == z_max)[0][0]] = z_max
 #        print(self.z_profile, np.where(self.z_profile == z_max)[0][0], z_max)
 #        print("\n z vector",self.z_vector)
         print("paso go to maximun")
-        self.move_z(self.z_vector[np.where(z_profile == z_max)[0][0]])
-
+        self.move_z(z_vector[np.where(z_profile_vuelta == z_max)[0][0]])
+        plt.plot(z_vector, z_profile_ida)
+        plt.plot(z_vector, z_profile_vuelta, 'r')
+        plt.plot(z_vector, algomax, '.m')
+        plt.show()
     def focus_openshutter(self):
         """ abre el shutter con el que se hace foco"""
         for i in range(len(shutters)):
@@ -2834,7 +2870,8 @@ class ScanWidget(QtGui.QFrame):
         tiempo_lock_focus_toc = ptime.time()
         print("tiempo_lock_focus", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
         print("¡Foco lockeado!. (Tengo el z_profile)")
-
+        plt.plot(self.z_profile)
+        plt.show()
 
     def focus__rampas(self, z_vector):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
@@ -2843,33 +2880,38 @@ class ScanWidget(QtGui.QFrame):
         Npasos = len(z_vector)
         z_profiles = np.zeros((Npasos, len(PDchans)))  # ver si no es fila
 
-        WTRtime = np.ceil(((self.pixelTime)) / (servo_time))
+        WTRtime = np.ceil(((self.pixelTime)) / (servo_time))#(self.pixelTime)) / (servo_time))
     # 0.00040(s)*WTRtime*Npoints = (self.pixelTime(s))*Npoints (tiempo rampa)
-        print(WTRtime)    
-        sampleRate_posta = WTRtime*servo_time
-
-        pi_device.WTR(1, WTRtime, 0)
-        pi_device.WTR(2, 1, 0)
+        print("WTRtime", WTRtime)    
+        sampleRate_posta = 1/(WTRtime*servo_time)
+        print("samplesrate",self.sampleRate, sampleRate_posta)
+        pi_device.WTR(3, WTRtime, 0)
+        pi_device.WTR(1, 1, 0)
         nciclos=1
+        pi_device.WGC(3, nciclos)
         pi_device.WGC(1, nciclos)
-        pi_device.WGC(2, nciclos)
 
-        Nspeed = np.ceil(int(Npasos / 20))
-        Npoints = int(Npasos + (Nspeed*2))
-        amplitudz = self.scanRange/self.numberofPixels
-#       tabla, init, Nrampa, appen, speed, amplit, offset, lenght
-        pi_device.WAV_LIN(3, 1, Npasos, "X",
+        Nspeed = np.ceil(int(Npasos / 10))
+        Npoints = int((Npasos + (Nspeed*2))*2)
+        center = int(Npoints/2)
+        amplitudz = z_vector[-1]  # self.scanRange  # /self.numberofPixels
+
+#       tabla, init, Nrampa, appen, center speed, amplit, offset, lenght
+        pi_device.WAV_RAMP(3, 1, Npoints, "X", center,
                            Nspeed, amplitudz, 0, Npoints)
+
+
 
         pi_device.TWC()  # Clear all triggers options
 
         pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
         #                         points 1 from out 1,2 & 3 
-#        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
+        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
         pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
         pi_device.CTO(2,3,4)  # The digital output line 2 is set to "Generator Trigger" mode.
         pi_device.CTO(3,3,4)  # The digital output line 3 is set to "Generator Trigger" mode.
-        triggername = "PFI9"
+#        pi_device.CTO(3,2,1)  # no sirve
+        triggername = "PFI7"
 
 #        self.focus_openshutter()
         self.move_z((z_vector[0]))
@@ -2880,20 +2922,19 @@ class ScanWidget(QtGui.QFrame):
 #        self.focus_openshutter()
         color = (self.focus_laser.currentText())
 #        self.channel_z(self.sampleRate, Npasos)  # ztask
-        self.channel_PD_todos(sampleRate_posta, Npasos, triggername)  # PDtask
+        self.channel_PD_todos(self.sampleRate, Npoints, triggername)  # PDtask
 #        self.channel_triger(self.ztask, self.PDtask)
 
 #        self.ztask.write((z_vector / convFactors['z']),
 #                                                      auto_start = False)
-
-        self.focus_openshutter()  
+        self.PDtask.start()
+        self.focus_openshutter()
         pi_device.WGO(3, True)
-        z_profiles = self.PDtask.read(Npasos)  # get all points. Need to erase the acelerated zones
+        z_profiles = self.PDtask.read(Npoints)  # get all points. Need to erase the acelerated zones
         while any(pi_device.IsGeneratorRunning().values()):
             time.sleep(0.01)  # espera a que termine
         pi_device.WGO(3, False)
         self.closeShutter(self.focus_shutterabierto)
-
 
 #        self.start_move_and_read(self.ztask,
 #                                 self.PDtask,
@@ -2901,7 +2942,7 @@ class ScanWidget(QtGui.QFrame):
 #        self.PDtimer_focus.start(10)  # no necesito usar un timer
 #        z_profiles = self.PDtask.read(Npasos)
 
-        self.closeShutter(color)
+#        self.closeShutter(color)
 #        self.channels_close()
         self.PDtask.stop()
         self.PDtask.close()
@@ -2910,9 +2951,11 @@ class ScanWidget(QtGui.QFrame):
         tiempo_lock_focus_toc = ptime.time()
         print("tiempo_rampas", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
         print("rampas pasando")
-        return z_profiles[PD_channels[color]][Nspeed:-Nspeed]
+        imzida = z_profiles[PD_channels[color]][int(Nspeed):int(center-Nspeed)]
+        imzvuelta = z_profiles[PD_channels[color]][int(center+Nspeed):-int(Nspeed)]
+        return imzida, np.flip(imzvuelta)
 
-
+        
     def focus_autocorr_rampas(self):
         """ correlaciona la medicion de intensidad moviendo z,
         respecto del que se lockeo con loc focus RAMPAS"""
@@ -3158,11 +3201,11 @@ class MyPopup_traza(QtGui.QWidget):
             self.pointtask.close()
         except:  # pass
             print("pointtasktask no estaba abierto")
-        try:
-            self.pointtask2.stop()
-            self.pointtask2.close()
-        except:  # pass
-            print("pointtasktask2 no estaba abierto")
+#        try:
+#            self.pointtask2.stop()
+#            self.pointtask2.close()
+#        except:  # pass
+#            print("pointtasktask2 no estaba abierto")
 
     def traza_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""

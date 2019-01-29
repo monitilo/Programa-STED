@@ -397,6 +397,7 @@ with nidaqmx.Task("digital") as task:
 #        plt.plot(dataP)
         plt.plot(anda,'r')
     #%%
+tic = time.time()
 with nidaqmx.Task("digital") as task:
     task.di_channels.add_di_chan(
                 lines='Dev1/port0/line0:31',
@@ -409,6 +410,7 @@ with nidaqmx.Task("digital") as task:
     data = task.read(number_of_samples_per_channel=100*10**3) 
     task.wait_until_done()
     t = 0
+    a,b = 0,0
     for i in range(len(data)):
         if not i == 10:  # por alguna razon la salida 10 esta siempre en 1
             for j in range(len(data[0])):
