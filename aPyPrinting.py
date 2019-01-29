@@ -1580,12 +1580,12 @@ class ScanWidget(QtGui.QFrame):
 
         color = self.scan_laser.currentText()  # aca usa el PD del color correcto
         tiic = time.time()
-        Npoints = int(self.numberofPixels + (self.Nspeed*4))
+        Npoints = int((self.numberofPixels + (self.Nspeed*2))*2)
         Nmedio = int(Npoints/2)
 
         tic = time.time()
         pi_device.WGO(1, True)
-        self.PD = self.PDtask.read(self.Npoints)  # get all points. Need to erase the acelerated zones
+        self.PD = self.PDtask.read(self.Npoints)  # get all points.fw and bw. Need to erase the acelerated zones
         while any(pi_device.IsGeneratorRunning().values()):
             time.sleep(0.01)  # espera a que termine
         pi_device.WGO(1, False)
@@ -1688,11 +1688,11 @@ class ScanWidget(QtGui.QFrame):
         pi_device.WGC(2, nciclos)
 
         Nspeed = np.ceil(int(self.numberofPixels / 20))
-        Npoints = int(self.numberofPixels + (Nspeed*4))
+        Npoints = int((self.numberofPixels + (Nspeed*2))*2)
         center = int(Npoints /2)
         amplitudx = self.scanRange
 #       tabla, init, Nrampa, appen, center, speed,amplit, offset, lenght
-        pi_device.WAV_RAMP(1, 1, self.numberofPixels, "X", center,
+        pi_device.WAV_RAMP(1, 1, 2*self.numberofPixels, "X", center,
                            Nspeed, amplitudx, 0, Npoints)
 
     # Recien caigo que no necesito una rampa en y
