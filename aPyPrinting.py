@@ -1396,7 +1396,6 @@ class ScanWidget(QtGui.QFrame):
         pi_device.WGC(2, nciclos)
         pi_device.WOS(1,0)  # aditional offset 0
         pi_device.WOS(2,0)  # aditional offset 0
-        pi_device.WOS(3,0)  # aditional offset 0
 
         Nspeed = np.ceil(int(self.numberofPixels / 10))
         Npoints = int((self.numberofPixels + (Nspeed*2))*2)
@@ -2142,7 +2141,6 @@ class ScanWidget(QtGui.QFrame):
     def grid_detect(self):
         """ Cuando detecta un evento de impresion y la escanea (o no), entra aca.
         Esta funcion define el paso siguiente."""
-        self.closeShutter(self.grid_shutterabierto)
 
         Nmax = int(self.particulasEdit.text())-1  # self.Nmax  cantidad total de particulas
 
@@ -2169,8 +2167,6 @@ class ScanWidget(QtGui.QFrame):
         self.liveviewButton.setChecked(True)
         self.liveview()
 
-llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
-
     def move_z(self, dist):
         """moves the position along the Z axis a distance dist."""
 
@@ -2179,36 +2175,28 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
         pi_device.MOV('C', dist)
         while not all(pi_device.qONT('C').values()):
             time.sleep(0.01)
-#        print("se mueve en", np.round(ptime.time() - toc, 4), "segs")
+
         # update position text
         self.zLabel.setText("{}".format(np.around(float(dist), 2)))
 
     def focus_go_to_maximun(self):
-        
+
         """ barre en z mientras mira el PD, y va al maximo de intensidad"""
-        Npasos = self.numberofPixels  # int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
-        z_start = float(self.zLabel.text()) - 30  # (self.scanRange/2)
-        z_end = float(self.zLabel.text()) + 30  # (self.scanRange/2)  # initialPosition[2]
-        if z_start < 0:
-            z_start = 0
-        if z_end > 200:
-            z_end= 200
-        z_vector = np.linspace(z_start, z_end, Npasos)
+        z_vector = self.z_vector_create()
 
         z_profile_ida, z_profile_vuelta = (self.focus__rampas(z_vector))
         z_max = np.max(z_profile_vuelta)
 
-#        z_max = (np.max(self.z_profile))
         algomax = np.zeros(len(z_profile_vuelta))
         algomax[np.where(z_profile_vuelta == z_max)[0][0]] = z_max
-#        print(self.z_profile, np.where(self.z_profile == z_max)[0][0], z_max)
-#        print("\n z vector",self.z_vector)
+
         print("paso go to maximun")
         self.move_z(z_vector[np.where(z_profile_vuelta == z_max)[0][0]])
         plt.plot(z_vector, z_profile_ida)
         plt.plot(z_vector, z_profile_vuelta, 'r')
         plt.plot(z_vector, algomax, '.m')
         plt.show()
+
     def focus_openshutter(self):
         """ abre el shutter con el que se hace foco"""
         for i in range(len(shutters)):
@@ -2216,72 +2204,23 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
                 self.openShutter(shutters[i])
                 self.focus_shutterabierto = shutters[i]
 
-# no va mas!
-#    def read_PD(self, color):
-#        """ Read de photodiode of the selecter 'color' """
-##        channel = {shutters[0]: 0, shutters[1]: 1, shutters[2]: 2}
-##        time.sleep(0.1)
-#        print("abre canal pmt")  # , channel)
-#        with nidaqmx.Task("PDtask") as PDtask:
-##            self.PDtask = nidaqmx.Task('PDtask')
-#            PDtask.ai_channels.add_ai_voltage_chan(
-#                physical_channel='Dev1/ai{}'.format(PD_channels[color]),
-#                name_to_assign_to_channel='chan_PD')
-#            z_profile = PDtask.read()
-##        read = np.random.rand(10)[0]*50
-#        return z_profile
-
-#    def focus_lock_focus(self):
-#        """ guarda el patron de intensidades, barriendo z en el foco actual"""
-#        self.Npasos = int(int(self.numberofPixelsEdit.text())/10)  # algun numero de pasos a definir (50 dice en algun lado)
-#        z_start = float(self.zLabel.text()) - (self.scanRange/2)
-#        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
-#        print("zstart=", z_start,"z end", z_end)
-#        self.z_vector = np.linspace(z_start, z_end, self.Npasos)
-#        self.z_profile = np.zeros((self.Npasos))
-#        self.focus_openshutter()
-#        for i in range(self.Npasos):
-#            self.move_z(self.z_vector[i])
-#            self.z_profile[i] = self.read_PD(self.focus_shutterabierto)
-#        # TO: hacerlo con una rampa; averiguar cuanto tarda labview
-#        self.closeShutter(self.focus_shutterabierto)
-#        print("tengo el z_profile")
-#        self.locked_focus = True
-#        self.move_z(float(self.zLabel.text()))
-#        self.focus_lock_button.setStyleSheet(
-#                "QPushButton { background-color: ; }"
-#                "QPushButton:pressed { background-color: blue; }")
+    def z_vector_create(self):
+        Npasos = self.numberofPixels  # El mismo Npasos de gotomax # TODO: algun numero de pasos a definir (50 dice en algun lado)
+        z_start = float(self.zLabel.text()) - 30  # algun rango a barrer
+        z_end = float(self.zLabel.text()) + 30
+        if z_start < 0:
+            z_start = 0
+        if z_end > 200:
+            z_end= 200
+        return np.linspace(z_start, z_end, Npasos)
 
     def focus_lock_focus_rampas(self):
         """ guarda el patron de intensidades, barriendo z en el foco actual"""
         tiempo_lock_focus_tic = ptime.time()
-        Npasos = int(int(self.numberofPixelsEdit.text())/10)  # TODO: algun numero de pasos a definir (50 dice en algun lado)
-        z_antes = float(self.zLabel.text())
-        z_start = float(self.zLabel.text()) - (self.scanRange/2)
-        z_end = float(self.zLabel.text()) + (self.scanRange/2)  # initialPosition[2]
-        self.z_vector = np.linspace(z_start, z_end, Npasos)
-
-#        z_profiles = np.zeros((Npasos, len(PDchans)))  # ver si no es fila
-##        self.focus_openshutter()
-#        self.move_z((z_start))
-##        self.focus_openshutter()
-#        color = (self.focus_laser.currentText())
-#        self.channel_z(self.sampleRate, Npasos)
-#        self.channel_PD_todos(self.sampleRate, Npasos)
-#        self.channel_triger(self.ztask, self.PDtask)
-#
-#        self.ztask.write((self.z_vector / convFactors['z']),
-#                                                      auto_start = False)
-#
-#        self.start_move_and_read(self.ztask,
-#                                 self.PDtask,
-#                                 color)
-##        self.PDtimer_focus.start(10)  # no necesito usar un timer
-#        z_profiles = self.PDtask.read(Npasos)
+        z_antes = float(self.zLabel.text())  # guardo donde estaba
+        self.z_vector = self.z_vector_create()
 
     # TODO: averiguar que hace y/o cuanto tarda labview
-#        self.closeShutter(color)
-#        self.channels_close()
 
         self.z_profile = self.focus__rampas(self.z_vector)
 #        self.z_profile = z_profiles[PD_channels[color]]
@@ -2291,8 +2230,8 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
         self.focus_lock_button.setStyleSheet(
                 "QPushButton { background-color: ; }"
                 "QPushButton:pressed { background-color: blue; }")
-        tiempo_lock_focus_toc = ptime.time()
-        print("tiempo_lock_focus", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
+
+        print("tiempo_lock_focus", ptime.time()-tiempo_lock_focus_tic)
         print("¡Foco lockeado!. (Tengo el z_profile)")
         plt.plot(self.z_profile)
         plt.show()
@@ -2306,51 +2245,42 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
 
         WTRtime = np.ceil(((self.pixelTime)) / (servo_time))#(self.pixelTime)) / (servo_time))
     # 0.00040(s)*WTRtime*Npoints = (self.pixelTime(s))*Npoints (tiempo rampa)
-        print("WTRtime", WTRtime)    
+        print("WTRtime", WTRtime)
         sampleRate_posta = 1/(WTRtime*servo_time)
         print("samplesrate",self.sampleRate, sampleRate_posta)
+
         pi_device.WTR(3, WTRtime, 0)
-        pi_device.WTR(1, 1, 0)
         nciclos=1
         pi_device.WGC(3, nciclos)
-        pi_device.WGC(1, nciclos)
+
+        pi_device.WOS(3,0)  # aditional offset = 0
 
         Nspeed = np.ceil(int(Npasos / 10))
         Npoints = int((Npasos + (Nspeed*2))*2)
         center = int(Npoints/2)
-        amplitudz = z_vector[-1]  # self.scanRange  # /self.numberofPixels
+        amplitudz = z_vector[-1]
 
 #       tabla, init, Nrampa, appen, center speed, amplit, offset, lenght
         pi_device.WAV_RAMP(3, 1, Npoints, "X", center,
                            Nspeed, amplitudz, 0, Npoints)
 
-
-
         pi_device.TWC()  # Clear all triggers options
 
         pi_device.TWS([1,2,3],[1,1,1],[1,1,1])  # config a "High" signal (1) in /
         #                         points 1 from out 1,2 & 3 
-        pi_device.CTO(1,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
-        pi_device.CTO(1,3,4)  # The digital output line 1 is set to "Generator Trigger" mode.
-        pi_device.CTO(2,3,4)  # The digital output line 2 is set to "Generator Trigger" mode.
-        pi_device.CTO(3,3,4)  # The digital output line 3 is set to "Generator Trigger" mode.
-#        pi_device.CTO(3,2,1)  # no sirve
-        triggername = "PFI7"
+        pi_device.CTO(3,1,0.005)  # config param 1 (dist for trigger) in 0.005 µm from out 1
 
-#        self.focus_openshutter()
+        triggername = "PFI7"  # out 3. cable hasta la bornera A
+
         self.move_z((z_vector[0]))
         while not all(pi_device.qONT().values()):
-            print("no creo que entre a este while")
-            # es solo por si el MOV tarda mucho
+            # es solo por si el MOV tarda 
             time.sleep(0.01)
-#        self.focus_openshutter()
-        color = (self.focus_laser.currentText())
-#        self.channel_z(self.sampleRate, Npasos)  # ztask
-        self.channel_PD_todos(self.sampleRate, Npoints, triggername)  # PDtask
-#        self.channel_triger(self.ztask, self.PDtask)
 
-#        self.ztask.write((z_vector / convFactors['z']),
-#                                                      auto_start = False)
+        focus_laser = (self.focus_laser.currentText())
+
+        self.channel_PD_todos(self.sampleRate, Npoints, triggername)  # PDtask
+
         self.PDtask.start()
         self.focus_openshutter()
         pi_device.WGO(3, True)
@@ -2360,26 +2290,16 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
         pi_device.WGO(3, False)
         self.closeShutter(self.focus_shutterabierto)
 
-#        self.start_move_and_read(self.ztask,
-#                                 self.PDtask,
-#                                 color)
-#        self.PDtimer_focus.start(10)  # no necesito usar un timer
-#        z_profiles = self.PDtask.read(Npasos)
-
-#        self.closeShutter(color)
-#        self.channels_close()
         self.PDtask.stop()
         self.PDtask.close()
-        self.move_z((z_vector[0]))
 
-        tiempo_lock_focus_toc = ptime.time()
-        print("tiempo_rampas", tiempo_lock_focus_toc-tiempo_lock_focus_tic)
+        print("tiempo_rampas", ptime.time()-tiempo_lock_focus_tic)
         print("rampas pasando")
-        imzida = z_profiles[PD_channels[color]][int(Nspeed):int(center-Nspeed)]
-        imzvuelta = z_profiles[PD_channels[color]][int(center+Nspeed):-int(Nspeed)]
+        imzida = z_profiles[PD_channels[focus_laser]][int(Nspeed):int(center-Nspeed)]
+        imzvuelta = z_profiles[PD_channels[focus_laser]][int(center+Nspeed):-int(Nspeed)]
         return imzida, np.flip(imzvuelta)
 
-        
+
     def focus_autocorr_rampas(self):
         """ correlaciona la medicion de intensidad moviendo z,
         respecto del que se lockeo con loc focus RAMPAS"""
@@ -2388,7 +2308,8 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
 
             Npasos = len(self.z_vector)
             Ncorrelations = 6  # TODO: a definir.... 50?  # quizas no
-            new_profile = np.zeros((Ncorrelations, Npasos))
+            new_profileida = np.zeros((Ncorrelations, Npasos))
+            new_profilevuelta = np.zeros((Ncorrelations, Npasos))
             z_vector_corr = np.zeros((Ncorrelations, Npasos))
             correlations = np.zeros((Npasos))
             maxcorr = np.zeros(Ncorrelations)
@@ -2397,20 +2318,15 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
 
             for j in range(Ncorrelations):
                 z_vector_corr[j, :] = self.z_vector - (Ncorrelations/2) + j
-                new_profile[j,:] = self.focus__rampas(z_vector_corr[j,:])
-                correlations[:] = np.correlate(new_profile[j,:],
+                new_profileida[j,:], new_profilevuelta[j,:] = self.focus__rampas(z_vector_corr[j,:])
+                correlations[:] = np.correlate(new_profileida[j,:],
                                                z_profile_lock, "same")
                 maxcorr[j] = np.max(correlations)
                 meancorr[j] = np.mean(correlations)
             print(maxcorr, meancorr, "maximo y medio Corr")
             j_final = (np.where(maxcorr == np.max(maxcorr))[0][0])
-            z_max = np.max(new_profile[j_final, :])
-            donde_z_max = np.where(new_profile[j_final, :] == z_max)
-
-#        # estos plots no van. Se supone que me muestran si anda bien ¿?
-#            plt.plot(new_profile[j_final, :], 'o-')
-#            plt.show()
-            print(j_final, z_vector_corr[j_final, donde_z_max])
+            z_max = np.max(new_profileida[j_final, :])
+            donde_z_max = np.where(new_profileida[j_final, :] == z_max)
 
             self.move_z(z_vector_corr[j_final, donde_z_max])
 
@@ -2445,7 +2361,7 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
               float(self.yLabel.text()), float(self.zLabel.text()))
 
     def set_reference(self):
-#        self.read_pos()
+        """ no lee la posicion, solo copia los numeros de uno al otro"""
         print("set ref")
         self.xrefLabel.setText(str(self.xLabel.text()))
         self.yrefLabel.setText(str(self.yLabel.text()))
@@ -2489,11 +2405,6 @@ llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
 
     def PointScanStop(self):
         self.w.pointtimer.stop()
-#        self.pointtimer.stop()
-# #        self.pointtask.stop()
-# #        self.pointtask.close()
-# #        self.pointtask2.stop()
-# #        self.pointtask2.close()
         print("fin traza")
 
     def doit(self):
@@ -2532,9 +2443,7 @@ class MyPopup_traza(QtGui.QWidget):
         self.play_pause_Button.setCheckable(True)
         self.play_pause_Button.clicked.connect(self.play_pause)
         self.play_pause_Button.setToolTip('Pausa y continua la traza (F1)')
-#        self.pause_Button.setStyleSheet(
-#                "QPushButton { background-color: rgb(200, 200, 10); }"
-#                "QPushButton:pressed { background-color: blue; }")
+
     # Stop button
         self.stop_Button = QtGui.QPushButton('◘ Stop (F2)')
         self.stop_Button.setCheckable(False)
@@ -2551,8 +2460,9 @@ class MyPopup_traza(QtGui.QWidget):
                 "QPushButton:pressed { background-color: blue; }")
 
     # umbral
-#        self.umbralLabel = self.ScanWidget.umbralLabel  # QtGui.QLabel('Umbral'
-        self.umbralEdit = self.ScanWidget.umbralEdit  # QtGui.QLineEdit('10')
+
+        umbralEdit = self.ScanWidget.umbralEdit
+        self.umbral = float(umbralEdit.text())
         self.umbralEdit.setFixedWidth(40)
         self.umbralEdit.setToolTip('promedios de valores nuevo/anteriores ')
 
@@ -2560,8 +2470,6 @@ class MyPopup_traza(QtGui.QWidget):
         grid.addWidget(self.traza_Widget2,      0, 0, 1, 7)
         grid.addWidget(self.play_pause_Button,  1, 0)
         grid.addWidget(self.stop_Button,        1, 1)
-#        grid.addWidget(self.umbralLabel,        1, 3)
-#        grid.addWidget(self.umbralEdit,         1, 4)
         grid.addWidget(self.PointLabel,         1, 5)
         grid.addWidget(self.save_Button,        1, 6)
         self.setWindowTitle("Traza. (ESC lo cierra bien)")
@@ -2569,11 +2477,8 @@ class MyPopup_traza(QtGui.QWidget):
         self.PointScan()
 
         self.play_pause_Action = QtGui.QAction(self)
-#        self.play_pause_Action.setShortcut('Ctrl+L')
         QtGui.QShortcut(
             QtGui.QKeySequence('F1'), self, self.play_pause_active)
-#        self.play_pause_Action.triggered.connect(self.play_pause_active)
-#        self.play_pause_Action.setEnabled(True)
 
         self.stop_Action = QtGui.QAction(self)
         QtGui.QShortcut(
@@ -2608,8 +2513,6 @@ class MyPopup_traza(QtGui.QWidget):
             print("pause")
             self.ScanWidget.closeShutter(self.traza_shutterabierto)
             self.pointtimer.stop()
-            # self.pause_Button.setStyleSheet(
-            #        "QPushButton { background-color: red; }")
 
     def stop(self):
         print("stop")
@@ -2625,11 +2528,6 @@ class MyPopup_traza(QtGui.QWidget):
             self.pointtask.close()
         except:  # pass
             print("pointtasktask no estaba abierto")
-#        try:
-#            self.pointtask2.stop()
-#            self.pointtask2.close()
-#        except:  # pass
-#            print("pointtasktask2 no estaba abierto")
 
     def traza_openshutter(self):
         """ abre el shutter que se va a utilizar para imprimir"""
@@ -2644,7 +2542,7 @@ class MyPopup_traza(QtGui.QWidget):
             # filepath = self.file_path
             filepath = self.main.file_path
             timestr = time.strftime("%d%m%Y-%H%M%S")
-            if imprimiendo:
+            if imprimiendo:  # si viene de la rutina, guarda automatico con el numero de particula
                 timestr = str("Particula-") + str(self.ScanWidget.i_global)
                 self.ScanWidget.edit_save.setText(str(timestr))
             name = str(filepath + "/" + timestr + "-Traza" + ".txt")
@@ -2654,7 +2552,7 @@ class MyPopup_traza(QtGui.QWidget):
                        np.transpose([self.timeaxis[:self.ptr1],
                                      self.data1[:self.ptr1]]),
                        header="{} y umbral={:.3}".format(
-                        timestr, float(self.umbralEdit.text())))
+                        timestr, float(self.umbral)))
             print("va a cerrarlo")
             f.close()
             print("\n Guardo la Traza")
@@ -2671,20 +2569,16 @@ class MyPopup_traza(QtGui.QWidget):
         self.running = True
         self.tiempo = 1  # ms  # refresca el numero cada este tiempo
         self.Napd = int(np.round(apdrate * self.tiempo/10**3))
-        print(self.Napd)
+
         self.points = np.zeros(self.Napd)
-#        int(np.round((apdrate * (self.tiempo/10**3)))))
         self.points2 = np.copy(self.points)
         try:
             self.pointtask.stop()
             self.pointtask.close()
-#            self.pointtask2.stop()
-#            self.pointtask2.close()
         except: pass
 
-#        color = shutters[0]
         self.pointtask = nidaqmx.Task('pointtaskPD')
-        # Configure the analog in channel to read the PD
+        # Configure the analog in channel to read all the PDs
         for n in range(len(PDchans)):
             self.pointtask.ai_channels.add_ai_voltage_chan(
                 physical_channel='Dev1/ai{}'.format(PDchans[n]),  # igual son [0,1,2]
@@ -2696,23 +2590,12 @@ class MyPopup_traza(QtGui.QWidget):
               source=r'100kHzTimebase',  # 1000k
               samps_per_chan=len(self.points))
 
-#        self.pointtask2 = nidaqmx.Task('pointtask2')
-#        color = shutters[1]
-#        self.pointtask2.ai_channels.add_ai_voltage_chan(
-#            physical_channel='Dev1/ai{}'.format(PD_channels[color]),
-#            name_to_assign_to_channel='chan_PD')
-
-#        self.pointtask2.timing.cfg_samp_clk_timing(
-#          rate=apdrate,
-#          sample_mode=nidaqmx.constants.AcquisitionType.FINITE,
-#          source=r'100kHzTimebase',  # 1000k
-#          samps_per_chan=len(self.points))
         self.color_traza = self.ScanWidget.traza_laser.currentText()
 
         self.ptr1 = 0
         self.timeaxis = np.empty(100)
         self.data1 = np.empty(100)
-#        self.data2 = np.empty(100)
+
     # Quiero saber cuanto tarda para que coincidan los tiempos
         self.tiemporeal = self.tiempo
         tic = ptime.time()
@@ -2725,7 +2608,6 @@ class MyPopup_traza(QtGui.QWidget):
         self.ptr1 = 0
         self.timeaxis = np.empty(100)
         self.data1 = np.empty(100)
-#        self.data2 = np.empty(100)
 
         self.traza_openshutter()
         self.timer_inicio = ptime.time()
@@ -2734,21 +2616,14 @@ class MyPopup_traza(QtGui.QWidget):
         self.pointtimer.start(self.tiemporeal)
 
     def updatePoint(self):
-        tic = ptime.time()
+
         N = len(self.points)
         lectura_total = self.pointtask.read(N)
         self.points[:] = lectura_total[PD_channels[self.color_traza]][:]
-#        self.points2[:] = self.pointtask2.read(N)
-        tiic = ptime.time()
-#        if self.ptr1 ==0:
-#            self.tiemporeal = tiic-tic
-        m = np.max(self.points)  # mean
-#        m2 = np.mean(self.points2)
-#        #print("valor traza", m)
-#        self.PointLabel.setText("<strong>{0:.2e}|{0:.2e}".format(
-#                                           float(m), float(m2)))
-#        sig2 = np.mean(self.points2)
-        self.timeaxis[self.ptr1] = self.tiemporeal * self.ptr1  # *self.tiempo
+
+        m = np.mean(self.points)
+
+        self.timeaxis[self.ptr1] = self.ptr1 * self.tiemporeal  # *self.tiempo
         self.data1[self.ptr1] = m
         self.ptr1 += 1
         if self.ptr1 >= self.data1.shape[0]:
@@ -2758,84 +2633,49 @@ class MyPopup_traza(QtGui.QWidget):
             tmptime = self.timeaxis
             self.timeaxis = np.empty(self.timeaxis.shape[0] * 2)
             self.timeaxis[:tmptime.shape[0]] = tmptime
-#            tmpdata2 = self.data2
-#            self.data2 = np.empty(self.data2.shape[0] * 2)
-#            self.data2[:tmpdata2.shape[0]] = tmpdata2
-        tac = ptime.time()
-#        self.timeaxis.append((self.tiempo * 10**-3)*self.ptr1)
-#        self.data1.append(m)
-#        self.ptr1 += 1
-#        self.curve.setData(self.timeaxis, self.data1)
+
         self.curve.setData(self.timeaxis[:self.ptr1], self.data1[:self.ptr1],
                            pen=pg.mkPen('y', width=1),
                            shadowPen=pg.mkPen('w', width=3))
 
-#        mediototal = np.mean(self.data1[:self.ptr1])
-#        self.line.setData(self.timeaxis[:self.ptr1],
-#                          np.ones(len(self.timeaxis[:self.ptr1])) * mediototal,
-#                          pen=pg.mkPen('c', width=1))
-        tec = ptime.time()
-        M = 30
+        M = 10
         M2 = 10
         if self.ptr1 < M:
             mediochico = np.mean(self.data1[:self.ptr1])
             self.timeaxis2 = self.timeaxis[:self.ptr1]
-            MMM = self.ptr1
             if self.ptr1 < M2:
                 mediochico2 = np.mean(self.data1[:self.ptr1])
-#                MM2 = 0
             else:
                 mediochico2 = np.mean(self.data1[:self.ptr1-M2])
-#                MM2 = M2
         else:
             mediochico = np.mean(self.data1[self.ptr1-M:self.ptr1])
-            self.timeaxis2 = self.timeaxis[self.ptr1-M:self.ptr1]
-            MMM = M
-            mediochico2 = np.mean(self.data1[self.ptr1-M-M2:self.ptr1-M2])
+#            self.timeaxis2 = self.timeaxis[self.ptr1-M:self.ptr1]
 
-        tuc = ptime.time()
-#        self.line1.setData(self.timeaxis2,
-#                           np.ones(MMM) * mediochico,
-#                           pen=pg.mkPen('g', width=2))
-#        self.line2.setData(self.timeaxis2[:],
-#                           np.ones(MMM) * mediochico2,
-#                           pen=pg.mkPen('y', width=2))
-#TODO: estas lineas no tiene sentido dibujarlas
+            mediochico2 = np.mean(self.data1[self.ptr1-M-M2:self.ptr1-M2])
 
         self.PointLabel.setText("<strong>{:.3}|{:.3}".format(
                                 float(mediochico), float(mediochico2)))
-#        print(mediochico, mediochico2)
 
-#        if ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
-#            print("se paso el tiempo!!")
-
-        if mediochico >= mediochico2*float(self.umbralEdit.text()):
+        if mediochico >= mediochico2*float(self.umbral):
             self.PointLabel.setStyleSheet(" background-color: orange")
         else:
             self.PointLabel.setStyleSheet(" background-color: ")
-        try:
-            if self.timer_inicio ==0:
-                self.timer_inicio =0
+
+        try:  # no se bien en que caso sirve esto que puse aca
+            if self.timer_inicio == 0:
+                self.timer_inicio = 0
         except:
             self.timer_inicio = ptime.time()
+
     # Este if not es el que define si se esta corriendo una grilla
         if not self.main.grid_traza_control:
-            if abs(mediochico) > abs(mediochico2)*float(self.umbralEdit.text()) or ptime.time() - self.timer_inicio > float(self.ScanWidget.tmaxEdit.text()):
-                print("medio=", np.round(mediochico))
+            if abs(mediochico) > abs(mediochico2)*float(self.umbral) or (ptime.time() - self.timer_inicio) > float(self.ScanWidget.tmaxEdit.text()):
+                print("medio=", np.round(mediochico), np.round(mediochico2))
                 self.save_traza(True)
+                self.closeShutter(self.color_traza)
                 self.stop()
                 self.close_win()
                 self.main.grid_traza_control = True
-
-#        toc = ptime.time()
-#        print("\ntiempo Total", np.round((toc-tic)*10**3,3), "(ms)")
-#        print("tiempo alargando vectores", np.round((tac-tiic)*10**3,3), "(ms)")
-#        print("tiempo del medio", np.round((tec-tac)*10**3,3), "(ms)")
-#        print("tiempo armar promedios varios", np.round((tuc-tec)*10**3,3), "(ms)")
-#        print("tiempo plotear y escribir orange", np.round((toc-tuc)*10**3,3), "(ms)")
-#        print("tiemporeal", np.round((self.tiemporeal)*10**3,3), "(ms)")
-#        print("tiempo leyendo PD", np.round((tiic-tic)*10**3,3), "\n")
-
 
 
 # %% Otras Funciones
