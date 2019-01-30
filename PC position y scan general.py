@@ -2269,7 +2269,7 @@ class ScanWidget(QtGui.QFrame):
             ax.grid(True)
             plt.show()
         except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+#            print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
             print("^ No hay nada cargado ^")
 
