@@ -1883,21 +1883,24 @@ class ScanWidget(QtGui.QFrame):
 #        self.NameDirValue.setStyleSheet(" background-color: ; ")
 
     def guardarimagen(self):
-        try:
-            # filepath = self.file_path
-            filepath = self.main.file_path
-    #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/
-    #    Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/"
-#            timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
-            name = str(filepath + "/" + str(self.edit_save.text()) +
-                       "_" + "Scan" + ".tiff")
-            guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
-            guardado.save(name)
-            self.number = self.number + 1
-            self.edit_save.setText(self.edit_Name + str(self.number))
-            print("\n Guardo la imagen\n")
-        except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        print("Guardo la imagen (esta comentado)")
+# =============================================================================
+#         try:
+#             # filepath = self.file_path
+#             filepath = self.main.file_path
+#     #        filepath = "C:/Users/Santiago/Desktop/Germán Tesis de lic/
+#     #    Winpython (3.5.2 para tormenta)/WinPython-64bit-3.5.2.2/notebooks/"
+# #            timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
+#             name = str(filepath + "/" + str(self.edit_save.text()) +
+#                        "_" + "Scan" + ".tiff")
+#             guardado = Image.fromarray(np.transpose(np.flip(self.image, 1)))
+#             guardado.save(name)
+#             self.number = self.number + 1
+#             self.edit_save.setText(self.edit_Name + str(self.number))
+#             print("\n Guardo la imagen\n")
+#         except IOError as e:
+#             print("I/O error({0}): {1}".format(e.errno, e.strerror))
+# =============================================================================
 
 
 # %% GaussMeasure
@@ -2922,30 +2925,35 @@ class MyPopup_traza(QtGui.QWidget):
                 self.traza_shutterabierto = shutters[i]
 
     def save_traza(self, imprimiendo=False):
+
 #        fig, ax = plt.subplots()
 #        plt.plot(self.timeaxis[:self.ptr1], self.data1[:self.ptr1])
 #        ax.set_xlabel('Tiempo (s) (puede fallar)')
 #        ax.set_ylabel('Intensity (V)')
 #        plt.show()
-    
-        try:
-            # filepath = self.file_path
-            filepath = self.main.file_path
-            timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
-            if imprimiendo:
-                timestr = str("Particula-") + str(self.ScanWidget.i_global)
-                self.ScanWidget.edit_save.setText(str(timestr))
-            name = str(filepath + "/" + timestr + "_" + "Traza" + ".txt")
-            f = open(name, "w")
-            np.savetxt(name,
-                       np.transpose([self.timeaxis[:self.ptr1],
-                                     self.data1[:self.ptr1]]),
-                       header="{} y umbral={}".format(
-                        timestr, float(self.umbralEdit.text())))
-            f.close()
-            print("\n Guardo la Traza")
-        except IOError as e:
-            print("I/O error({0}): {1}".format(e.errno, e.strerror))
+
+# lo Comento para que no me guarde todo el tiempo
+        print("se supone que guardo la traza")
+# =============================================================================
+#         try:
+#             # filepath = self.file_path
+#             filepath = self.main.file_path
+#             timestr = time.strftime("%H-%M-%S")  # %d%m%Y-
+#             if imprimiendo:
+#                 timestr = str("Particula-") + str(self.ScanWidget.i_global)
+#                 self.ScanWidget.edit_save.setText(str(timestr))
+#             name = str(filepath + "/" + timestr + "_" + "Traza" + ".txt")
+#             f = open(name, "w")
+#             np.savetxt(name,
+#                        np.transpose([self.timeaxis[:self.ptr1],
+#                                      self.data1[:self.ptr1]]),
+#                        header="{} y umbral={}".format(
+#                         timestr, float(self.umbralEdit.text())))
+#             f.close()
+#             print("\n Guardo la Traza")
+#         except IOError as e:
+#             print("I/O error({0}): {1}".format(e.errno, e.strerror))
+# =============================================================================
 
     def PointScan(self):
         self.running = True
