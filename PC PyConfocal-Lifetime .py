@@ -197,7 +197,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.form_widget = ScanWidget(self, device)
         self.setCentralWidget(self.form_widget)
-        self.setGeometry(10, 40, 600, 550)  # (PosX, PosY, SizeX, SizeY)
+        self.setGeometry(10, 40, 200, 100)  # (PosX, PosY, SizeX, SizeY)
         self.save_docks()
 
         self.grid_traza_control = True
